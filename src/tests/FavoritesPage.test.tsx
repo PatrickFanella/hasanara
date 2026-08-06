@@ -91,6 +91,39 @@ describe('FavoritesPage accessibility', () => {
     expect((await axe.run(container)).violations).toEqual([]);
   });
 
+  it('keeps anonymous saves local without calling synchronization APIs', async () => {
+    serviceMocks.localMoments = [
+      {
+        videoId: 'video-local',
+        segIndex: 1,
+        startMs: 1_000,
+        endMs: 2_000,
+        text: 'Browser-only moment',
+      },
+    ];
+    serviceMocks.localSearches = [
+      {
+        id: 'local:search-1',
+        query: 'browser-only search',
+        filters: {},
+        created_at: '2026-08-06T00:00:00Z',
+      },
+    ];
+
+    render(
+      <MemoryRouter initialEntries={['/saved']}>
+        <FavoritesPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Browser-only moment')).toBeVisible();
+    expect(screen.getByText('browser-only search')).toBeVisible();
+    expect(serviceMocks.listFavorites).not.toHaveBeenCalled();
+    expect(serviceMocks.listSavedSearches).not.toHaveBeenCalled();
+    expect(serviceMocks.addFavorite).not.toHaveBeenCalled();
+    expect(serviceMocks.createSavedSearch).not.toHaveBeenCalled();
+  });
+
   it('migrates anonymous saves idempotently after sign-in', async () => {
     serviceMocks.user = { id: 'user-1' };
     serviceMocks.localMoments = [
@@ -244,6 +277,53 @@ describe('FavoritesPage accessibility', () => {
     expect(await screen.findByText('No saved searches yet.')).toBeVisible();
   });
 
+  it('removes synchronized private data from the UI immediately after sign-out', async () => {
+    serviceMocks.user = { id: 'user-1' };
+    serviceMocks.listFavorites.mockResolvedValue({
+      items: [
+        {
+          id: 'remote-1',
+          video_id: 'video-private',
+          start_ms: 12_000,
+          end_ms: 18_000,
+          text: 'Private synchronized moment',
+        },
+      ],
+    });
+    serviceMocks.listSavedSearches.mockResolvedValue({
+      items: [
+        {
+          id: 'search-private',
+          query: 'private synchronized search',
+          filters: {},
+          created_at: '2026-08-06T00:00:00Z',
+        },
+      ],
+    });
+
+    const view = render(
+      <MemoryRouter initialEntries={['/saved']}>
+        <FavoritesPage />
+      </MemoryRouter>
+    );
+    expect(await screen.findByText('Private synchronized moment')).toBeVisible();
+    expect(await screen.findByText('private synchronized search')).toBeVisible();
+
+    serviceMocks.user = null;
+    view.rerender(
+      <MemoryRouter initialEntries={['/saved']}>
+        <FavoritesPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText('Private synchronized moment')).not.toBeInTheDocument()
+    );
+    expect(screen.queryByText('private synchronized search')).not.toBeInTheDocument();
+    expect(screen.getByText('No saved moments yet.')).toBeVisible();
+    expect(screen.getByText('No saved searches yet.')).toBeVisible();
+  });
+
   it('preserves local saves when sign-in synchronization fails', async () => {
     serviceMocks.user = { id: 'user-1' };
     serviceMocks.localMoments = [
@@ -311,7 +391,9 @@ describe('FavoritesPage accessibility', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Save search' }));
-    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    const savingButton = screen.getByRole('button', { name: 'Saving…' });
+    expect(savingButton).toBeDisabled();
+    expect(savingButton).toHaveFocus();
     expect(serviceMocks.createSavedSearch).toHaveBeenCalledWith({
       query: 'rent',
       filters: expect.objectContaining({ source: 'youtube', date_from: '2026-01-01' }),
@@ -319,6 +401,7 @@ describe('FavoritesPage accessibility', () => {
     resolveSave?.(saved);
 
     expect(await screen.findByRole('status')).toHaveTextContent('Search saved and synchronized.');
+    expect(screen.getByRole('button', { name: 'Save search' })).toHaveFocus();
     expect(screen.getByText('rent')).toBeVisible();
   });
 
