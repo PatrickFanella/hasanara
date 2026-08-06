@@ -354,12 +354,12 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | AD-009 | P1 | As an administrator, I can inspect jobs-over-time, job-status, export-format, and search analytics charts. | Unit |
 | AD-010 | P1 | As an administrator, chart values have accessible text alternatives. | Partial |
 | AD-011 | P1 | As an administrator, dashboard failure is explained without a crash. | Unit |
-| AD-012 | P2 | As an administrator, I can filter events by type. | Gap |
-| AD-013 | P2 | As an administrator, I can filter events by user email. | Gap |
-| AD-014 | P2 | As an administrator, I can filter events by date/time range. | Gap |
-| AD-015 | P2 | As an administrator, I can inspect event summaries by type and day. | Gap |
-| AD-016 | P2 | As an administrator, I can inspect event rows and payloads. | Gap |
-| AD-017 | P2 | As an administrator, I can export the active event filters to CSV. | Gap |
+| AD-012 | P2 | As an administrator, I can filter events by type. | Unit |
+| AD-013 | P2 | As an administrator, I can filter events by user email. | Unit |
+| AD-014 | P2 | As an administrator, I can filter events by date/time range. | Unit |
+| AD-015 | P2 | As an administrator, I can inspect event summaries by type and day. | Unit |
+| AD-016 | P2 | As an administrator, I can inspect event rows and payloads. | Unit |
+| AD-017 | P2 | As an administrator, I can export the active event filters to CSV. | Unit |
 | AD-018 | P1 | As an administrator, I can list users and roles. | Unit |
 | AD-019 | P1 | As an administrator, typed user search is applied only when submitted. | Unit |
 | AD-020 | P1 | As an administrator, stale or cancelled user searches cannot replace newer results. | Unit |

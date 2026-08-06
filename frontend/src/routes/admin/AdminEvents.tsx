@@ -53,24 +53,33 @@ export default function AdminEvents() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Type</label>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="event-type">
+            Type
+          </label>
           <input
+            id="event-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="form-control min-w-48"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">User Email</label>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="event-user-email">
+            User Email
+          </label>
           <input
+            id="event-user-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="form-control min-w-56"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Start</label>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="event-start">
+            Start
+          </label>
           <input
+            id="event-start"
             type="datetime-local"
             value={start}
             onChange={(e) => setStart(e.target.value)}
@@ -78,8 +87,11 @@ export default function AdminEvents() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">End</label>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="event-end">
+            End
+          </label>
           <input
+            id="event-end"
             type="datetime-local"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
