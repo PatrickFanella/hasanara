@@ -1,5 +1,6 @@
 """Tests for health check endpoints."""
 
+import statistics
 import time
 
 import pytest
@@ -292,23 +293,32 @@ class TestHealthCheckConfiguration:
 class TestHealthCheckResponseTimes:
     """Tests for health check response time requirements."""
 
+    @staticmethod
+    def _response_durations(client: TestClient, path: str) -> list[float]:
+        # Warm the in-process TestClient so thread startup and a single scheduler
+        # pause are not mistaken for endpoint latency.
+        assert client.get(path).status_code == 200
+        durations: list[float] = []
+        for _ in range(5):
+            start = time.perf_counter()
+            response = client.get(path)
+            durations.append(time.perf_counter() - start)
+            assert response.status_code == 200
+        return durations
+
     def test_basic_health_check_fast_response(self, client: TestClient):
         """Test basic health check responds quickly (< 100ms)."""
-        start = time.time()
-        response = client.get("/health")
-        duration = time.time() - start
+        durations = self._response_durations(client, "/health")
 
-        assert response.status_code == 200
-        assert duration < 0.1  # Should be very fast
+        assert statistics.median(durations) < 0.1
+        assert max(durations) < 0.5
 
     def test_liveness_probe_fast_response(self, client: TestClient):
         """Test liveness probe responds quickly (< 100ms)."""
-        start = time.time()
-        response = client.get("/live")
-        duration = time.time() - start
+        durations = self._response_durations(client, "/live")
 
-        assert response.status_code == 200
-        assert duration < 0.1  # Should be very fast
+        assert statistics.median(durations) < 0.1
+        assert max(durations) < 0.5
 
     def test_readiness_probe_reasonable_response(self, client: TestClient):
         """Test readiness probe responds within timeout (< 5s)."""

@@ -518,7 +518,7 @@ describe('AccountPage', () => {
       if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
       if (path.endsWith('/account') && request.method === 'GET') return json(account);
       if (path.endsWith('/account/sessions/session-other'))
-        return json({ message: 'Session service is unavailable.' }, 503);
+        return json({ message: 'The session could not be revoked.' }, 422);
       return json({ error: 'unexpected' }, 500);
     });
     const events = userEvent.setup();
