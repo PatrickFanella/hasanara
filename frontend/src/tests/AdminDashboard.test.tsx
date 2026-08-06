@@ -143,6 +143,10 @@ describe('AdminDashboard', () => {
     expect(progressBars).toHaveLength(mockExportBreakdown.data.length);
     expect(progressBars[0]).toHaveAttribute('value', '25');
     expect(progressBars[0]).toHaveAttribute('max', '25');
+    expect(progressBars[0]).toHaveAccessibleName('srt: 25');
+    expect(screen.getByText('2025-10-20: 15, 2025-10-21: 23, 2025-10-22: 18')).toHaveClass(
+      'sr-only'
+    );
     expect(container.querySelectorAll('.admin-chart-swatch')).toHaveLength(
       mockJobStatusBreakdown.data.length
     );
@@ -164,13 +168,15 @@ describe('AdminDashboard', () => {
       </BrowserRouter>
     );
 
-    // Should show loading state and then stay there (no crash)
+    // Should show loading state and then an actionable recovery state.
     expect(screen.getByText('Loading dashboard...')).toBeInTheDocument();
 
     // Wait a bit to ensure it doesn't crash
     await waitFor(
       () => {
         expect(consoleErrorSpy).toHaveBeenCalled();
+        expect(screen.getByRole('alert')).toHaveTextContent('Dashboard data could not be loaded.');
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
       },
       { timeout: 2000 }
     );

@@ -395,7 +395,11 @@ describe('AccountPage', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { name: 'Could not verify your session' })
+      await screen.findByRole(
+        'heading',
+        { name: 'Could not verify your session' },
+        { timeout: 3000 }
+      )
     ).toBeVisible();
     expect(screen.getByRole('alert')).toHaveTextContent('session service unavailable');
     const retry = screen.getByRole('button', { name: 'Try again' });

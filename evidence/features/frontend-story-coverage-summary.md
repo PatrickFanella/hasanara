@@ -24,10 +24,11 @@ Status: in progress
 - Added account coverage for role/identity metadata, unlink cancellation, session failure/empty states, and danger-zone disclosure/reset behavior.
 - Added VOD coverage for exact paragraph/sentence/block navigation, all reading layouts, follow pause/resume, chapter evidence, loading, in-VOD search and wrapping navigation, sequential match playback, authenticated saves, save failure, and quote-copy success/failure.
 - Added browser coverage for the `/streams` and `/favorites` compatibility routes and verified reduced-motion styles disable nonessential motion and smooth scrolling.
+- Added admin coverage for opinion revisions, archive-period filters/validation/failures, metadata validation/failures, label status/kind/query filters, mutation failures, access/navigation, and accessible chart values; fixed missing label-kind filtering, unreachable announced sort validation, period live-region semantics, dashboard failure recovery, and line-chart text alternatives.
 
 ## Current local gate
 
-- Vitest: 40 files passed; 213 passed, 1 skipped.
+- Vitest: 40 files passed; 222 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
@@ -39,6 +40,6 @@ Status: in progress
 ## Remaining
 
 - 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency.
-- 24 rows have partial coverage that must be evaluated or strengthened.
+- 12 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.

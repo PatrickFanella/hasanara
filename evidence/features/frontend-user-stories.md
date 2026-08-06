@@ -203,8 +203,8 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | TP-021 | P1 | As an anonymous visitor, I can save a topic moment locally. | Unit |
 | TP-022 | P1 | As an authenticated user, I can save a topic moment remotely. | Unit |
 | TP-023 | P1 | As a visitor, topic save failure does not falsely mark the moment as saved. | Unit |
-| TP-024 | P2 | As an administrator, I can correct an opinion by supplying a reason and retain revision history. | Partial |
-| TP-025 | P2 | As an administrator, I can retract an opinion by supplying a reason and retain revision history. | Partial |
+| TP-024 | P2 | As an administrator, I can correct an opinion by supplying a reason and retain revision history. | Unit |
+| TP-025 | P2 | As an administrator, I can retract an opinion by supplying a reason and retain revision history. | Unit |
 | TP-026 | P1 | As a non-admin user, I cannot see opinion correction or retraction controls. | Unit |
 | TP-027 | P1 | As a visitor following an invalid empty topic, I receive a useful recovery state. | Unit |
 | TP-028 | P0 | As a visitor, topic load failure is announced without a route crash. | Unit |
@@ -343,16 +343,16 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 
 | ID | Priority | User story | Coverage |
 | --- | --- | --- | --- |
-| AD-001 | P0 | As an anonymous visitor, opening an admin route requires authentication. | Partial |
+| AD-001 | P0 | As an anonymous visitor, opening an admin route requires authentication. | Unit |
 | AD-002 | P0 | As an authenticated non-admin, I receive a 403 and no admin child content loads. | Unit |
 | AD-003 | P0 | As a user with `admin:access`, I can open the admin shell. | Unit |
-| AD-004 | P1 | As an administrator, I can navigate Dashboard, Events, Users, Periods, Metadata, and Labels. | Partial |
+| AD-004 | P1 | As an administrator, I can navigate Dashboard, Events, Users, Periods, Metadata, and Labels. | Unit |
 | AD-005 | P1 | As an administrator, I see a dashboard loading state. | Unit |
 | AD-006 | P1 | As an administrator, I can refresh dashboard data manually. | Unit |
 | AD-007 | P1 | As an administrator, I can inspect job, video, user, session, search, export, queue, and signup metrics. | Unit |
 | AD-008 | P1 | As an administrator, I can inspect database, worker, and queue health. | Unit |
 | AD-009 | P1 | As an administrator, I can inspect jobs-over-time, job-status, export-format, and search analytics charts. | Unit |
-| AD-010 | P1 | As an administrator, chart values have accessible text alternatives. | Partial |
+| AD-010 | P1 | As an administrator, chart values have accessible text alternatives. | Unit |
 | AD-011 | P1 | As an administrator, dashboard failure is explained without a crash. | Unit |
 | AD-012 | P2 | As an administrator, I can filter events by type. | Unit |
 | AD-013 | P2 | As an administrator, I can filter events by user email. | Unit |
@@ -367,33 +367,33 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | AD-022 | P0 | As an administrator, role changes are CSRF-protected and shown only after server success. | Unit |
 | AD-023 | P0 | As an administrator, a failed role change preserves the prior role and capability state. | Unit |
 | AD-024 | P0 | As an administrator who demotes myself, admin controls disappear after refreshed capabilities arrive. | Unit |
-| AD-025 | P1 | As an administrator, I can list, search, and filter named archive periods. | Partial |
+| AD-025 | P1 | As an administrator, I can list, search, and filter named archive periods. | Unit |
 | AD-026 | P1 | As an administrator, I can create a one-time archive period. | Unit |
 | AD-027 | P1 | As an administrator, I can create a recurring archive period with valid month/day values. | Unit |
-| AD-028 | P1 | As an administrator, invalid sort order or incomplete recurrence fields are rejected locally. | Partial |
+| AD-028 | P1 | As an administrator, invalid sort order or incomplete recurrence fields are rejected locally. | Unit |
 | AD-029 | P1 | As an administrator, I can edit an archive period. | Unit |
 | AD-030 | P1 | As an administrator, I can activate or deactivate an archive period. | Unit |
 | AD-031 | P1 | As an administrator, I can recalculate a named period. | Unit |
 | AD-032 | P2 | As an administrator, I can seed curated archive periods. | Unit |
-| AD-033 | P1 | As an administrator, period load and mutation failures are announced without losing form data. | Partial |
+| AD-033 | P1 | As an administrator, period load and mutation failures are announced without losing form data. | Unit |
 | AD-034 | P1 | As an administrator, I can create and edit people metadata including aliases, kind, order, and description. | Unit |
 | AD-035 | P1 | As an administrator, I can create and edit tag metadata including category, order, and description. | Unit |
-| AD-036 | P1 | As an administrator, invalid metadata sort orders are rejected locally. | Partial |
+| AD-036 | P1 | As an administrator, invalid metadata sort orders are rejected locally. | Unit |
 | AD-037 | P2 | As an administrator, I can seed default tags. | Unit |
 | AD-038 | P1 | As an administrator, I can search for a VOD by title or YouTube ID. | Unit |
 | AD-039 | P1 | As an administrator, I can select a search result and inspect its current people and tags. | Unit |
 | AD-040 | P1 | As an administrator, I can assign people to a VOD with an optional role. | Unit |
 | AD-041 | P1 | As an administrator, I can assign tags to a VOD. | Unit |
 | AD-042 | P1 | As an administrator, I can save the complete VOD metadata assignment. | Unit |
-| AD-043 | P1 | As an administrator, metadata loading, searching, and saving failures are announced without a false success state. | Partial |
+| AD-043 | P1 | As an administrator, metadata loading, searching, and saving failures are announced without a false success state. | Unit |
 | AD-044 | P1 | As an administrator, I can load the candidate-label queue. | Unit |
-| AD-045 | P1 | As an administrator, I can filter candidate labels by status, kind, or query. | Partial |
+| AD-045 | P1 | As an administrator, I can filter candidate labels by status, kind, or query. | Unit |
 | AD-046 | P1 | As an administrator, I can inspect a candidate label, its confidence, and evidence moments. | Unit |
 | AD-047 | P1 | As an administrator, I can open label evidence at the cited VOD timestamp. | Unit |
 | AD-048 | P1 | As an administrator, I can approve, reject, or merge a candidate label as supported. | Unit |
 | AD-049 | P1 | As an administrator, I can review individual label assignments. | Unit |
 | AD-050 | P2 | As an administrator, I can trigger label extraction for a VOD with the selected mode. | Unit |
-| AD-051 | P1 | As an administrator, label and assignment mutation failures are announced without optimistic false state. | Partial |
+| AD-051 | P1 | As an administrator, label and assignment mutation failures are announced without optimistic false state. | Unit |
 | AD-052 | P0 | As a non-admin, direct requests to administrative APIs remain forbidden even if frontend controls are bypassed. | API/manual |
 
 ## Cross-cutting public-launch stories

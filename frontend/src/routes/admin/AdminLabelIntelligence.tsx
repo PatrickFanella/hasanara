@@ -49,6 +49,7 @@ export default function AdminLabelIntelligence() {
   const [selectedLabel, setSelectedLabel] = useState<ArchiveLabelResponse | null>(null);
   const [assignments, setAssignments] = useState<ArchiveLabelAssignmentResponse[]>([]);
   const [statusFilter, setStatusFilter] = useState('candidate');
+  const [kindFilter, setKindFilter] = useState('');
   const [query, setQuery] = useState('');
   const [loadingLabels, setLoadingLabels] = useState(true);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
@@ -64,6 +65,7 @@ export default function AdminLabelIntelligence() {
     setError('');
     const params = new URLSearchParams();
     if (statusFilter) params.set('status', statusFilter);
+    if (kindFilter) params.set('kind', kindFilter);
     if (query.trim()) params.set('q', query.trim());
     params.set('limit', '100');
     params.set('offset', '0');
@@ -84,7 +86,7 @@ export default function AdminLabelIntelligence() {
     } finally {
       setLoadingLabels(false);
     }
-  }, [query, statusFilter]);
+  }, [kindFilter, query, statusFilter]);
 
   const loadAssignments = useCallback(async (label: ArchiveLabelResponse | null) => {
     if (!label) {
@@ -296,12 +298,12 @@ export default function AdminLabelIntelligence() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Candidate labels queue</h2>
-              <p className="text-sm text-muted">Filter labels by status or text.</p>
+              <p className="text-sm text-muted">Filter labels by status, kind, or text.</p>
             </div>
             {loadingLabels && <div className="text-sm text-muted">Loading…</div>}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label
                 className="mb-1 block text-sm font-medium text-ink"
@@ -321,6 +323,38 @@ export default function AdminLabelIntelligence() {
                 <option value="rejected">rejected</option>
                 <option value="merged">merged</option>
                 <option value="">all</option>
+              </select>
+            </div>
+            <div>
+              <label
+                className="mb-1 block text-sm font-medium text-ink"
+                htmlFor="label-kind-filter"
+              >
+                Kind
+              </label>
+              <select
+                id="label-kind-filter"
+                className="form-control"
+                value={kindFilter}
+                onChange={(event) => setKindFilter(event.target.value)}
+              >
+                <option value="">all</option>
+                {[
+                  'topic',
+                  'person',
+                  'series',
+                  'category',
+                  'event',
+                  'game',
+                  'org',
+                  'meme',
+                  'place',
+                  'issue',
+                ].map((kindOption) => (
+                  <option key={kindOption} value={kindOption}>
+                    {kindOption}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
