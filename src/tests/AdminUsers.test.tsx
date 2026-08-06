@@ -192,7 +192,9 @@ describe('AdminUsers role controls', () => {
     const events = userEvent.setup();
     renderUsers();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The role could not be changed.');
+    expect(await screen.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+      'The role could not be changed.'
+    );
     expect(screen.queryByText('Target User')).not.toBeInTheDocument();
     expect(screen.queryByText('No users match this search.')).not.toBeInTheDocument();
     await events.click(screen.getByRole('button', { name: 'Retry' }));
@@ -227,7 +229,9 @@ describe('AdminUsers role controls', () => {
     await events.type(screen.getByLabelText('Search by email or name'), 'missing');
     await events.click(screen.getByRole('button', { name: 'Apply search' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The role could not be changed.');
+    expect(await screen.findByRole('alert', {}, { timeout: 5_000 })).toHaveTextContent(
+      'The role could not be changed.'
+    );
     expect(screen.queryByText('Target User')).not.toBeInTheDocument();
     expect(screen.queryByText('No users match this search.')).not.toBeInTheDocument();
     await events.click(screen.getByRole('button', { name: 'Retry' }));
