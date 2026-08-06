@@ -48,3 +48,4 @@ Status: in progress
 - 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency. Desktop WebKit and Mobile Safari fail before application startup because this host lacks `libevent-2.1-7t64`, `libwebpdemux2`, `libavif16`, `libharfbuzz-icu0`, `libmanette-0.2-0`, `libenchant-2-2`, `libhyphen0`, and `libwoff1`; install them with `sudo npx playwright install-deps` on the release runner.
 - No inventory row retains a `Partial` label.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
+- Every manual/external story has an executable procedure and required artifact in [the frontend manual launch matrix](frontend-manual-launch-matrix.md); blank evidence remains a release blocker.
