@@ -9,6 +9,33 @@ import axe from 'axe-core';
 const searchParamsMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
 
+const groupedResult = {
+  total_moments: 1,
+  total_videos: 1,
+  groups: [
+    {
+      video: {
+        id: 'video-1',
+        youtube_id: 'abc123',
+        title: 'VOD one',
+        channel_name: 'Channel Alpha',
+        duration_seconds: 1200,
+        uploaded_at: '2026-05-10T00:00:00Z',
+      },
+      moments: [
+        {
+          id: 1,
+          video_id: 'video-1',
+          start_ms: 12000,
+          end_ms: 18000,
+          snippet: 'the <mark>rent</mark> is too high',
+          source: 'whisper',
+        },
+      ],
+    },
+  ],
+};
+
 vi.mock('../services', async () => {
   const actual = await vi.importActual<typeof import('../services')>('../services');
   return {
@@ -177,5 +204,73 @@ describe('SearchPage', () => {
       '/v/video-1?t=12'
     );
     expect(screen.getByRole('status')).toHaveTextContent('1 mentions added');
+  });
+
+  it('clears the complete query and filter state', async () => {
+    currentSearchParams = new URLSearchParams({
+      q: 'rent',
+      source: 'youtube',
+      category: 'news',
+      date_from: '2026-01-01',
+      date_to: '2026-02-01',
+      min_duration: '120',
+      max_duration: '3600',
+      sort_by: 'date_desc',
+    });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+
+    renderWithProviders(<SearchPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear query and dates' }));
+
+    expect(searchParamsMock).toHaveBeenCalledOnce();
+    expect(searchParamsMock.mock.calls[0]?.[0]).toEqual(new URLSearchParams());
+    expect(screen.getByRole('searchbox', { name: 'Search query' })).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: 'Transcript' })).toHaveValue('best');
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('relevance');
+  });
+
+  it('renders a true no-match state after a successful empty search', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'no such phrase' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue({
+      total_moments: 0,
+      total_videos: 0,
+      groups: [],
+    } as never);
+
+    renderWithProviders(<SearchPage />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'No transcript matches' })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Try fewer words, remove the date range/)).toBeInTheDocument();
+  });
+
+  it('announces clipboard success and failure for result actions', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    const writeText = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('clipboard denied'));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    renderWithProviders(<SearchPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Copy link' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Timestamp link copied.');
+    expect(writeText).toHaveBeenNthCalledWith(1, expect.stringContaining('/v/video-1?t=12#seg-1'));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy quote' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Quote copied.');
+    expect(writeText).toHaveBeenNthCalledWith(2, expect.stringContaining('— VOD one, 00:00:12'));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy link' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The timestamp link could not be copied.'
+    );
   });
 });

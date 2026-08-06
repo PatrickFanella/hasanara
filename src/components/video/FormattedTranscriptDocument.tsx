@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import type { SearchHit, Segment, TranscriptBlock } from '../../types/api';
 import { formatTimestamp } from '../../features/archive/format';
 
@@ -278,7 +279,6 @@ function FormattedTranscriptDocument({
                   <button
                     type="button"
                     className="selection-action"
-                    disabled={selectedSaved}
                     onClick={() =>
                       onSaveMoment(
                         selectedPiece.firstSegment,
@@ -287,7 +287,7 @@ function FormattedTranscriptDocument({
                       )
                     }
                   >
-                    {selectedSaved ? 'Saved moment' : 'Save moment'}
+                    {selectedSaved ? 'Remove moment' : 'Save moment'}
                   </button>
                   <button
                     type="button"
@@ -313,4 +313,3 @@ function FormattedTranscriptDocument({
 }
 
 export default memo(FormattedTranscriptDocument);
-import { memo, useMemo } from 'react';

@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import HomePage from '../routes/HomePage';
 import { renderWithProviders } from './test-utils';
 import { api } from '../services';
 import { http } from '../services/api';
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
+}
 
 describe('HomePage', () => {
   beforeEach(() => {
@@ -74,5 +80,56 @@ describe('HomePage', () => {
     await user.type(input, 'archive');
     await user.click(screen.getByRole('button', { name: 'Search archive' }));
     expect(input).toHaveValue('archive');
+  });
+
+  it('ignores blank searches and trims a submitted query', async () => {
+    vi.spyOn(http, 'get').mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getArchiveSummary').mockResolvedValue({
+      recent_videos: [],
+      popular_searches: [],
+    } as never);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <HomePage />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText('Search the HasanAbi archive');
+    await user.type(input, '   ');
+    await user.click(screen.getByRole('button', { name: 'Search archive' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/');
+
+    await user.clear(input);
+    await user.type(input, '  rent control  ');
+    await user.click(screen.getByRole('button', { name: 'Search archive' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=rent%20control');
+  });
+
+  it('leaves useful non-loading fallbacks when archive summary is unavailable', async () => {
+    vi.spyOn(http, 'get').mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getArchiveSummary').mockRejectedValue(new Error('summary unavailable'));
+
+    renderWithProviders(<HomePage />);
+
+    expect(
+      await screen.findByText('Recent VODs will appear when the archive summary is available.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Search activity will surface useful starting points here.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Loading recent VODs…')).not.toBeInTheDocument();
   });
 });

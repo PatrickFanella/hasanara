@@ -42,4 +42,31 @@ describe('TimelinePage', () => {
       );
     });
   });
+
+  it('distinguishes an unavailable timeline from a valid empty timeline', async () => {
+    const timelineMock = vi
+      .spyOn(api, 'getTimeline')
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce([] as never);
+
+    const first = render(
+      <MemoryRouter initialEntries={['/timeline']}>
+        <TimelinePage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Timeline unavailable');
+    expect(screen.queryByText('No timeline data yet.')).not.toBeInTheDocument();
+
+    first.unmount();
+    render(
+      <MemoryRouter initialEntries={['/timeline']}>
+        <TimelinePage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('No timeline data yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(timelineMock).toHaveBeenCalledTimes(2);
+  });
 });

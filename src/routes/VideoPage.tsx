@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { HTTPError } from 'ky';
-import { api, apiAddFavorite, apiListFavorites, favorites, useAuth, track } from '../services';
+import {
+  api,
+  apiAddFavorite,
+  apiDeleteFavorite,
+  apiListFavorites,
+  favorites,
+  useAuth,
+  track,
+} from '../services';
 import type { Segment, TranscriptResponse, VideoInfo, SearchHit, VideoChapter } from '../types/api';
 // favorites, useAuth imported from services barrel
 import { ExportMenu } from '../components';
@@ -420,6 +428,16 @@ export default function VideoPage() {
     if (!videoId) return;
     try {
       if (user) {
+        const existing = serverFavs.find(
+          (favorite) => favorite.start_ms === segment.start_ms && favorite.end_ms === segment.end_ms
+        );
+        if (existing) {
+          await apiDeleteFavorite(existing.id);
+          setServerFavs((current) => current.filter((favorite) => favorite.id !== existing.id));
+          track({ type: 'favorite_remove', payload: { videoId, start_ms: segment.start_ms } });
+          setOperationFeedback('Transcript moment removed.');
+          return;
+        }
         const created = await apiAddFavorite({
           video_id: videoId,
           start_ms: segment.start_ms,
@@ -431,6 +449,7 @@ export default function VideoPage() {
           ...current,
         ]);
       } else {
+        const wasSaved = favorites.has({ videoId, segIndex });
         favorites.toggle({
           videoId,
           segIndex,
@@ -438,6 +457,12 @@ export default function VideoPage() {
           endMs: segment.end_ms,
           text,
         });
+        track({
+          type: wasSaved ? 'favorite_remove' : 'favorite_add',
+          payload: { videoId, start_ms: segment.start_ms },
+        });
+        setOperationFeedback(wasSaved ? 'Transcript moment removed.' : 'Transcript moment saved.');
+        return;
       }
       track({ type: 'favorite_add', payload: { videoId, start_ms: segment.start_ms } });
       setOperationFeedback('Transcript moment saved.');

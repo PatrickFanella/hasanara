@@ -9,6 +9,7 @@ import {
   apiListSavedSearches,
   favorites,
   localSavedSearches,
+  savedSearchKey,
   useAuth,
 } from '../services';
 import type { SavedSearch, SavedSearchFilters } from '../types/api';
@@ -89,10 +90,10 @@ export default function FavoritesPage() {
       apiListSavedSearches()
         .then(async (response) => {
           const serverKeys = new Set(
-            response.items.map((item) => `${item.query}:${JSON.stringify(item.filters)}`)
+            response.items.map((item) => savedSearchKey(item.query, item.filters))
           );
           for (const local of localSavedSearches.list()) {
-            const key = `${local.query}:${JSON.stringify(local.filters)}`;
+            const key = savedSearchKey(local.query, local.filters);
             if (!serverKeys.has(key)) {
               await apiCreateSavedSearch({ query: local.query, filters: local.filters });
             }

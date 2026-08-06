@@ -36,6 +36,9 @@ export default function PlainTranscriptTurns({
     <div className="transcript-document" role="list" aria-label="Transcript paragraphs">
       {turns.map((turn) => {
         const activeEntry = turn.segments.find(({ id }) => id === activeSegId);
+        const activeEntrySaved = activeEntry
+          ? isSavedSegment(activeEntry.segment, activeEntry.id)
+          : false;
 
         return (
           <section key={turn.key} className="transcript-block content-auto" role="listitem">
@@ -116,7 +119,7 @@ export default function PlainTranscriptTurns({
                       )
                     }
                   >
-                    Save moment
+                    {activeEntrySaved ? 'Remove moment' : 'Save moment'}
                   </button>
                   <button
                     type="button"

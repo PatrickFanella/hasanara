@@ -22,6 +22,7 @@ function bucketRange(period: string) {
 export default function TimelinePage() {
   const [buckets, setBuckets] = useState<TimelineBucket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     api
@@ -30,6 +31,7 @@ export default function TimelinePage() {
       .catch((err: unknown) => {
         console.error('Failed to load archive timeline', err);
         setBuckets([]);
+        setError(true);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -46,6 +48,13 @@ export default function TimelinePage() {
 
       {loading ? (
         <div className="surface-card text-center text-muted">Loading timeline…</div>
+      ) : error ? (
+        <div className="surface-card text-center" role="alert">
+          <p className="text-lg font-medium text-ink">Timeline unavailable</p>
+          <p className="mt-2 text-muted">
+            The archive chronology could not be loaded. Refresh the page to try again.
+          </p>
+        </div>
       ) : buckets.length === 0 ? (
         <div className="surface-card text-center text-muted">No timeline data yet.</div>
       ) : (

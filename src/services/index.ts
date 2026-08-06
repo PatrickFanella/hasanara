@@ -11,7 +11,7 @@ export {
 } from './api';
 export * from './auth';
 export { favorites } from './favorites';
-export { localSavedSearches } from './savedSearches';
+export { localSavedSearches, savedSearchKey } from './savedSearches';
 export { playbackQueue } from './playbackQueue';
 export { track } from './analytics';
 export { ThemeProvider, useTheme } from './theme';

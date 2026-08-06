@@ -124,4 +124,42 @@ describe('VideoPage', () => {
       '/episodes'
     );
   });
+
+  it('announces anonymous save and remove actions accurately', async () => {
+    vi.spyOn(http, 'get').mockImplementation(((path: string) => {
+      if (path === 'auth/me') return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getVideo').mockResolvedValue({
+      id: 'video-toggle-save',
+      youtube_id: 'abc123xyz89',
+      title: 'Saveable episode',
+      has_whisper_transcript: true,
+    } as never);
+    vi.spyOn(api, 'getTranscript').mockResolvedValue({
+      video_id: 'video-toggle-save',
+      segments: [{ start_ms: 12_000, end_ms: 18_000, text: 'A moment worth saving.' }],
+    } as never);
+    vi.spyOn(api, 'getVideoChapters').mockResolvedValue({ chapters: [] } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/v/video-toggle-save']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/v/:videoId" element={<VideoPage />} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    const sentence = await screen.findByRole('button', {
+      name: 'Play paragraph from 00:00:12',
+    });
+    fireEvent.click(sentence);
+    fireEvent.click(screen.getByRole('button', { name: 'Save moment' }));
+    expect(await screen.findByText('Transcript moment saved.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove moment' }));
+    expect(await screen.findByText('Transcript moment removed.')).toBeInTheDocument();
+  });
 });
