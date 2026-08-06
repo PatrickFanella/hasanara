@@ -6,6 +6,8 @@ Status: operator evidence pending
 
 Automated supporting evidence: all 19 journeys pass in Chromium, Firefox, Mobile Chrome, desktop WebKit, and emulated Mobile Safari. WebKit projects run in the version-matched official Playwright 1.61.1 container because the host lacks native WebKit libraries. The unchecked items below remain human, hardware, provider, or deployed-environment gates.
 
+Deployed preflight on 2026-08-06 at 07:40 UTC: unauthenticated requests to `https://hasanara.tv/`, `/api/health`, and `/api/live` all returned `302` redirects to `auth.hasanara.tv` through the external Cloudflare/Caddy/Authelia ingress. The production origin is therefore not publicly accessible, and NX-013/NX-023 cannot pass until the external ingress policy is opened for the intended public routes and the smoke matrix is rerun. This ingress policy is not defined in this repository.
+
 This matrix is the release evidence for stories that cannot be proven completely by the local automated suite. Record the tester, UTC time, deployed commit and environment, result, artifact link, and defect ID (when applicable) for every check. A check is not green when its evidence field is blank.
 
 Use the frozen release candidate and production-like data. Do not record cookies, tokens, OAuth codes, provider identifiers, or private request payloads in screenshots, traces, issues, or notes.
