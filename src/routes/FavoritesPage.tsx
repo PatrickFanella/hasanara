@@ -55,6 +55,7 @@ export default function FavoritesPage() {
   );
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const visibleSearches = user ? (savedSearches ?? localSearches) : localSearches;
 
   useEffect(() => {
     const next = readSavedSearchFilters(params);
@@ -112,8 +113,13 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     if (!user) {
-      const id = setInterval(() => setItems(favorites.list()), 1000);
-      return () => clearInterval(id);
+      const synchronizeLocalState = (event: StorageEvent) => {
+        if (event.key === null || event.key === 'favorites:v1') setItems(favorites.reload());
+        if (event.key === null || event.key === 'saved-searches:v1')
+          setLocalSearches(localSavedSearches.reload());
+      };
+      window.addEventListener('storage', synchronizeLocalState);
+      return () => window.removeEventListener('storage', synchronizeLocalState);
     }
   }, [user]);
 
@@ -207,8 +213,10 @@ export default function FavoritesPage() {
           <div className="surface-card space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="section-title">Saved searches</h2>
-              {user ? (
+              {user && savedSearches !== null ? (
                 <span className="badge-success">Synced</span>
+              ) : user ? (
+                <span className="badge-warning">Sync pending</span>
               ) : (
                 <span className="badge-warning">Local only</span>
               )}
@@ -224,9 +232,9 @@ export default function FavoritesPage() {
                 onSave={saveSearch}
               />
 
-              {(user ? savedSearches : localSearches)?.length ? (
+              {visibleSearches.length ? (
                 <div className="space-y-3">
-                  {(user ? (savedSearches ?? []) : localSearches).map((saved) => (
+                  {visibleSearches.map((saved) => (
                     <SavedSearchItem
                       key={saved.id}
                       saved={saved}

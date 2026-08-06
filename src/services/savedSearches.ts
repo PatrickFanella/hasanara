@@ -38,6 +38,10 @@ let cache = load();
 
 export const localSavedSearches = {
   list: () => [...cache],
+  reload() {
+    cache = load();
+    return [...cache];
+  },
   add(query: string, filters: SavedSearchFilters) {
     const item: SavedSearch = {
       id: `local:${crypto.randomUUID()}`,

@@ -26,6 +26,10 @@ export const favorites = {
   list(): FavoriteItem[] {
     return [...cache];
   },
+  reload(): FavoriteItem[] {
+    cache = load();
+    return [...cache];
+  },
   has(key: FavoriteKey): boolean {
     return cache.some((i) => i.videoId === key.videoId && i.segIndex === key.segIndex);
   },
