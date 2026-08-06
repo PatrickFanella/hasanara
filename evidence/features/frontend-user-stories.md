@@ -272,28 +272,28 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | SV-001 | P1 | As an anonymous visitor, I can view locally saved moments. | Unit, E2E |
 | SV-002 | P1 | As an anonymous visitor, I can reopen a locally saved moment. | E2E |
 | SV-003 | P1 | As an anonymous visitor, I can remove a locally saved moment. | E2E, Unit |
-| SV-004 | P1 | As an authenticated user, I can view server-synchronized saved moments. | Partial |
-| SV-005 | P1 | As an authenticated user, I can remove a remote saved moment. | Gap |
+| SV-004 | P1 | As an authenticated user, I can view server-synchronized saved moments. | Unit |
+| SV-005 | P1 | As an authenticated user, I can remove a remote saved moment. | Unit |
 | SV-006 | P1 | As an anonymous visitor, local storage failures do not crash the Saved page. | Unit |
 | SV-007 | P1 | As a visitor with no saved moments, I see a useful empty state and search link. | Unit |
 | SV-008 | P0 | As a newly signed-in user, local moments missing from the server are synchronized once. | Unit |
 | SV-009 | P0 | As a newly signed-in user, successfully synchronized local moments are removed locally to prevent duplication. | Unit |
-| SV-010 | P1 | As a user, synchronization failure preserves access to my local moments. | Gap |
+| SV-010 | P1 | As a user, synchronization failure preserves access to my local moments. | Unit |
 | SV-011 | P1 | As an anonymous visitor, I can save a named search and all active filters locally. | Unit |
-| SV-012 | P1 | As an authenticated user, I can save a named search and all active filters remotely. | Partial |
-| SV-013 | P1 | As a visitor, a blank search cannot be saved. | Partial |
-| SV-014 | P1 | As a visitor, saving progress disables duplicate submission. | Partial |
+| SV-012 | P1 | As an authenticated user, I can save a named search and all active filters remotely. | Unit |
+| SV-013 | P1 | As a visitor, a blank search cannot be saved. | Unit |
+| SV-014 | P1 | As a visitor, saving progress disables duplicate submission. | Unit |
 | SV-015 | P1 | As a visitor, successful local or synchronized saving is announced accurately. | Unit |
-| SV-016 | P1 | As a visitor, saved-search failure is announced without a false list entry. | Gap |
+| SV-016 | P1 | As a visitor, saved-search failure is announced without a false list entry. | Unit |
 | SV-017 | P1 | As a visitor, I can open a saved search with its complete filter set. | Unit |
 | SV-018 | P1 | As an anonymous visitor, I can delete a local saved search. | Unit |
-| SV-019 | P1 | As an authenticated user, I can delete a remote saved search. | Gap |
+| SV-019 | P1 | As an authenticated user, I can delete a remote saved search. | Unit |
 | SV-020 | P0 | As a newly signed-in user, local searches missing from the server are synchronized once. | Unit |
 | SV-021 | P0 | As a newly signed-in user, successfully synchronized local searches are removed locally to prevent duplication. | Unit |
 | SV-022 | P1 | As a visitor, the UI distinguishes local-only saves from synchronized saves. | Unit |
 | SV-023 | P1 | As an anonymous visitor, I am invited to sign in to synchronize without being blocked from saving. | Unit |
 | SV-024 | P1 | As a visitor, the `/favorites` compatibility route shows the same content as `/saved`. | Gap |
-| SV-025 | P1 | As a visitor, locally saved items update across tabs or windows. | Gap |
+| SV-025 | P1 | As a visitor, locally saved items update across tabs or windows. | Unit |
 
 ## Authentication and account security
 

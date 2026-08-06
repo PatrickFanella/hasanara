@@ -34,4 +34,16 @@ describe('local saved searches', () => {
       savedSearchKey('housing', { category: 'politics', source: 'best' })
     );
   });
+
+  it('reloads searches written by another browsing context', () => {
+    const external = {
+      id: 'local:external',
+      query: 'external query',
+      filters: { source: 'best' as const },
+      created_at: '2026-08-06T00:00:00Z',
+    };
+    storage.set('saved-searches:v1', JSON.stringify([external]));
+
+    expect(localSavedSearches.reload()).toEqual([external]);
+  });
 });

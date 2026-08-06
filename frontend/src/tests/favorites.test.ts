@@ -39,6 +39,19 @@ describe('favorites service', () => {
       const result = favorites.list();
       expect(result).toEqual([]);
     });
+
+    it('reloads favorites written by another browsing context', () => {
+      const external = {
+        videoId: 'video-external',
+        segIndex: 4,
+        startMs: 4_000,
+        endMs: 6_000,
+        text: 'External save',
+      };
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify([external]));
+
+      expect(favorites.reload()).toEqual([external]);
+    });
   });
 
   describe('has', () => {
