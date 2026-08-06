@@ -447,7 +447,8 @@ export default function AdminVideoMetadata() {
             <input
               id="person-sort-order"
               className="form-control"
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={personForm.sort_order}
               onChange={(event) =>
                 setPersonForm((current) => ({ ...current, sort_order: event.target.value }))
@@ -625,7 +626,8 @@ export default function AdminVideoMetadata() {
             <input
               id="tag-sort-order"
               className="form-control"
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={tagForm.sort_order}
               onChange={(event) =>
                 setTagForm((current) => ({ ...current, sort_order: event.target.value }))

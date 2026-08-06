@@ -332,6 +332,108 @@ describe('TopicPage', () => {
     expect(screen.getByRole('button', { name: 'Save moment' })).toBeEnabled();
   });
 
+  it('records opinion corrections and retractions with reasons and revision history', async () => {
+    vi.mocked(http.get).mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return {
+          json: vi.fn().mockResolvedValue({
+            user: { id: 'admin-1' },
+            capabilities: ['admin:access'],
+          }),
+        } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    const revision = {
+      revision: 1,
+      stance: 'support',
+      summary: 'Original summary.',
+      confidence: 0.9,
+      model_version: 'model-1',
+      prompt_version: 'prompt-1',
+      time_bucket: '2026-Q2',
+      model_generated: true,
+      status: 'published',
+      created_at: '2026-07-12T00:00:00Z',
+      evidence: [],
+    };
+    const opinion = {
+      id: 'opinion-1',
+      subject_slug: 'rent',
+      normalized_claim: 'Rent should be affordable',
+      status: 'published',
+      current_revision: 1,
+      revisions: [revision],
+    };
+    const corrected = {
+      ...opinion,
+      current_revision: 2,
+      revisions: [
+        revision,
+        {
+          ...revision,
+          revision: 2,
+          summary: 'Corrected summary.',
+          correction_reason: 'Source wording changed',
+        },
+      ],
+    };
+    const retracted = {
+      ...corrected,
+      status: 'retracted',
+      current_revision: 3,
+      revisions: [
+        ...corrected.revisions,
+        {
+          ...revision,
+          revision: 3,
+          status: 'retracted',
+          summary: 'Retracted summary.',
+          correction_reason: 'No longer supported',
+        },
+      ],
+    };
+    vi.spyOn(api, 'getTopicOpinions')
+      .mockResolvedValueOnce({ items: [opinion] } as never)
+      .mockResolvedValueOnce({ items: [corrected] } as never)
+      .mockResolvedValue({ items: [retracted] } as never);
+    const correct = vi
+      .spyOn(api, 'correctOpinion')
+      .mockResolvedValue({ items: [corrected] } as never);
+    const retract = vi
+      .spyOn(api, 'retractOpinion')
+      .mockResolvedValue({ items: [retracted] } as never);
+    Object.defineProperty(window, 'prompt', {
+      configurable: true,
+      value: vi
+        .fn()
+        .mockReturnValueOnce('Source wording changed')
+        .mockReturnValueOnce('No longer supported'),
+    });
+
+    renderWithProviders(<TopicPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Correct' }));
+
+    await waitFor(() =>
+      expect(correct).toHaveBeenCalledWith('opinion-1', { reason: 'Source wording changed' })
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Opinion correction recorded as a new revision.'
+    );
+    expect(await screen.findByText('Revision history (2)')).toBeInTheDocument();
+    expect(screen.getByText(/Source wording changed/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retract' }));
+    await waitFor(() => expect(retract).toHaveBeenCalledWith('opinion-1', 'No longer supported'));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Opinion retracted with revision history preserved.'
+    );
+    expect(await screen.findByText('Revision history (3)')).toBeInTheDocument();
+    expect(screen.getByText(/No longer supported/)).toBeInTheDocument();
+  });
+
   it('shows a recovery state instead of fetching an invalid empty topic', () => {
     currentTopic = '';
     const mentionMapMock = vi.spyOn(api, 'getMentionMap');

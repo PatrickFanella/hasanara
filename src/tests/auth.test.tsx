@@ -20,7 +20,13 @@ function TestComponent() {
     logout,
   } = useAuth();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading)
+    return (
+      <div>
+        <div>Loading...</div>
+        <button onClick={() => invalidateLocalAuth()}>Invalidate</button>
+      </div>
+    );
 
   return (
     <div>

@@ -170,10 +170,14 @@ function SimpleLineChart({ data, labels }: { data: number[]; labels: string[] })
 
   return (
     <div className="overflow-x-auto">
+      <span className="sr-only">
+        {labels.map((label, index) => `${label}: ${data[index] ?? 0}`).join(', ')}
+      </span>
       <svg
         width={chartWidth}
         height={chartHeight}
         className="border-b border-l border-border text-accent"
+        aria-hidden="true"
       >
         <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" />
         {data.map((value, idx) => {
@@ -207,8 +211,10 @@ export default function AdminDashboard() {
   const [searchAnalytics, setSearchAnalytics] = useState<SearchAnalytics | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [loadError, setLoadError] = useState('');
 
   const fetchData = useCallback(async () => {
+    setLoadError('');
     try {
       const [metricsRes, healthRes, jobsRes, statusRes, exportRes, searchRes] = await Promise.all([
         http.get('admin/dashboard/metrics').json<DashboardMetrics>(),
@@ -228,6 +234,7 @@ export default function AdminDashboard() {
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setLoadError('Dashboard data could not be loaded.');
     }
   }, []);
 
@@ -246,11 +253,31 @@ export default function AdminDashboard() {
   }, [autoRefresh, fetchData]);
 
   if (!metrics || !health) {
-    return <div className="p-6">Loading dashboard...</div>;
+    if (loadError) {
+      return (
+        <div className="surface-card space-y-3" role="alert">
+          <h1 className="page-title">Admin Dashboard</h1>
+          <p>{loadError}</p>
+          <button type="button" className="btn" onClick={() => void fetchData()}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="p-6" role="status">
+        Loading dashboard...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {loadError && (
+        <div className="alert-warning" role="alert">
+          {loadError} Existing dashboard values are unchanged.
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="page-title">Admin Dashboard</h1>

@@ -292,9 +292,17 @@ export default function AdminArchivePeriods() {
           </button>
         </div>
         {(notice || error) && (
-          <div className="space-y-1 text-sm">
-            {notice && <div className="text-success">{notice}</div>}
-            {error && <div className="text-red-500">{error}</div>}
+          <div className="space-y-1 text-sm" aria-live="polite">
+            {notice && (
+              <div className="text-success" role="status">
+                {notice}
+              </div>
+            )}
+            {error && (
+              <div className="text-red-500" role="alert">
+                {error}
+              </div>
+            )}
           </div>
         )}
       </div>

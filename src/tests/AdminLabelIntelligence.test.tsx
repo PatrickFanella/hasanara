@@ -18,6 +18,14 @@ function requestJson(value: unknown): Record<string, unknown> {
   return (value as { json?: Record<string, unknown> } | undefined)?.json ?? {};
 }
 
+function requestSearchParams(value: unknown): URLSearchParams | undefined {
+  return (value as { searchParams?: URLSearchParams } | undefined)?.searchParams;
+}
+
+function rejectedResponse(message: string) {
+  return { json: () => Promise.reject(new Error(message)) };
+}
+
 vi.mock('../services/api', () => ({
   http: {
     get: vi.fn(),
@@ -179,5 +187,106 @@ describe('AdminLabelIntelligence', () => {
     expect(
       await screen.findByText('Extraction queued for video-99: 4 candidates, 6 assignments.')
     ).toBeInTheDocument();
+  });
+
+  it('filters candidate labels by status, kind, and query', async () => {
+    const label: ArchiveLabelResponse = {
+      id: 'label-2',
+      slug: 'gaming',
+      label: 'Gaming',
+      kind: 'category',
+      status: 'published',
+      source: 'automatic',
+      publish_tier: 'shadow',
+      confidence_score: 0.83,
+      description: null,
+    };
+    vi.mocked(http.get).mockImplementation((url: unknown) => {
+      if (requestUrl(url) === 'admin/archive/labels') {
+        return mockJsonResponse({ items: [label] }) as never;
+      }
+      return mockJsonResponse({ items: [] }) as never;
+    });
+
+    render(
+      <BrowserRouter>
+        <AdminLabelIntelligence />
+      </BrowserRouter>
+    );
+    expect((await screen.findAllByText('Gaming')).length).toBeGreaterThan(0);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Status'), 'published');
+    await user.selectOptions(screen.getByLabelText('Kind'), 'category');
+    await user.type(screen.getByLabelText('Search labels'), 'gaming');
+
+    await waitFor(() => {
+      const labelCalls = vi
+        .mocked(http.get)
+        .mock.calls.filter(([url]) => requestUrl(url) === 'admin/archive/labels');
+      const params = requestSearchParams(labelCalls.at(-1)?.[1]);
+      expect(Object.fromEntries(params ?? [])).toEqual({
+        status: 'published',
+        kind: 'category',
+        q: 'gaming',
+        limit: '100',
+        offset: '0',
+      });
+    });
+  });
+
+  it('announces label and assignment mutation failures without optimistic state', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const label: ArchiveLabelResponse = {
+      id: 'label-1',
+      slug: 'union-news',
+      label: 'Union News',
+      kind: 'topic',
+      status: 'candidate',
+      source: 'automatic',
+      publish_tier: 'shadow',
+      confidence_score: 0.91,
+      description: 'Labor organizing coverage',
+    };
+    const assignment: ArchiveLabelAssignmentResponse = {
+      id: 'assignment-1',
+      label,
+      video_id: 'video-1',
+      unit_type: 'window',
+      start_ms: 120_000,
+      end_ms: 150_000,
+      status: 'candidate',
+      publish_tier: 'shadow',
+      confidence_score: 0.88,
+      evidence_count: 1,
+      evidence: [{ text: 'workers voted to unionize' }],
+    };
+    vi.mocked(http.get).mockImplementation((url: unknown) => {
+      if (requestUrl(url) === 'admin/archive/labels') {
+        return mockJsonResponse({ items: [label] }) as never;
+      }
+      if (requestUrl(url) === 'admin/archive/labels/label-1/assignments') {
+        return mockJsonResponse({ items: [assignment] }) as never;
+      }
+      return mockJsonResponse({ items: [] }) as never;
+    });
+    vi.mocked(http.post).mockImplementation(() => rejectedResponse('offline') as never);
+
+    render(
+      <BrowserRouter>
+        <AdminLabelIntelligence />
+      </BrowserRouter>
+    );
+    const evidenceRows = await screen.findByRole('table');
+    const publish = screen.getAllByRole('button', { name: 'publish' })[0];
+    await userEvent.click(publish);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to publish label.');
+    expect(screen.getAllByText('candidate').length).toBeGreaterThan(0);
+    expect(screen.queryByText('publish applied to Union News.')).not.toBeInTheDocument();
+
+    await userEvent.click(within(evidenceRows).getByRole('button', { name: 'approve' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to approve assignment.');
+    expect(within(evidenceRows).getByText('candidate')).toBeInTheDocument();
+    expect(screen.queryByText('approve applied to assignment.')).not.toBeInTheDocument();
   });
 });

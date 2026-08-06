@@ -28,6 +28,26 @@ describe('AdminLayout access', () => {
   it('renders the admin shell only with the admin capability', () => {
     auth.capabilities = ['admin:access'];
     render(<AdminLayout />, { wrapper: MemoryRouter });
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+      'href',
+      '/admin/dashboard'
+    );
+    expect(screen.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/admin/events');
+    expect(screen.getByRole('link', { name: 'Users' })).toHaveAttribute('href', '/admin/users');
+    expect(screen.getByRole('link', { name: 'Periods' })).toHaveAttribute('href', '/admin/periods');
+    expect(screen.getByRole('link', { name: 'Metadata' })).toHaveAttribute(
+      'href',
+      '/admin/metadata'
+    );
+    expect(screen.getByRole('link', { name: 'Labels' })).toHaveAttribute('href', '/admin/labels');
+  });
+
+  it('requires anonymous visitors to sign in before admin content renders', () => {
+    auth.user = null;
+    render(<AdminLayout />, { wrapper: MemoryRouter });
+
+    expect(screen.getByRole('heading', { name: 'Sign in required' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
 });

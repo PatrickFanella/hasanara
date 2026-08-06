@@ -14,6 +14,10 @@ function mockJsonResponse<T>(value: T) {
   };
 }
 
+function rejectedResponse(message: string) {
+  return { json: () => Promise.reject(new Error(message)) };
+}
+
 function requestUrl(value: unknown): string {
   return String(value);
 }
@@ -304,4 +308,93 @@ describe('AdminVideoMetadata', () => {
     expect(screen.getByRole('checkbox', { name: 'Assign Guest Two' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Assign React Notes' })).toBeChecked();
   }, 10_000);
+
+  it('rejects invalid metadata sort orders before making a request', async () => {
+    vi.mocked(http.get).mockImplementation(() => mockJsonResponse({ items: [] }) as never);
+    render(
+      <BrowserRouter>
+        <AdminVideoMetadata />
+      </BrowserRouter>
+    );
+    await screen.findByText('No people found.');
+
+    const personSort = screen.getByLabelText('Person sort order');
+    await userEvent.type(screen.getByLabelText('Display name'), 'Invalid Person');
+    await userEvent.type(personSort, 'not-a-number');
+    await userEvent.click(screen.getByRole('button', { name: 'Create person' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Person sort order must be a number.'
+    );
+    expect(http.post).not.toHaveBeenCalled();
+
+    const tagSort = screen.getByLabelText('Tag sort order');
+    await userEvent.type(screen.getByLabelText('Label'), 'Invalid Tag');
+    await userEvent.type(tagSort, 'still-not-a-number');
+    await userEvent.click(screen.getByRole('button', { name: 'Create tag' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tag sort order must be a number.');
+    expect(http.post).not.toHaveBeenCalled();
+  });
+
+  it('announces load, search, and assignment failures without false success', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let searchFails = true;
+    const video: ArchiveVideoMetadataItem = {
+      id: 'video-1',
+      youtube_id: 'abc123',
+      title: 'Deep Dive',
+      people: [],
+      tags: [],
+    };
+    vi.mocked(http.get).mockImplementation((url: unknown) => {
+      if (requestUrl(url) === 'admin/archive/metadata/people') {
+        return rejectedResponse('people offline') as never;
+      }
+      if (requestUrl(url) === 'admin/archive/metadata/tags') {
+        return mockJsonResponse({
+          items: [
+            {
+              id: 'tag-1',
+              slug: 'gaming',
+              label: 'Gaming',
+              kind: 'category',
+              status: 'published',
+              sort_order: 1,
+            },
+          ],
+        }) as never;
+      }
+      if (requestUrl(url) === 'admin/archive/metadata/videos') {
+        return searchFails
+          ? (rejectedResponse('search offline') as never)
+          : (mockJsonResponse({ items: [video] }) as never);
+      }
+      return mockJsonResponse({ items: [] }) as never;
+    });
+    vi.mocked(http.put).mockImplementation(() => rejectedResponse('save offline') as never);
+
+    render(
+      <BrowserRouter>
+        <AdminVideoMetadata />
+      </BrowserRouter>
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load people.');
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Search videos'), 'abc123');
+    await user.click(screen.getByRole('button', { name: 'Search videos' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to search videos.');
+    expect(screen.queryByText(/Found \d+ VODs/)).not.toBeInTheDocument();
+
+    searchFails = false;
+    await user.click(screen.getByRole('button', { name: 'Search videos' }));
+    await user.click(await screen.findByRole('button', { name: 'Select' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Assign Gaming' }));
+    await user.click(screen.getByRole('button', { name: 'Save assignment' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to save assignment.');
+    expect(screen.getByRole('checkbox', { name: 'Assign Gaming' })).toBeChecked();
+    expect(screen.queryByText('Saved metadata assignment.')).not.toBeInTheDocument();
+  });
 });

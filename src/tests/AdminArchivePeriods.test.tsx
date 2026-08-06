@@ -17,6 +17,10 @@ function requestJson(value: unknown): Record<string, unknown> {
   return (value as { json?: Record<string, unknown> } | undefined)?.json ?? {};
 }
 
+function rejectedResponse(message: string) {
+  return { json: () => Promise.reject(new Error(message)) };
+}
+
 vi.mock('../services/api', () => ({
   http: {
     get: vi.fn(),
@@ -223,5 +227,85 @@ describe('AdminArchivePeriods', () => {
     });
 
     expect(screen.getByText(/Seeded curated periods/)).toBeInTheDocument();
+  });
+
+  it('applies search, kind, and status filters to the period list', async () => {
+    vi.mocked(http.get).mockImplementation(
+      () => mockJsonResponse({ items: [basePeriod] }) as never
+    );
+
+    render(
+      <BrowserRouter>
+        <AdminArchivePeriods />
+      </BrowserRouter>
+    );
+    expect(await screen.findByText('Launch Day')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Search'), 'launch');
+    await user.selectOptions(document.querySelector('#period-kind')!, 'event');
+    await user.selectOptions(document.querySelector('#period-status')!, 'published');
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => {
+      const calls = vi
+        .mocked(http.get)
+        .mock.calls.filter(([url]) => requestUrl(url) === 'admin/archive/periods');
+      const params = (calls.at(-1)?.[1] as { searchParams: URLSearchParams }).searchParams;
+      expect(Object.fromEntries(params)).toEqual({
+        q: 'launch',
+        kind: 'event',
+        status: 'published',
+        limit: '100',
+        offset: '0',
+      });
+    });
+  });
+
+  it('announces validation and save failures without clearing the edit form', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(http.get).mockImplementation(
+      () => mockJsonResponse({ items: [basePeriod] }) as never
+    );
+    vi.mocked(http.patch).mockImplementation(() => rejectedResponse('offline') as never);
+
+    render(
+      <BrowserRouter>
+        <AdminArchivePeriods />
+      </BrowserRouter>
+    );
+    expect(await screen.findByText('Launch Day')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.clear(screen.getByLabelText('Label'));
+    await user.type(screen.getByLabelText('Label'), 'Unsaved revision');
+    fireEvent.change(screen.getByLabelText('Recurring month'), { target: { value: '12' } });
+    await user.click(screen.getByRole('button', { name: 'Update period' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Recurring month and day must be set together.'
+    );
+    expect(http.patch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Label')).toHaveValue('Unsaved revision');
+
+    fireEvent.change(screen.getByLabelText('Recurring day'), { target: { value: '25' } });
+    await user.click(screen.getByRole('button', { name: 'Update period' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to save archive period.');
+    expect(screen.getByLabelText('Label')).toHaveValue('Unsaved revision');
+    expect(screen.queryByText('Updated Unsaved revision')).not.toBeInTheDocument();
+  });
+
+  it('announces an initial load failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(http.get).mockImplementation(() => rejectedResponse('offline') as never);
+
+    render(
+      <BrowserRouter>
+        <AdminArchivePeriods />
+      </BrowserRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load archive periods.');
   });
 });
