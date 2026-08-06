@@ -128,23 +128,23 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | EX-004 | P1 | As a visitor, switching period kind loads the corresponding period options. | Unit |
 | EX-005 | P1 | As a visitor, I can select a period from the discovery rail. | Unit |
 | EX-006 | P1 | As a visitor, the selected period is represented in the URL. | Unit |
-| EX-007 | P1 | As a visitor, I can define a custom date range. | Partial |
-| EX-008 | P1 | As a visitor, I can switch custom-range granularity between week and month. | Partial |
+| EX-007 | P1 | As a visitor, I can define a custom date range. | Unit |
+| EX-008 | P1 | As a visitor, I can switch custom-range granularity between week and month. | Unit |
 | EX-009 | P1 | As a visitor, applying a range refreshes archive intelligence. | Unit |
-| EX-010 | P1 | As a visitor, refresh progress is visible without discarding the previous snapshot. | Partial |
-| EX-011 | P1 | As a visitor, refresh failure preserves the last successful snapshot and explains the problem. | Gap |
+| EX-010 | P1 | As a visitor, refresh progress is visible without discarding the previous snapshot. | Unit |
+| EX-011 | P1 | As a visitor, refresh failure preserves the last successful snapshot and explains the problem. | Unit |
 | EX-012 | P1 | As a visitor, I can see period VOD, runtime, label, and evidence totals. | Unit |
-| EX-013 | P1 | As a visitor, I can understand why a named period matters. | Partial |
-| EX-014 | P1 | As a visitor, an empty period explains that no archived VODs were found. | Gap |
+| EX-013 | P1 | As a visitor, I can understand why a named period matters. | Unit |
+| EX-014 | P1 | As a visitor, an empty period explains that no archived VODs were found. | Unit |
 | EX-015 | P1 | As a visitor, I can inspect ranked topic, series, and person cards with evidence. | Unit |
 | EX-016 | P1 | As a visitor, I can open a topic card into its mention map. | Unit |
-| EX-017 | P1 | As a visitor, I see a useful empty state when no topic cards exist. | Gap |
+| EX-017 | P1 | As a visitor, I see a useful empty state when no topic cards exist. | Unit |
 | EX-018 | P1 | As a visitor, I can open a representative VOD for the selected period. | Unit |
 | EX-019 | P0 | As a visitor, I can open a cited period moment at the intended transcript timestamp. | Unit |
-| EX-020 | P1 | As a visitor, I see explicit empty states for missing representative VODs, cited moments, or calculated source material. | Gap |
+| EX-020 | P1 | As a visitor, I see explicit empty states for missing representative VODs, cited moments, or calculated source material. | Unit |
 | EX-021 | P1 | As a visitor, I can open a person facet as a transcript search. | Unit |
 | EX-022 | P1 | As a visitor, I can open a content tag as a transcript search. | Unit |
-| EX-023 | P1 | As a visitor, missing people or tag facets are explained. | Gap |
+| EX-023 | P1 | As a visitor, missing people or tag facets are explained. | Unit |
 | EX-024 | P1 | As a keyboard user, horizontally scrollable period-kind controls remain operable and visibly selected. | Manual |
 | EX-025 | P1 | As a mobile visitor, period controls and evidence cards remain usable without content loss. | E2E, Partial |
 

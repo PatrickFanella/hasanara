@@ -8,8 +8,45 @@ import axe from 'axe-core';
 
 describe('ExplorePage', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
+
+  const selectedPeriod = {
+    slug: '2026-05',
+    label: 'May 2026',
+    kind: 'month',
+    date_from: '2026-05-01',
+    date_to: '2026-05-31',
+    description: 'A known good archive snapshot.',
+    video_count: 2,
+    total_duration_seconds: 3600,
+  };
+
+  function exploreResponse(
+    overrides: Record<string, unknown> = {}
+  ): Awaited<ReturnType<typeof api.getExploreIntelligence>> {
+    return {
+      summary: {
+        creator_name: 'HasanAra',
+        video_count: 2,
+        total_duration_seconds: 3600,
+        transcript_word_count: 200,
+        recent_videos: [],
+        popular_searches: [],
+      },
+      exploration_modes: [],
+      trending_searches: [],
+      suggested_searches: [],
+      people: [],
+      tags: [],
+      topic_cards: [],
+      periods: [],
+      selected_period: selectedPeriod,
+      period_options: [selectedPeriod],
+      ...overrides,
+    } as Awaited<ReturnType<typeof api.getExploreIntelligence>>;
+  }
 
   it('renders archive intelligence sections, controls, and evidence links', async () => {
     const weekOption = {
@@ -352,5 +389,104 @@ describe('ExplorePage', () => {
     await waitFor(() => {
       expect(getExploreIntelligence).toHaveBeenLastCalledWith({});
     });
+  });
+
+  it('applies a custom weekly range and preserves the snapshot when refresh fails', async () => {
+    let rejectRefresh: ((reason?: unknown) => void) | undefined;
+    const getExploreIntelligence = vi
+      .spyOn(api, 'getExploreIntelligence')
+      .mockResolvedValueOnce(exploreResponse())
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            rejectRefresh = reject;
+          })
+      );
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <MemoryRouter initialEntries={['/explore']}>
+        <ExplorePage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findAllByText('A known good archive snapshot.')).not.toHaveLength(0);
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-05-04' } });
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-05-10' } });
+    fireEvent.change(screen.getByLabelText('Granularity'), { target: { value: 'week' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply range' }));
+
+    await waitFor(() =>
+      expect(getExploreIntelligence).toHaveBeenLastCalledWith({
+        period: '2026-05',
+        granularity: 'week',
+        date_from: '2026-05-04',
+        date_to: '2026-05-10',
+      })
+    );
+    expect(screen.getByText('Refreshing')).toBeVisible();
+    expect(screen.getAllByText('A known good archive snapshot.')).not.toHaveLength(0);
+    rejectRefresh?.(new Error('unavailable'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The last successful snapshot is still shown.'
+    );
+    expect(screen.getAllByText('A known good archive snapshot.')).not.toHaveLength(0);
+  });
+
+  it('explains an empty period, topic list, source sections, and discovery facets', async () => {
+    const emptyPeriod = {
+      ...selectedPeriod,
+      description: '',
+      video_count: 0,
+      total_duration_seconds: 0,
+    };
+    vi.spyOn(api, 'getExploreIntelligence').mockResolvedValue(
+      exploreResponse({
+        selected_period: emptyPeriod,
+        period_options: [emptyPeriod],
+        periods: [
+          {
+            period: emptyPeriod.slug,
+            label: emptyPeriod.label,
+            video_count: 0,
+            total_duration_seconds: 0,
+            videos: [],
+            top_topics: [],
+            evidence: [],
+          },
+        ],
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/explore']}>
+        <ExplorePage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/No archived VODs were found for this period/)).toBeVisible();
+    expect(screen.getByText('No topic cards are available for this window yet.')).toBeVisible();
+    expect(
+      screen.getByText('No representative VODs are available for this period yet.')
+    ).toBeVisible();
+    expect(
+      screen.getByText('No cited moments are available for this selected period yet.')
+    ).toBeVisible();
+    expect(screen.getByText('No people facets yet.')).toBeVisible();
+    expect(screen.getByText('No tag facets yet.')).toBeVisible();
+  });
+
+  it('explains when no calculated source material exists', async () => {
+    vi.spyOn(api, 'getExploreIntelligence').mockResolvedValue(exploreResponse());
+
+    render(
+      <MemoryRouter initialEntries={['/explore']}>
+        <ExplorePage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByText('No calculated source material is available for this period yet.')
+    ).toBeVisible();
   });
 });
