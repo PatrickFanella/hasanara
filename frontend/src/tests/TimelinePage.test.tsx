@@ -41,6 +41,8 @@ describe('TimelinePage', () => {
         '/episodes?date_from=2026-05-01&date_to=2026-05-31'
       );
     });
+    expect(screen.getByText('2 VODs · 1:30:00')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /VOD one/ })).toHaveAttribute('href', '/v/video-1');
   });
 
   it('distinguishes an unavailable timeline from a valid empty timeline', async () => {
@@ -68,5 +70,18 @@ describe('TimelinePage', () => {
     expect(await screen.findByText('No timeline data yet.')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(timelineMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('announces timeline loading before buckets arrive', () => {
+    vi.spyOn(api, 'getTimeline').mockReturnValue(new Promise(() => {}) as never);
+
+    render(
+      <MemoryRouter initialEntries={['/timeline']}>
+        <TimelinePage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Loading timeline…')).toBeInTheDocument();
+    expect(screen.queryByText('No timeline data yet.')).not.toBeInTheDocument();
   });
 });

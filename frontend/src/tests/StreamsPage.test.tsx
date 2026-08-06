@@ -227,4 +227,45 @@ describe('StreamsPage', () => {
         .every((button) => button.hasAttribute('disabled'))
     ).toBe(true);
   });
+
+  it('shows a stable initial skeleton while the VOD library is loading', () => {
+    vi.spyOn(api, 'listStreamLibrary').mockReturnValue(new Promise(() => {}) as never);
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/episodes']}>
+        <StreamsPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Loading VODs…')).toBeInTheDocument();
+    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(6);
+    expect(
+      screen
+        .getAllByRole('button', { name: /previous/i })
+        .every((item) => item.hasAttribute('disabled'))
+    ).toBe(true);
+  });
+
+  it('explains how to recover from a successful no-match result', async () => {
+    vi.spyOn(api, 'listStreamLibrary').mockResolvedValue({
+      items: [],
+      page_info: {
+        has_next_page: false,
+        has_previous_page: false,
+        next_cursor: null,
+        previous_cursor: null,
+        total_count: 0,
+      },
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={['/episodes?q=impossible']}>
+        <StreamsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('No VODs match these filters.')).toBeInTheDocument();
+    expect(screen.getByText(/Try broadening the date range/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

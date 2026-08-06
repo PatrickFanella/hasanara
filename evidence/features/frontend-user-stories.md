@@ -21,19 +21,19 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | ID | Priority | User story | Coverage |
 | --- | --- | --- | --- |
 | GL-001 | P0 | As a visitor, I can load the application shell without a runtime exception. | E2E |
-| GL-002 | P0 | As a visitor, I can skip directly to the main content with the keyboard. | Partial |
-| GL-003 | P1 | As a desktop visitor, I can navigate to Home, Search, Explore, Timeline, VODs, and Saved. | Partial |
+| GL-002 | P0 | As a visitor, I can skip directly to the main content with the keyboard. | Unit |
+| GL-003 | P1 | As a desktop visitor, I can navigate to Home, Search, Explore, Timeline, VODs, and Saved. | Unit |
 | GL-004 | P1 | As a mobile visitor, I can open the navigation menu. | E2E |
 | GL-005 | P1 | As a mobile visitor, I can close the menu by selecting a destination. | E2E |
 | GL-006 | P1 | As a keyboard user, I can close the mobile menu with Escape and regain focus on its trigger. | E2E, Unit |
-| GL-007 | P1 | As a visitor, I can see which desktop navigation destination is active. | Gap |
+| GL-007 | P1 | As a visitor, I can see which desktop navigation destination is active. | Unit |
 | GL-008 | P1 | As an authenticated user, I can see Account navigation. | Unit |
 | GL-009 | P1 | As an anonymous visitor, I do not see Account navigation. | Unit |
 | GL-010 | P1 | As a visitor, I can switch between light and dark themes. | Unit |
 | GL-011 | P1 | As a returning visitor, my explicit theme choice persists. | Unit |
 | GL-012 | P1 | As a first-time visitor, the theme follows my operating-system preference. | Unit |
 | GL-013 | P1 | As a visitor using automatic theme selection, the page responds to system changes. | Unit |
-| GL-014 | P1 | As a mobile visitor, I can change theme from the open navigation menu. | Gap |
+| GL-014 | P1 | As a mobile visitor, I can change theme from the open navigation menu. | Unit |
 | GL-015 | P1 | As a visitor, browser chrome receives the correct theme color. | Unit |
 | GL-016 | P0 | As a visitor, serious and critical accessibility violations are absent on all core public routes in light mode. | E2E |
 | GL-017 | P0 | As a visitor, serious and critical accessibility violations are absent on all core public routes in dark mode. | E2E |
@@ -43,9 +43,9 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | GL-021 | P0 | As a visitor encountering a route exception, I can retry or return home. | Unit |
 | GL-022 | P0 | As a visitor, navigation between routes does not report stale-document runtime errors. | E2E |
 | GL-023 | P1 | As an authenticated user, I can log out from desktop navigation. | Unit |
-| GL-024 | P1 | As an authenticated mobile user, I can log out and the menu closes. | Gap |
+| GL-024 | P1 | As an authenticated mobile user, I can log out and the menu closes. | Unit |
 | GL-025 | P1 | As an anonymous visitor, I can start Google or Twitch sign-in from desktop navigation. | Unit |
-| GL-026 | P1 | As an anonymous mobile visitor, I can start Google or Twitch sign-in and the menu closes. | Gap |
+| GL-026 | P1 | As an anonymous mobile visitor, I can start Google or Twitch sign-in and the menu closes. | Unit |
 | GL-027 | P1 | As a visitor, external or thumbnail images do not cause disruptive layout shifts. | Manual |
 | GL-028 | P1 | As a keyboard user, all shell controls have a visible focus indicator. | Manual |
 
@@ -57,17 +57,17 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | HM-002 | P0 | As a visitor, I can submit a non-empty archive search from the home page. | E2E |
 | HM-003 | P1 | As a visitor, leading and trailing search whitespace does not alter my query. | Unit |
 | HM-004 | P1 | As a visitor, submitting an empty home search leaves me safely on the page. | Unit |
-| HM-005 | P1 | As a visitor, I can open a suggested example search. | Gap |
-| HM-006 | P1 | As a visitor, I can open Explore from the masthead. | Gap |
-| HM-007 | P1 | As a visitor, I can browse all VODs from the masthead or recent section. | Gap |
+| HM-005 | P1 | As a visitor, I can open a suggested example search. | Unit |
+| HM-006 | P1 | As a visitor, I can open Explore from the masthead. | Unit |
+| HM-007 | P1 | As a visitor, I can browse all VODs from the masthead or recent section. | Unit |
 | HM-008 | P1 | As a visitor, I can see archive counts, runtime, transcript words, and refresh date. | Unit |
-| HM-009 | P1 | As a visitor, I see stable placeholders while archive summary data loads. | Gap |
+| HM-009 | P1 | As a visitor, I see stable placeholders while archive summary data loads. | Unit |
 | HM-010 | P1 | As a visitor, I see a useful fallback when archive summary data fails. | Unit |
-| HM-011 | P1 | As a visitor, I can open a recently indexed VOD. | Gap |
-| HM-012 | P1 | As a visitor, I can open a popular search term. | Gap |
-| HM-013 | P1 | As a visitor, I can open the newest transcript at its beginning. | Gap |
+| HM-011 | P1 | As a visitor, I can open a recently indexed VOD. | Unit |
+| HM-012 | P1 | As a visitor, I can open a popular search term. | Unit |
+| HM-013 | P1 | As a visitor, I can open the newest transcript at its beginning. | Unit |
 | HM-014 | P2 | As a visitor, I can understand the Search → Inspect → Read workflow. | Unit |
-| HM-015 | P1 | As a screen-reader user, the home search has a useful accessible name. | Partial |
+| HM-015 | P1 | As a screen-reader user, the home search has a useful accessible name. | Unit |
 
 ## Search and research tools
 
@@ -153,26 +153,26 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | ID | Priority | User story | Coverage |
 | --- | --- | --- | --- |
 | EP-001 | P0 | As a visitor, I can browse the VOD library. | E2E, Unit |
-| EP-002 | P1 | As a visitor, VODs are presented newest first. | Partial |
+| EP-002 | P1 | As a visitor, VODs are presented newest first. | Unit |
 | EP-003 | P1 | As a visitor, I can filter VODs by title, channel, or notes. | Unit |
 | EP-004 | P1 | As a visitor, I can filter VODs by upload-date range. | Unit |
 | EP-005 | P1 | As a visitor, applied library filters are reflected in the URL. | Unit |
-| EP-006 | P1 | As a visitor, I can clear all library filters. | Gap |
+| EP-006 | P1 | As a visitor, I can clear all library filters. | Unit |
 | EP-007 | P1 | As a visitor, I can move to the next result page. | Unit, E2E |
 | EP-008 | P1 | As a visitor, I can move to the previous result page. | Unit |
 | EP-009 | P1 | As a visitor, pagination controls disable correctly at boundaries and while loading. | Unit |
 | EP-010 | P1 | As a visitor, I can see the current result range and total count. | Unit |
-| EP-011 | P1 | As a visitor, initial loading uses a stable card skeleton. | Gap |
+| EP-011 | P1 | As a visitor, initial loading uses a stable card skeleton. | Unit |
 | EP-012 | P0 | As a visitor, a library failure is reported without showing stale results as current. | Unit |
-| EP-013 | P1 | As a visitor, a no-match state suggests broadening filters. | Gap |
+| EP-013 | P1 | As a visitor, a no-match state suggests broadening filters. | Unit |
 | EP-014 | P1 | As a visitor, each VOD card clearly indicates transcript availability. | Unit |
 | EP-015 | P1 | As a visitor, I can open a VOD from its library card. | E2E |
 | EP-016 | P1 | As a visitor, the `/streams` compatibility route shows the same library as `/episodes`. | Gap |
 | TL-001 | P1 | As a visitor, I can browse the archive chronology by month or year. | E2E, Unit |
-| TL-002 | P1 | As a visitor, I can see the VOD count and runtime for each timeline bucket. | Partial |
-| TL-003 | P1 | As a visitor, I can open a timeline VOD. | Gap |
+| TL-002 | P1 | As a visitor, I can see the VOD count and runtime for each timeline bucket. | Unit |
+| TL-003 | P1 | As a visitor, I can open a timeline VOD. | Unit |
 | TL-004 | P1 | As a visitor, I can jump from a timeline bucket to an exactly matching VOD date range. | E2E, Unit |
-| TL-005 | P1 | As a visitor, timeline loading is explicit. | Gap |
+| TL-005 | P1 | As a visitor, timeline loading is explicit. | Unit |
 | TL-006 | P1 | As a visitor, an empty timeline is explicit. | Unit |
 | TL-007 | P1 | As a visitor, timeline API failure does not crash the route. | Unit |
 
@@ -459,5 +459,5 @@ The current Playwright suite contains 10 durable journeys:
 This file contains **355 distinct frontend and launch stories**. The count is intentionally broader than the number of screens: each important permission, state transition, failure mode, persistence boundary, and access mode is treated as a separate user-observable promise.
 
 - Priority mix: 87 P0, 256 P1, and 12 P2 stories.
-- Current evidence touches 37 stories through E2E coverage and 197 through unit/component coverage.
-- 67 stories have only partial journey coverage, 57 are explicit automation gaps, and 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.
+- Current evidence touches 37 stories through E2E coverage and 218 through unit/component coverage.
+- 62 stories have only partial journey coverage, 41 are explicit automation gaps, and 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.

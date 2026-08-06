@@ -13,10 +13,13 @@ Status: in progress
 - Added topic mention-map failure coverage.
 - Added home blank/trimmed search and summary-fallback coverage.
 - Added search filter reset, no-match guidance, timestamp copy, quote copy, and clipboard failure coverage.
+- Added shell coverage for active navigation, skip links, mobile theme, mobile OAuth starts, and mobile logout.
+- Added complete Home discovery-link and loading-placeholder coverage.
+- Added VOD-library skeleton/no-match coverage and timeline counts, VOD links, and loading coverage.
 
 ## Current local gate
 
-- Vitest: 39 files passed; 169 passed, 1 skipped.
+- Vitest: 39 files passed; 177 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
@@ -26,7 +29,7 @@ Status: in progress
 
 ## Remaining
 
-- 57 inventory rows still have an explicit automation `Gap` label.
-- 67 rows have partial coverage that must be evaluated or strengthened.
+- 41 inventory rows still have an explicit automation `Gap` label.
+- 62 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.
