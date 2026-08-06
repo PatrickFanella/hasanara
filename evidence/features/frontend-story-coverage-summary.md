@@ -50,5 +50,6 @@ Status: in progress
 
 - No inventory row retains a `Gap` label. Host WebKit lacks native libraries, so desktop WebKit and Mobile Safari are run in `mcr.microsoft.com/playwright:v1.61.1-noble`, matching the installed Playwright version.
 - No inventory row retains a `Partial` label.
+- The deployed origin is not launchable yet: external Caddy/Authelia policy still enforces the private-beta login, the direct frontend is an older image, the API/worker/Redis/migrations services are absent, and the documented API binding is closed. The exact operator recovery and rerun requirements are recorded in the manual launch matrix.
 - Manual/external protocols remain for real OAuth/deployment integrations, representative iOS hardware, screen reader, human keyboard-only and zoom/forced-colors confirmation, and moderated beta evidence.
 - Every manual/external story has an executable procedure and required artifact in [the frontend manual launch matrix](frontend-manual-launch-matrix.md); blank evidence remains a release blocker.
