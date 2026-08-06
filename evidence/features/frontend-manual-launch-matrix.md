@@ -8,13 +8,15 @@ Automated supporting evidence: all 19 journeys pass in Chromium, Firefox, Mobile
 
 Deployed preflight on 2026-08-06 at 07:40 UTC: unauthenticated requests to `https://hasanara.tv/`, `/api/health`, and `/api/live` all returned `302` redirects to `auth.hasanara.tv` through the external Cloudflare/Caddy/Authelia ingress. The production origin is therefore not publicly accessible, and NX-013/NX-023 cannot pass until the external ingress policy is opened for the intended public routes and the smoke matrix is rerun. This ingress policy is not defined in this repository.
 
+Artifacts: [production ingress screenshot](../../output/playwright/production-ingress-2026-08-06.png) and [release defect preflight](release-defect-preflight-2026-08-06.md). The tracker preflight found no open S0–S2 defect, but NX-025 still requires a fresh query and release-owner approval immediately before promotion.
+
 This matrix is the release evidence for stories that cannot be proven completely by the local automated suite. Record the tester, UTC time, deployed commit and environment, result, artifact link, and defect ID (when applicable) for every check. A check is not green when its evidence field is blank.
 
 Use the frozen release candidate and production-like data. Do not record cookies, tokens, OAuth codes, provider identifiers, or private request payloads in screenshots, traces, issues, or notes.
 
 ## Browser and visual checks
 
-- [ ] **GL-027 — Image layout stability.** Throttle images and the network on Home, VOD library, Search, Topic, and VOD pages at 320px, 768px, and desktop widths. Pass when delayed thumbnails do not move the active control or reading position and measured CLS remains at or below 0.1. Evidence: performance trace plus screenshots.
+- [ ] **GL-027 — Image layout stability.** Automated Chromium coverage now measures CLS ≤ 0.1 and delayed-thumbnail geometry across the public thumbnail routes, including Mobile Chrome, with the geometry case repeated in Firefox, WebKit, and Mobile Safari emulation. Complete the human throttled-image check on Home, VOD library, Search, Topic, and VOD pages at 320px, 768px, and desktop widths. Pass when delayed thumbnails do not move the active control or reading position and measured CLS remains at or below 0.1. Evidence: performance trace plus screenshots.
 - [ ] **GL-028 — Visible shell focus.** Navigate every desktop and mobile shell control using Tab, Shift+Tab, Enter, Space, and Escape in light and dark themes. Pass when focus is never lost or hidden and each focused control has a visible indicator. Evidence: screen recording.
 - [ ] **SE-044 — Shared search state.** Copy filtered Search URLs covering text, date, source, video, speaker, sort, and page state; open each in a clean browser profile. Pass when the recipient sees the same query, controls, result order, and page. Evidence: paired screenshots and URLs with non-sensitive fixture values.
 - [ ] **EX-024 — Keyboard period controls.** At 320px and 400% zoom, reach every horizontally scrollable period-kind control using only the keyboard. Pass when each option can be selected, remains visible, and exposes its selected state. Evidence: screen recording.
