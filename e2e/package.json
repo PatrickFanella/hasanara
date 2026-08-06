@@ -10,6 +10,7 @@
     "test:chromium": "playwright test --project=chromium",
     "test:firefox": "playwright test --project=firefox",
     "test:webkit": "playwright test --project=webkit",
+    "test:webkit-matrix:container": "bash scripts/run-webkit-matrix.sh",
     "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
     "test:critical": "playwright test tests/archive-smoke.spec.ts --project=chromium",
     "show-report": "playwright show-report",

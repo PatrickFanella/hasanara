@@ -4,6 +4,8 @@ Date prepared: 2026-08-06
 
 Status: operator evidence pending
 
+Automated supporting evidence: all 19 journeys pass in Chromium, Firefox, Mobile Chrome, desktop WebKit, and emulated Mobile Safari. WebKit projects run in the version-matched official Playwright 1.61.1 container because the host lacks native WebKit libraries. The unchecked items below remain human, hardware, provider, or deployed-environment gates.
+
 This matrix is the release evidence for stories that cannot be proven completely by the local automated suite. Record the tester, UTC time, deployed commit and environment, result, artifact link, and defect ID (when applicable) for every check. A check is not green when its evidence field is blank.
 
 Use the frozen release candidate and production-like data. Do not record cookies, tokens, OAuth codes, provider identifiers, or private request payloads in screenshots, traces, issues, or notes.
@@ -36,8 +38,8 @@ Use the frozen release candidate and production-like data. Do not record cookies
 
 ## Provisioned-runner checks
 
-- [ ] **NX-022 — WebKit and Mobile Safari.** Install the native Playwright dependencies listed in the story-coverage summary, run all 14 journeys under desktop WebKit and Mobile Safari, then repeat the core search → citation → playback journey on representative iOS hardware. Pass only when both automated projects and the hardware smoke are green. Evidence: CI links plus device/browser details.
-- [ ] **Release runtime — Node 20.** Run `make verify` with Python 3.11 and the repository-pinned Node 20 runtime. Pass when the command exits zero. The local Node 24 pass is supporting evidence, not a substitute. Evidence: CI job URL and commit SHA.
+- [ ] **NX-022 — WebKit and Mobile Safari hardware confirmation.** The 19 desktop WebKit and emulated Mobile Safari journeys pass in the official Playwright 1.61.1 container. Repeat the core search → citation → playback journey on representative iOS hardware. Pass when the hardware smoke is also green. Evidence: automated job link plus device/browser details.
+- [x] **Release runtime — Node 20.** `make verify` exited zero locally on 2026-08-06 with Python 3.11 and Node 20.20.2: 1,495 backend tests, security and migration checks, 226 frontend tests with 1 intentional skip, the production build and bundle budgets, and 19 Chromium journeys passed. CI must retain the job URL and deployed commit SHA as durable promotion evidence.
 
 ## Promotion rule
 

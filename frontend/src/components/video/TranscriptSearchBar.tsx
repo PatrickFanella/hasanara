@@ -43,7 +43,7 @@ export default function TranscriptSearchBar({ initialQuery, onSearch }: Props) {
         aria-label="Search inside this VOD"
       />
       <button
-        className="absolute right-1.5 top-1.5 h-9 rounded-md bg-ink px-4 text-xs font-bold uppercase tracking-[0.12em] text-canvas transition-colors hover:bg-accent"
+        className="absolute right-0.5 top-0.5 h-11 min-w-11 rounded-md bg-ink px-4 text-xs font-bold uppercase tracking-[0.12em] text-canvas transition-colors hover:bg-accent"
         type="submit"
       >
         Find

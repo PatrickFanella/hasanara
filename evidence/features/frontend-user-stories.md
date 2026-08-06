@@ -46,8 +46,8 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | GL-024 | P1 | As an authenticated mobile user, I can log out and the menu closes. | Unit |
 | GL-025 | P1 | As an anonymous visitor, I can start Google or Twitch sign-in from desktop navigation. | Unit |
 | GL-026 | P1 | As an anonymous mobile visitor, I can start Google or Twitch sign-in and the menu closes. | Unit |
-| GL-027 | P1 | As a visitor, external or thumbnail images do not cause disruptive layout shifts. | Manual |
-| GL-028 | P1 | As a keyboard user, all shell controls have a visible focus indicator. | Manual |
+| GL-027 | P1 | As a visitor, external or thumbnail images do not cause disruptive layout shifts. | E2E, Manual |
+| GL-028 | P1 | As a keyboard user, all shell controls have a visible focus indicator. | E2E, Manual |
 
 ## Home
 
@@ -116,7 +116,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | SE-041 | P1 | As a visitor, an empty result explains how to broaden the query. | Unit |
 | SE-042 | P0 | As a visitor, a search API failure is announced without destroying my editable query. | Unit |
 | SE-043 | P1 | As a visitor, changing a filter resets stale pagination appropriately. | Unit |
-| SE-044 | P1 | As a visitor sharing filtered search results, the recipient sees the same research state. | Manual |
+| SE-044 | P1 | As a visitor sharing filtered search results, the recipient sees the same research state. | E2E |
 
 ## Explore and archive intelligence
 
@@ -145,7 +145,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | EX-021 | P1 | As a visitor, I can open a person facet as a transcript search. | Unit |
 | EX-022 | P1 | As a visitor, I can open a content tag as a transcript search. | Unit |
 | EX-023 | P1 | As a visitor, missing people or tag facets are explained. | Unit |
-| EX-024 | P1 | As a keyboard user, horizontally scrollable period-kind controls remain operable and visibly selected. | Manual |
+| EX-024 | P1 | As a keyboard user, horizontally scrollable period-kind controls remain operable and visibly selected. | E2E, Manual |
 | EX-025 | P1 | As a mobile visitor, period controls and evidence cards remain usable without content loss. | E2E |
 
 ## VOD library and archive timeline
@@ -262,7 +262,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | VD-047 | P1 | As a visitor, export options explain whether they apply to a section or full transcript. | Unit |
 | VD-048 | P0 | As a visitor, failure to load or operate the YouTube API does not crash the transcript and permits retry. | Unit |
 | VD-049 | P1 | As a visitor navigating between VODs, the old player is destroyed and state resets. | Unit |
-| VD-050 | P1 | As a keyboard user, timestamps, transcript sentences, save, copy, search, and layout controls are operable. | Manual |
+| VD-050 | P1 | As a keyboard user, timestamps, transcript sentences, save, copy, search, and layout controls are operable. | E2E, Manual |
 | VD-051 | P1 | As a mobile visitor, player and transcript controls remain usable without overlap or overflow. | E2E |
 
 ## Saved moments, saved searches, and synchronization
@@ -400,14 +400,14 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 
 | ID | Priority | User story | Coverage |
 | --- | --- | --- | --- |
-| NX-001 | P0 | As a keyboard-only user, I can complete recent-VOD discovery, timestamped citation, playback verification, and recovery. | Manual |
+| NX-001 | P0 | As a keyboard-only user, I can complete recent-VOD discovery, timestamped citation, playback verification, and recovery. | E2E, Manual |
 | NX-002 | P0 | As a screen-reader user, I can complete recent-VOD discovery, timestamped citation, playback verification, and recovery. | Manual |
-| NX-003 | P0 | As a visitor, focus order remains logical after route changes, disclosures, dialogs, and async updates. | Manual |
+| NX-003 | P0 | As a visitor, focus order remains logical after route changes, disclosures, dialogs, and async updates. | E2E, Manual |
 | NX-004 | P0 | As a visitor, important loading, success, and error messages are announced without unexpected focus movement. | Unit |
-| NX-005 | P0 | As a visitor at 200% and 400% zoom, core tasks remain operable without lost content. | Manual |
+| NX-005 | P0 | As a visitor at 200% and 400% zoom, core tasks remain operable without lost content. | E2E, Manual |
 | NX-006 | P0 | As a visitor using reduced motion, nonessential animation and smooth scrolling respect my preference. | E2E |
-| NX-007 | P0 | As a visitor using high-contrast or forced-colors mode, controls and state remain distinguishable. | Manual |
-| NX-008 | P0 | As a mobile visitor, touch targets for primary actions are large enough and do not overlap. | Manual |
+| NX-007 | P0 | As a visitor using high-contrast or forced-colors mode, controls and state remain distinguishable. | E2E, Manual |
+| NX-008 | P0 | As a mobile visitor, touch targets for primary actions are large enough and do not overlap. | E2E, Manual |
 | NX-009 | P0 | As a visitor on a slow connection, route and data loading states prevent duplicate or unsafe actions. | Unit |
 | NX-010 | P0 | As a visitor whose network drops mid-action, the UI never reports a save, role change, deletion, or export as successful unless confirmed. | Unit |
 | NX-011 | P0 | As a visitor, back/forward navigation restores URL-driven filters, periods, timestamps, and queries coherently. | E2E |
@@ -421,14 +421,14 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | NX-019 | P0 | As a user signing out, private account and synchronized-save data disappears from the UI immediately. | Unit |
 | NX-020 | P0 | As a visitor, the current production bundle remains within its launch size budgets. | Automated build gate |
 | NX-021 | P0 | As a visitor, no critical production dependency vulnerability applies to a reachable application path. | Automated/manual review |
-| NX-022 | P0 | As a Mobile Safari user, all P0 public journeys pass on WebKit. | Gap — runner dependency |
+| NX-022 | P0 | As a Mobile Safari user, all P0 public journeys pass on WebKit. | E2E, Manual |
 | NX-023 | P0 | As a deployed-site visitor, real API, authentication, CSP, analytics, exports, and production-data smoke checks pass. | Manual |
 | NX-024 | P0 | As a beta participant, I can complete each core research task unaided with a confidence-worthy timestamp citation. | Manual |
 | NX-025 | P0 | As the launch team, we have no open S0/S1 defects and accepted S2 defects have owners and dates. | Manual release gate |
 
 ## Existing browser journeys
 
-The current Playwright suite contains 14 durable journeys:
+The current Playwright suite contains 19 durable journeys:
 
 1. Search from the populated archive home.
 2. Preserve a timeline period when opening the VOD library.
@@ -444,6 +444,11 @@ The current Playwright suite contains 14 durable journeys:
 12. Close mobile navigation after selection and restore focus on Escape.
 13. Check the public route matrix for serious accessibility issues and runtime errors in light/dark themes.
 14. Check core public routes for overflow at 320px.
+15. Restore a fully filtered Search URL in a fresh browser profile.
+16. Complete citation, playback verification, in-VOD search, no-result recovery, and useful-result recovery with keyboard actions.
+17. Verify shell focus visibility, forced-colors selected state, and keyboard access to horizontally scrollable period controls.
+18. Delay external thumbnails and verify that their reserved card layout does not shift.
+19. Verify 400%-equivalent reflow and 44px primary touch targets across Explore, Search, and VOD controls.
 
 ## Recommended automation order
 
@@ -463,5 +468,5 @@ The current Playwright suite contains 14 durable journeys:
 This file contains **355 distinct frontend and launch stories**. The count is intentionally broader than the number of screens: each important permission, state transition, failure mode, persistence boundary, and access mode is treated as a separate user-observable promise.
 
 - Priority mix: 87 P0, 256 P1, and 12 P2 stories.
-- Current evidence touches 42 stories through E2E coverage and 311 through unit/component coverage.
-- No stories retain partial browser coverage, 1 has an explicit automation gap, and 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.
+- Current evidence touches 53 stories through E2E coverage and 311 through unit/component coverage.
+- No stories retain partial browser coverage or an explicit automation gap; 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.

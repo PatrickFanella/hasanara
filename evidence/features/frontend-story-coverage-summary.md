@@ -26,6 +26,7 @@ Status: in progress
 - Added browser coverage for the `/streams` and `/favorites` compatibility routes and verified reduced-motion styles disable nonessential motion and smooth scrolling.
 - Added admin coverage for opinion revisions, archive-period filters/validation/failures, metadata validation/failures, label status/kind/query filters, mutation failures, access/navigation, and accessible chart values; fixed missing label-kind filtering, unreachable announced sort validation, period live-region semantics, dashboard failure recovery, and line-chart text alternatives.
 - Added coverage for lazy-route announcements, OAuth identity-conflict recovery, focus-stable async notices, local-only anonymous saves, immediate private-data removal on sign-out, hostile/Unicode content, browser history restoration, and refreshed topic/VOD deep links.
+- Added fresh-profile filter sharing, keyboard-only citation and recovery, shell focus visibility, forced-colors selection, delayed-thumbnail stability, 400%-equivalent reflow, and primary touch-target geometry coverage; raised undersized period, search-result, and transcript actions to the promised 44px target.
 - Updated the pinned `cryptography` dependency from 49.0.0 to 50.0.0 after the release audit found `PYSEC-2026-3552`; the follow-up Python audit reports no known vulnerabilities after the repository's documented unreachable Torch exception.
 
 ## Current local gate
@@ -38,14 +39,16 @@ Status: in progress
 - Production build and bundle budget: pass; main bundle is 106.87 KiB gzip against a 150 KiB limit and every lazy route is below its 100 KiB limit.
 - API/OpenAPI contracts: pass with the repository's pinned Python 3.11 environment.
 - npm security exception gate: pass after refreshing npm's reassigned source IDs for the same pinned `brace-expansion` GHSA; no critical advisory is present and all accepted high-severity paths remain version-locked, dev-only or unreachable.
-- Playwright Chromium: 14 public journey tests passed.
-- Playwright Firefox: 14 public journey tests passed.
-- Playwright Mobile Chrome: 14 public journey tests passed, including the explore, video/transcript, and 320px overflow stories.
-- Full repository verifier: pass with Python 3.11 and host Node 24 (1,495 backend tests, migrations, static analysis, security audits, all frontend gates, and seeded Chromium); repeat under the release-pinned Node 20 runtime in CI because this host does not provide `mise` or Node 20.
+- Playwright Chromium: 19 public journey tests passed.
+- Playwright Firefox: 19 public journey tests passed.
+- Playwright Mobile Chrome: 19 public journey tests passed, including keyboard navigation, explore, video/transcript, touch geometry, and 320px overflow stories.
+- Playwright WebKit: 19 public journey tests passed in the version-matched official Playwright 1.61.1 container.
+- Playwright Mobile Safari: 19 public journey tests passed in the version-matched official Playwright 1.61.1 container.
+- Full repository verifier: pass on 2026-08-06 with Python 3.11 and the release-pinned Node 20.20.2 runtime (1,495 backend tests, migrations, static analysis, security audits, 226 frontend tests with 1 intentional skip, production build and bundle budgets, and 19 seeded Chromium journeys).
 
 ## Remaining
 
-- 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency. Desktop WebKit and Mobile Safari fail before application startup because this host lacks `libevent-2.1-7t64`, `libwebpdemux2`, `libavif16`, `libharfbuzz-icu0`, `libmanette-0.2-0`, `libenchant-2-2`, `libhyphen0`, and `libwoff1`; install them with `sudo npx playwright install-deps` on the release runner.
+- No inventory row retains a `Gap` label. Host WebKit lacks native libraries, so desktop WebKit and Mobile Safari are run in `mcr.microsoft.com/playwright:v1.61.1-noble`, matching the installed Playwright version.
 - No inventory row retains a `Partial` label.
-- Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
+- Manual/external protocols remain for real OAuth/deployment integrations, representative iOS hardware, screen reader, human keyboard-only and zoom/forced-colors confirmation, and moderated beta evidence.
 - Every manual/external story has an executable procedure and required artifact in [the frontend manual launch matrix](frontend-manual-launch-matrix.md); blank evidence remains a release blocker.
