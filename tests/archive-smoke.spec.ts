@@ -89,6 +89,9 @@ async function seedArchiveApi(page: Page) {
       });
     }
     if (url.pathname === "/api/search/grouped") {
+      if (url.searchParams.get("q") === "no-such-archive-phrase") {
+        return respond({ total_moments: 0, total_videos: 0, groups: [] });
+      }
       return respond({
         total_moments: 1,
         total_videos: 1,
@@ -105,6 +108,21 @@ async function seedArchiveApi(page: Page) {
                 source: "whisper",
               },
             ],
+          },
+        ],
+      });
+    }
+    if (url.pathname === "/api/search") {
+      return respond({
+        hits: [
+          {
+            id: 1,
+            video_id: seededVideo.id,
+            start_ms: 12000,
+            end_ms: 18000,
+            snippet: "labor rights",
+            source: "whisper",
+            highlights: [{ start: 0, end: 5 }],
           },
         ],
       });
@@ -232,7 +250,7 @@ async function seedArchiveApi(page: Page) {
   });
 }
 
-test.beforeEach(async ({ page }) => {
+async function installBrowserStubs(page: Page) {
   await page.addInitScript(() => {
     class Player {
       constructor(
@@ -255,7 +273,33 @@ test.beforeEach(async ({ page }) => {
     (window as typeof window & { YT: { Player: typeof Player } }).YT = {
       Player,
     };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => {
+          (window as typeof window & { __copiedText?: string }).__copiedText =
+            value;
+        },
+      },
+    });
   });
+}
+
+async function minimumTargetSize(page: Page, accessibleName: string) {
+  const target = page.getByRole("button", { name: accessibleName });
+  await expect(target).toBeVisible();
+  const box = await target.boundingBox();
+  expect(box, `${accessibleName} target box`).not.toBeNull();
+  expect(box?.width, `${accessibleName} target width`).toBeGreaterThanOrEqual(
+    43.9,
+  );
+  expect(box?.height, `${accessibleName} target height`).toBeGreaterThanOrEqual(
+    43.9,
+  );
+}
+
+test.beforeEach(async ({ page }) => {
+  await installBrowserStubs(page);
   await seedArchiveApi(page);
 });
 
@@ -373,7 +417,9 @@ test("refresh preserves topic filters and exact transcript deep links", async ({
   );
   await page.reload();
   await expect(page.getByLabel("Granularity")).toHaveValue("week");
-  await expect(page.locator('input[name="date_from"]')).toHaveValue("2026-06-01");
+  await expect(page.locator('input[name="date_from"]')).toHaveValue(
+    "2026-06-01",
+  );
   await expect(page.locator('input[name="date_to"]')).toHaveValue("2026-06-30");
 
   await page.goto(`/v/${seededVideo.id}?t=12#block-0`);
@@ -488,9 +534,286 @@ test("mobile navigation closes after selection and restores focus on Escape", as
   await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
 });
 
+test("a shared filtered search restores the same state in a fresh browser profile", async ({
+  browser,
+  page,
+}) => {
+  const sharedPath =
+    "/search?q=labor&source=native&category=politics&date_from=2026-06-01&date_to=2026-06-30&min_duration=10&max_duration=90&sort_by=date_desc&video_id=00000000-0000-0000-0000-000000000201&limit=25&offset=25";
+  await page.goto(sharedPath);
+  await expect(
+    page.getByRole("searchbox", { name: "Search query" }),
+  ).toHaveValue("labor");
+
+  const recipientContext = await browser.newContext();
+  try {
+    const recipient = await recipientContext.newPage();
+    await installBrowserStubs(recipient);
+    await seedArchiveApi(recipient);
+    await recipient.goto(page.url());
+
+    expect(recipient.url()).toBe(page.url());
+    await expect(
+      recipient.getByRole("searchbox", { name: "Search query" }),
+    ).toHaveValue("labor");
+    await expect(recipient.getByLabel("From", { exact: true })).toHaveValue(
+      "2026-06-01",
+    );
+    await expect(recipient.getByLabel("To", { exact: true })).toHaveValue(
+      "2026-06-30",
+    );
+    await expect(recipient.getByLabel("Transcript")).toHaveValue("native");
+    await expect(recipient.getByLabel("Category")).toHaveValue("politics");
+    await expect(recipient.getByLabel("Minimum seconds")).toHaveValue("10");
+    await expect(recipient.getByLabel("Maximum seconds")).toHaveValue("90");
+    await expect(recipient.getByLabel("Sort")).toHaveValue("date_desc");
+    await expect(recipient.getByText("labor rights").first()).toBeVisible();
+  } finally {
+    await recipientContext.close();
+  }
+});
+
+test("keyboard-only visitors can cite, verify, search within, and recover", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const homeSearch = page.getByLabel("Search the HasanAbi archive");
+  await homeSearch.focus();
+  await page.keyboard.type("labor");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/search\?q=labor$/);
+
+  const copyLink = page.getByRole("button", { name: "Copy link" });
+  await copyLink.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Timestamp link copied.");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as typeof window & { __copiedText?: string }).__copiedText,
+      ),
+    )
+    .toContain(`/v/${seededVideo.id}?t=12`);
+
+  const openMoment = page.getByRole("link", { name: "Open moment" });
+  await openMoment.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(
+    new RegExp(`/v/${seededVideo.id}\\?t=12#seg-1$`),
+  );
+
+  const sentence = page.getByRole("button", {
+    name: "Play sentence from 00:00:12",
+  });
+  await sentence.focus();
+  await page.keyboard.press("Enter");
+  await expect(sentence).toHaveAttribute("data-current-sentence", "true");
+
+  const save = page.getByRole("button", { name: "Save moment" });
+  await save.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Transcript moment saved." }),
+  ).toHaveText("Transcript moment saved.");
+
+  const copyQuote = page.getByRole("button", { name: "Copy quote" });
+  await copyQuote.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Quote copied." }),
+  ).toHaveText("Quote copied.");
+
+  const transcriptSearch = page.getByRole("searchbox", {
+    name: "Search inside this VOD",
+  });
+  await transcriptSearch.focus();
+  await page.keyboard.type("rights");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\?t=12&q=rights$/);
+  await expect(
+    page.getByRole("button", { name: "Go to next match" }),
+  ).toBeVisible();
+
+  const desktopSearchNavigation = page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Search" });
+  if (await desktopSearchNavigation.isVisible()) {
+    await desktopSearchNavigation.focus();
+  } else {
+    const menu = page.getByRole("button", { name: "Open menu" });
+    await menu.focus();
+    await page.keyboard.press("Enter");
+    await page
+      .getByRole("navigation", { name: "Mobile navigation" })
+      .getByRole("link", { name: "Search" })
+      .focus();
+  }
+  await page.keyboard.press("Enter");
+  const query = page.getByRole("searchbox", { name: "Search query" });
+  await query.focus();
+  await page.keyboard.type("no-such-archive-phrase");
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "No transcript matches" }),
+  ).toBeVisible();
+
+  await query.focus();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type("labor");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("labor rights").first()).toBeVisible();
+});
+
+test("shell focus and forced-color selected states remain visible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const focusStopCount = (page.viewportSize()?.width ?? 1280) < 1024 ? 3 : 11;
+  for (let index = 0; index < focusStopCount; index += 1) {
+    await page.keyboard.press("Tab");
+    const focusState = await page.evaluate(() => {
+      const element = document.activeElement as HTMLElement | null;
+      if (!element) return null;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        height: rect.height,
+        outlineStyle: style.outlineStyle,
+        outlineWidth: parseFloat(style.outlineWidth),
+        width: rect.width,
+      };
+    });
+    expect(focusState, `focus stop ${index + 1}`).not.toBeNull();
+    expect(focusState?.width, `focus stop ${index + 1} width`).toBeGreaterThan(
+      0,
+    );
+    expect(
+      focusState?.height,
+      `focus stop ${index + 1} height`,
+    ).toBeGreaterThan(0);
+    expect(
+      focusState?.outlineStyle,
+      `focus stop ${index + 1} outline`,
+    ).not.toBe("none");
+    expect(
+      focusState?.outlineWidth,
+      `focus stop ${index + 1} outline width`,
+    ).toBeGreaterThanOrEqual(2);
+  }
+
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/explore");
+  expect(
+    await page.evaluate(() => matchMedia("(forced-colors: active)").matches),
+  ).toBe(true);
+  const dates = page.getByRole("button", { name: "Dates" });
+  await dates.focus();
+  await page.keyboard.press("Enter");
+  await expect(dates).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/\/explore\?kind=date$/);
+
+  const selectedState = await dates.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const button = element.getBoundingClientRect();
+    const group = element.parentElement?.getBoundingClientRect();
+    return {
+      buttonLeft: button.left,
+      buttonRight: button.right,
+      groupLeft: group?.left ?? 0,
+      groupRight: group?.right ?? 0,
+      outlineStyle: style.outlineStyle,
+      outlineWidth: parseFloat(style.outlineWidth),
+    };
+  });
+  expect(selectedState.outlineStyle).not.toBe("none");
+  expect(selectedState.outlineWidth).toBeGreaterThanOrEqual(2);
+  expect(selectedState.buttonLeft).toBeGreaterThanOrEqual(
+    selectedState.groupLeft - 1,
+  );
+  expect(selectedState.buttonRight).toBeLessThanOrEqual(
+    selectedState.groupRight + 1,
+  );
+});
+
+test("delayed thumbnails retain their reserved layout", async ({ page }) => {
+  let releaseImages = () => undefined;
+  const imageGate = new Promise<void>((resolve) => {
+    releaseImages = resolve;
+  });
+  await page.route("https://i.ytimg.com/**", async (route) => {
+    await imageGate;
+    await route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+  });
+
+  await page.goto("/episodes", { waitUntil: "domcontentloaded" });
+  const thumbnail = page.locator('img[src*="i.ytimg.com"]').first();
+  await expect(thumbnail).toBeAttached();
+  const card = thumbnail.locator("xpath=ancestor::a[1]");
+  const before = await card.boundingBox();
+  expect(before).not.toBeNull();
+
+  releaseImages();
+  await page.waitForLoadState("load");
+  await expect(thumbnail).toHaveJSProperty("complete", true);
+  const after = await card.boundingBox();
+  expect(after).not.toBeNull();
+  expect(
+    Math.abs((after?.height ?? 0) - (before?.height ?? 0)),
+  ).toBeLessThanOrEqual(1);
+  expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
+
+  for (const route of ["/", "/search?q=labor", "/explore", "/episodes"]) {
+    await page.goto(route);
+    await page.waitForLoadState("networkidle");
+    expect(
+      await page.locator("img:not([width]), img:not([height])").count(),
+    ).toBe(0);
+  }
+});
+
+test("400-percent reflow keeps primary touch targets operable", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/explore");
+  await minimumTargetSize(page, "Latest");
+  await minimumTargetSize(page, "Dates");
+
+  await page.goto("/search?q=labor");
+  await minimumTargetSize(page, "Copy link");
+  await minimumTargetSize(page, "Copy quote");
+  await minimumTargetSize(page, "Save moment");
+
+  await page.goto(`/v/${seededVideo.id}`);
+  await minimumTargetSize(page, "Find");
+  const sentence = page.getByRole("button", {
+    name: "Play sentence from 00:00:12",
+  });
+  await sentence.press("Enter");
+  await minimumTargetSize(page, "Save moment");
+  await minimumTargetSize(page, "Copy quote");
+
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(
+    dimensions.clientWidth + 1,
+  );
+});
+
 test("public route matrix has no serious accessibility or runtime errors", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   const pageErrors: Array<{ url: string; message: string }> = [];
   page.on("pageerror", (error) =>
     pageErrors.push({ url: page.url(), message: error.stack ?? error.message }),
