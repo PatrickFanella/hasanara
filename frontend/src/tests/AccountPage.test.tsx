@@ -134,6 +134,7 @@ describe('AccountPage', () => {
     expect(await screen.findByRole('heading', { name: 'Your account, in order.' })).toBeVisible();
     expect(screen.getByText('Moderator')).toBeVisible();
     expect(screen.getByText('Google')).toBeVisible();
+    expect(screen.getByText(/^Last used /)).toBeVisible();
     expect(screen.getByText('Current session')).toBeVisible();
     expect(
       screen.queryByText(
@@ -418,6 +419,11 @@ describe('AccountPage', () => {
 
     await events.click(screen.getAllByRole('button', { name: 'Unlink' })[0]);
     expect(screen.getByText('Unlink Google?')).toBeVisible();
+    await events.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText('Unlink Google?')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm unlink' })).not.toBeInTheDocument();
+
+    await events.click(screen.getAllByRole('button', { name: 'Unlink' })[0]);
     await events.click(screen.getByRole('button', { name: 'Confirm unlink' }));
     expect(await screen.findByText('Your last sign-in identity must stay linked.')).toBeVisible();
     expect(screen.getByText('Google')).toBeVisible();
@@ -475,6 +481,44 @@ describe('AccountPage', () => {
       'true'
     );
     expect(screen.getByText('Current Browser')).toBeVisible();
+  });
+
+  it('announces a failed session operation without removing the session', async () => {
+    installApi((request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith('/auth/me')) return json({ user, role: 'moderator', capabilities: [] });
+      if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
+      if (path.endsWith('/account') && request.method === 'GET') return json(account);
+      if (path.endsWith('/account/sessions/session-other'))
+        return json({ message: 'Session service is unavailable.' }, 503);
+      return json({ error: 'unexpected' }, 500);
+    });
+    const events = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('Other Browser');
+    await events.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'That session could not be revoked.'
+    );
+    expect(screen.getByText('Other Browser')).toBeVisible();
+  });
+
+  it('shows an explicit empty state when no active sessions are returned', async () => {
+    account = { ...account, sessions: [] };
+    installApi((request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith('/auth/me')) return json({ user, role: 'moderator', capabilities: [] });
+      if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
+      if (path.endsWith('/account')) return json(account);
+      return json({ error: 'unexpected' }, 500);
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('No active sessions were returned.')).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Active sessions' })).toBeEmptyDOMElement();
   });
 
   it('clears authenticated state after revoking the current session', async () => {
@@ -564,5 +608,29 @@ describe('AccountPage', () => {
 
     await events.click(screen.getByRole('button', { name: 'Confirm deletion' }));
     expect(await screen.findByTestId('location')).toHaveTextContent('/');
+  });
+
+  it('keeps deletion confirmation behind the danger-zone disclosure and clears it on cancel', async () => {
+    installApi((request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith('/auth/me')) return json({ user, role: 'moderator', capabilities: [] });
+      if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
+      if (path.endsWith('/account')) return json(account);
+      return json({ error: 'unexpected' }, 500);
+    });
+    const events = userEvent.setup();
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Danger zone' });
+    expect(screen.queryByLabelText(/Type DELETE/)).not.toBeInTheDocument();
+    await events.click(screen.getByRole('button', { name: 'Delete account' }));
+    const confirmation = screen.getByLabelText(/Type DELETE/);
+    await events.type(confirmation, 'DELETE');
+    await events.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByLabelText(/Type DELETE/)).not.toBeInTheDocument();
+    await events.click(screen.getByRole('button', { name: 'Delete account' }));
+    expect(screen.getByLabelText(/Type DELETE/)).toHaveValue('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

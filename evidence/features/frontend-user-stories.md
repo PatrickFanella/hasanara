@@ -309,7 +309,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | AU-008 | P1 | As an anonymous visitor opening Account directly, I am redirected to sign in with a return target. | E2E, Unit |
 | AU-009 | P1 | As an authenticated user, I can load account settings without sensitive provider tokens or IDs being exposed. | Unit |
 | AU-010 | P1 | As a user, account loading and retryable load failures are distinct. | Unit |
-| AU-011 | P1 | As a user, I can see my current role. | Partial |
+| AU-011 | P1 | As a user, I can see my current role. | Unit |
 | AU-012 | P1 | As a user, I can update my display name. | Unit |
 | AU-013 | P1 | As a user, display-name whitespace is trimmed before saving. | Unit |
 | AU-014 | P1 | As a user, empty or overlong display names receive inline validation. | Unit |
@@ -322,18 +322,18 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | AU-021 | P0 | As a user, an identity already owned by another account is not silently merged. | Partial |
 | AU-022 | P0 | As a user, unlinking an identity requires a deliberate confirmation step. | Unit |
 | AU-023 | P0 | As a user, my final sign-in identity cannot be removed. | Unit |
-| AU-024 | P1 | As a user, I can cancel an identity unlink. | Partial |
-| AU-025 | P1 | As a user, I can see when and how linked identities were last used without seeing provider tokens. | Partial |
+| AU-024 | P1 | As a user, I can cancel an identity unlink. | Unit |
+| AU-025 | P1 | As a user, I can see when and how linked identities were last used without seeing provider tokens. | Unit |
 | AU-026 | P0 | As a user, I can review active sessions, current-session status, last activity, creation, and expiry. | Unit |
 | AU-027 | P0 | As a user, I can revoke one non-current session while remaining signed in. | Unit |
 | AU-028 | P0 | As a user, revoking my current session clears local authentication and returns me home. | Unit |
 | AU-029 | P0 | As a user, I can log out all other sessions while retaining the current session. | Unit |
 | AU-030 | P0 | As a user, I can log out all sessions and clear local authentication. | Unit |
-| AU-031 | P1 | As a user, session-operation failure is announced without falsely changing the list. | Partial |
-| AU-032 | P1 | As a user with no returned sessions, I see an explicit empty state. | Gap |
-| AU-033 | P0 | As a user, account deletion remains hidden behind a danger-zone disclosure. | Partial |
+| AU-031 | P1 | As a user, session-operation failure is announced without falsely changing the list. | Unit |
+| AU-032 | P1 | As a user with no returned sessions, I see an explicit empty state. | Unit |
+| AU-033 | P0 | As a user, account deletion remains hidden behind a danger-zone disclosure. | Unit |
 | AU-034 | P0 | As a user, permanent deletion requires the exact case-sensitive word `DELETE`. | Unit |
-| AU-035 | P0 | As a user, cancelling deletion clears the confirmation and errors. | Partial |
+| AU-035 | P0 | As a user, cancelling deletion clears the confirmation and errors. | Unit |
 | AU-036 | P0 | As a user, successful deletion clears local authentication and returns me home. | Unit |
 | AU-037 | P0 | As a user, failed deletion preserves my account and explains that nothing changed. | Unit |
 | AU-038 | P0 | As the final administrator, I cannot delete the only remaining admin account. | Unit |
