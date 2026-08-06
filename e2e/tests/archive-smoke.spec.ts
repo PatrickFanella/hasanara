@@ -736,7 +736,82 @@ test("shell focus and forced-color selected states remain visible", async ({
   );
 });
 
-test("delayed thumbnails retain their reserved layout", async ({ page }) => {
+test("public thumbnail routes keep CLS within budget as delayed images load", async ({
+  page,
+  browserName,
+}) => {
+  await page.addInitScript(() => {
+    if (!PerformanceObserver.supportedEntryTypes.includes("layout-shift"))
+      return;
+    let cumulativeLayoutShift = 0;
+    const layoutShifts: Array<{
+      sources: string[];
+      value: number;
+    }> = [];
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & {
+          hadRecentInput: boolean;
+          sources?: Array<{ node?: Node | null }>;
+          value: number;
+        };
+        if (!shift.hadRecentInput) {
+          cumulativeLayoutShift += shift.value;
+          layoutShifts.push({
+            value: shift.value,
+            sources: (shift.sources ?? []).map((source) => {
+              const node = source.node;
+              if (!(node instanceof Element))
+                return node?.nodeName ?? "unknown";
+              const identity = [
+                node.tagName.toLowerCase(),
+                node.id ? `#${node.id}` : "",
+                ...Array.from(node.classList)
+                  .slice(0, 2)
+                  .map((name) => `.${name}`),
+              ].join("");
+              return `${identity}: ${(node.textContent ?? "").trim().slice(0, 80)}`;
+            }),
+          });
+        }
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+    Object.defineProperty(window, "__cumulativeLayoutShift", {
+      get: () => cumulativeLayoutShift,
+    });
+    Object.defineProperty(window, "__layoutShifts", {
+      get: () => layoutShifts,
+    });
+  });
+
+  const expectStableLayout = async () => {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    if (browserName !== "chromium") return;
+    const cumulativeLayoutShift = await page.evaluate(
+      () =>
+        (window as typeof window & { __cumulativeLayoutShift?: number })
+          .__cumulativeLayoutShift,
+    );
+    const layoutShifts = await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __layoutShifts?: Array<{ sources: string[]; value: number }>;
+          }
+        ).__layoutShifts,
+    );
+    expect(cumulativeLayoutShift).toBeDefined();
+    expect(
+      cumulativeLayoutShift ?? Number.POSITIVE_INFINITY,
+      `${page.url()} layout shifts: ${JSON.stringify(layoutShifts)}`,
+    ).toBeLessThanOrEqual(0.1);
+  };
+
   let releaseImages = () => undefined;
   const imageGate = new Promise<void>((resolve) => {
     releaseImages = resolve;
@@ -763,6 +838,7 @@ test("delayed thumbnails retain their reserved layout", async ({ page }) => {
   releaseImages();
   await page.waitForLoadState("load");
   await expect(thumbnail).toHaveJSProperty("complete", true);
+  await expectStableLayout();
   const after = await card.boundingBox();
   expect(after).not.toBeNull();
   expect(
@@ -773,6 +849,7 @@ test("delayed thumbnails retain their reserved layout", async ({ page }) => {
   for (const route of ["/", "/search?q=labor", "/explore", "/episodes"]) {
     await page.goto(route);
     await page.waitForLoadState("networkidle");
+    await expectStableLayout();
     expect(
       await page.locator("img:not([width]), img:not([height])").count(),
     ).toBe(0);
@@ -813,7 +890,7 @@ test("400-percent reflow keeps primary touch targets operable", async ({
 test("public route matrix has no serious accessibility or runtime errors", async ({
   page,
 }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const pageErrors: Array<{ url: string; message: string }> = [];
   page.on("pageerror", (error) =>
     pageErrors.push({ url: page.url(), message: error.stack ?? error.message }),

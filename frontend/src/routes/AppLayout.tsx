@@ -333,7 +333,7 @@ export default function AppLayout() {
 
       <main
         id="main-content"
-        className="mx-auto w-full max-w-[100rem] flex-1 px-4 py-6 lg:px-6 lg:py-8"
+        className="mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-[100rem] flex-1 px-4 py-6 lg:px-6 lg:py-8"
         role="main"
       >
         <Outlet />

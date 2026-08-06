@@ -17,7 +17,7 @@ export default function StreamsPage() {
   const [dateTo, setDateTo] = useState(filters.dateTo);
   const [items, setItems] = useState<VideoInfo[]>([]);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
