@@ -22,10 +22,11 @@ Status: in progress
 - Added topic coverage for URL-backed timeline filters and states, opinion failure isolation, quote/save success and failure, authenticated saves, and empty-topic recovery.
 - Added Saved coverage for synchronized viewing/deletion, sync-failure preservation, remote form states, and cross-tab reloads; fixed local searches disappearing while synchronization was pending or failed.
 - Added account coverage for role/identity metadata, unlink cancellation, session failure/empty states, and danger-zone disclosure/reset behavior.
+- Added VOD coverage for exact paragraph/sentence/block navigation, all reading layouts, follow pause/resume, chapter evidence, loading, in-VOD search and wrapping navigation, sequential match playback, authenticated saves, save failure, and quote-copy success/failure.
 
 ## Current local gate
 
-- Vitest: 40 files passed; 204 passed, 1 skipped.
+- Vitest: 40 files passed; 213 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
@@ -35,7 +36,7 @@ Status: in progress
 
 ## Remaining
 
-- 15 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
-- 34 rows have partial coverage that must be evaluated or strengthened.
+- 4 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
+- 24 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.

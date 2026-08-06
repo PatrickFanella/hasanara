@@ -215,7 +215,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | --- | --- | --- | --- |
 | VD-001 | P0 | As a visitor, I can open an archived VOD and its transcript. | E2E |
 | VD-002 | P0 | As a visitor, a missing VOD is distinguished from a temporary service failure. | Unit |
-| VD-003 | P0 | As a visitor, a missing VOD offers a route back to the VOD library. | Partial |
+| VD-003 | P0 | As a visitor, a missing VOD offers a route back to the VOD library. | Unit |
 | VD-004 | P0 | As a visitor, a temporary VOD failure offers a retry. | Unit |
 | VD-005 | P1 | As a visitor, I can see VOD title, source metadata, people, and content tags. | Unit |
 | VD-006 | P1 | As a visitor, I can inspect related episodes and why they are related. | Unit |
@@ -224,37 +224,37 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | VD-009 | P1 | As a visitor, related-episode empty and unavailable states do not block the transcript. | Unit |
 | VD-010 | P0 | As a visitor, the YouTube player initializes for the correct video. | Unit |
 | VD-011 | P0 | As a visitor following a timestamp URL, playback seeks to that timestamp. | Unit, E2E |
-| VD-012 | P1 | As a visitor, selecting a transcript paragraph seeks and plays the VOD. | Partial |
-| VD-013 | P1 | As a visitor, selecting a formatted sentence seeks and deep-links that exact sentence. | Partial |
-| VD-014 | P1 | As a visitor, a segment hash takes precedence over rounded timestamp ambiguity. | Partial |
-| VD-015 | P1 | As a visitor, a block hash opens and highlights the intended formatted block. | Gap |
-| VD-016 | P1 | As a visitor, I can switch among Split, Watch, and Read layouts. | Gap |
-| VD-017 | P1 | As a reader, I can play or pause without leaving Read layout. | Unit, Partial |
+| VD-012 | P1 | As a visitor, selecting a transcript paragraph seeks and plays the VOD. | Unit |
+| VD-013 | P1 | As a visitor, selecting a formatted sentence seeks and deep-links that exact sentence. | Unit |
+| VD-014 | P1 | As a visitor, a segment hash takes precedence over rounded timestamp ambiguity. | Unit |
+| VD-015 | P1 | As a visitor, a block hash opens and highlights the intended formatted block. | Unit |
+| VD-016 | P1 | As a visitor, I can switch among Split, Watch, and Read layouts. | Unit |
+| VD-017 | P1 | As a reader, I can play or pause without leaving Read layout. | Unit |
 | VD-018 | P1 | As a visitor, playback progress highlights the current transcript content efficiently. | Unit |
-| VD-019 | P1 | As a visitor, automatic transcript following pauses when I manually scroll or navigate. | Gap |
-| VD-020 | P1 | As a visitor, I can explicitly resume following the current sentence. | Gap |
+| VD-019 | P1 | As a visitor, automatic transcript following pauses when I manually scroll or navigate. | Unit |
+| VD-020 | P1 | As a visitor, I can explicitly resume following the current sentence. | Unit |
 | VD-021 | P1 | As a visitor, I can navigate an episode outline and jump to a chapter. | Unit |
-| VD-022 | P1 | As a visitor, selecting a chapter seeks playback and scrolls to its evidence. | Partial |
+| VD-022 | P1 | As a visitor, selecting a chapter seeks playback and scrolls to its evidence. | Unit |
 | VD-023 | P0 | As a visitor, formatted transcript blocks render without module-evaluation crashes. | E2E |
 | VD-024 | P1 | As a visitor, a plain transcript remains readable when formatted blocks are unavailable. | Unit |
 | VD-025 | P1 | As a visitor, transcript text normalization changes spacing but not words. | Unit |
 | VD-026 | P1 | As a visitor, unlabeled transcript segments are grouped into readable turns. | Unit |
-| VD-027 | P1 | As a visitor, I see a clear announced transcript loading state. | Partial |
+| VD-027 | P1 | As a visitor, I see a clear announced transcript loading state. | Unit |
 | VD-028 | P0 | As a visitor, transcript failure is distinct from VOD failure and can be retried in place. | Unit |
 | VD-029 | P1 | As a visitor, retry uses the preferred persisted Whisper source when available. | Unit |
-| VD-030 | P1 | As a visitor, I can search inside the current VOD. | Partial |
-| VD-031 | P1 | As a visitor, clearing in-VOD search removes its URL query state. | Gap |
+| VD-030 | P1 | As a visitor, I can search inside the current VOD. | Unit |
+| VD-031 | P1 | As a visitor, clearing in-VOD search removes its URL query state. | Unit |
 | VD-032 | P1 | As a visitor, in-VOD matches are highlighted as inert text. | Unit |
-| VD-033 | P1 | As a visitor, I can move to the next match. | Gap |
-| VD-034 | P1 | As a visitor, I can move to the previous match, wrapping when necessary. | Gap |
-| VD-035 | P1 | As a visitor, I can start and stop sequential playback of all matches. | Partial |
-| VD-036 | P1 | As a visitor, sequential match playback stops after the final match. | Gap |
+| VD-033 | P1 | As a visitor, I can move to the next match. | Unit |
+| VD-034 | P1 | As a visitor, I can move to the previous match, wrapping when necessary. | Unit |
+| VD-035 | P1 | As a visitor, I can start and stop sequential playback of all matches. | Unit |
+| VD-036 | P1 | As a visitor, sequential match playback stops after the final match. | Unit |
 | VD-037 | P1 | As an anonymous visitor, I can save and remove a transcript moment locally. | E2E, Unit |
-| VD-038 | P1 | As an authenticated user, I can save and remove a transcript moment remotely. | Partial |
+| VD-038 | P1 | As an authenticated user, I can save and remove a transcript moment remotely. | Unit |
 | VD-039 | P1 | As a visitor, transcript save/remove feedback accurately describes the completed action. | E2E, Unit |
-| VD-040 | P1 | As a visitor, transcript save failure is announced without changing the saved state. | Gap |
-| VD-041 | P1 | As a visitor, I can copy a transcript quote containing normalized text, VOD title, timestamp, and deep link. | Gap |
-| VD-042 | P1 | As a visitor, transcript quote-copy failure is announced. | Gap |
+| VD-040 | P1 | As a visitor, transcript save failure is announced without changing the saved state. | Unit |
+| VD-041 | P1 | As a visitor, I can copy a transcript quote containing normalized text, VOD title, timestamp, and deep link. | Unit |
+| VD-042 | P1 | As a visitor, transcript quote-copy failure is announced. | Unit |
 | VD-043 | P1 | As a visitor, I can reopen a saved transcript moment at the intended location. | E2E |
 | VD-044 | P1 | As a visitor, I can open the transcript export menu. | Unit |
 | VD-045 | P1 | As a visitor, I can download supported transcript formats with correct source-aware links. | Unit |
