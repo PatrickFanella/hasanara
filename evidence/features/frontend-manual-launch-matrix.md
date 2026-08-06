@@ -45,4 +45,4 @@ Use the frozen release candidate and production-like data. Do not record cookies
 
 ## Promotion rule
 
-Public promotion remains blocked until every checkbox above is green, the WebKit runner gap is closed, and the invite-only beta/public-decision requirements in the private-beta protocol have been met. Any failure creates a defect using the protocol's S0–S3 severity rubric and requires the affected check to be rerun after the fix.
+Public promotion remains blocked until every checkbox above is green, representative iOS hardware confirmation is recorded, and the invite-only beta/public-decision requirements in the private-beta protocol have been met. Any failure creates a defect using the protocol's S0–S3 severity rubric and requires the affected check to be rerun after the fix.
