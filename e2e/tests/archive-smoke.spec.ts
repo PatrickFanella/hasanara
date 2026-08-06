@@ -211,7 +211,11 @@ async function seedArchiveApi(page: Page) {
       });
     }
     if (url.pathname === `/api/videos/${seededVideo.id}/chapters`) {
-      return respond({ video_id: seededVideo.id, chapters: [], source: "transcript" });
+      return respond({
+        video_id: seededVideo.id,
+        chapters: [],
+        source: "transcript",
+      });
     }
     if (url.pathname === `/api/videos/${seededVideo.id}/related`) {
       return respond({ items: [] });
@@ -231,7 +235,10 @@ async function seedArchiveApi(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     class Player {
-      constructor(_element: HTMLElement, config: { events: { onReady: () => void } }) {
+      constructor(
+        _element: HTMLElement,
+        config: { events: { onReady: () => void } },
+      ) {
         queueMicrotask(() => config.events.onReady());
       }
       destroy() {}
@@ -245,7 +252,9 @@ test.beforeEach(async ({ page }) => {
         return 12;
       }
     }
-    (window as typeof window & { YT: { Player: typeof Player } }).YT = { Player };
+    (window as typeof window & { YT: { Player: typeof Player } }).YT = {
+      Player,
+    };
   });
   await seedArchiveApi(page);
 });
@@ -288,6 +297,47 @@ test("anonymous visitors can browse the seeded VOD library", async ({
   await expect(page.getByText(/1 VOD/)).toBeVisible();
 });
 
+test("legacy library and saved links render their current destinations", async ({
+  page,
+}) => {
+  await page.goto("/streams");
+  await expect(
+    page.getByRole("heading", { name: "Browse HasanAbi VODs" }),
+  ).toBeVisible();
+  await expect(page.getByText("Seeded archive episode")).toBeVisible();
+
+  await page.goto("/favorites");
+  await expect(
+    page.getByRole("heading", { name: "Saved moments and searches" }),
+  ).toBeVisible();
+  await expect(page.getByText("No saved moments yet.")).toBeVisible();
+});
+
+test("reduced-motion preference disables nonessential motion and smooth scrolling", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+
+  const styles = await page
+    .getByRole("button", { name: "Search archive" })
+    .evaluate((element) => {
+      const control = getComputedStyle(element);
+      const root = getComputedStyle(document.documentElement);
+      return {
+        animationDuration: parseFloat(control.animationDuration),
+        animationIterations: control.animationIterationCount,
+        scrollBehavior: root.scrollBehavior,
+        transitionDuration: parseFloat(control.transitionDuration),
+      };
+    });
+
+  expect(styles.animationDuration).toBeLessThanOrEqual(0.01);
+  expect(styles.animationIterations).toBe("1");
+  expect(styles.scrollBehavior).toBe("auto");
+  expect(styles.transitionDuration).toBeLessThanOrEqual(0.01);
+});
+
 test("every mention can become a persistent in-app playback queue", async ({
   page,
 }) => {
@@ -316,18 +366,26 @@ test("topic intelligence has accessible timeline evidence and empty opinion stat
   ).toBeVisible();
 });
 
-test("visitors can read, save, remove, and reopen a transcript moment", async ({ page }) => {
+test("visitors can read, save, remove, and reopen a transcript moment", async ({
+  page,
+}) => {
   await page.goto(`/v/${seededVideo.id}`);
-  await expect(page.getByRole("heading", { name: seededVideo.title })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: seededVideo.title }),
+  ).toBeVisible();
 
-  const sentence = page.getByRole("button", { name: "Play sentence from 00:00:12" });
+  const sentence = page.getByRole("button", {
+    name: "Play sentence from 00:00:12",
+  });
   await expect(sentence).toContainText("Labor rights are worth protecting.");
   await sentence.click();
   await page.getByRole("button", { name: "Save moment" }).click();
   await expect(page.getByText("Transcript moment saved.")).toBeVisible();
 
   await page.goto("/saved");
-  await expect(page.getByText("Labor rights are worth protecting.")).toBeVisible();
+  await expect(
+    page.getByText("Labor rights are worth protecting."),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open moment" })).toHaveAttribute(
     "href",
     `/v/${seededVideo.id}?t=12#seg-1`,
@@ -339,36 +397,53 @@ test("visitors can read, save, remove, and reopen a transcript moment", async ({
   await expect(page.getByText("Transcript moment removed.")).toBeVisible();
 });
 
-test("anonymous account access redirects to sign in and unknown routes recover", async ({ page }) => {
+test("anonymous account access redirects to sign in and unknown routes recover", async ({
+  page,
+}) => {
   await page.goto("/account");
   await expect(page).toHaveURL(/\/login\?next=%2Faccount$/);
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Twitch" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue with Google" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue with Twitch" }),
+  ).toBeVisible();
 
   await page.goto("/not-a-real-route");
-  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Page not found" }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Return home" }).click();
   await expect(page).toHaveURL(/\/$/);
 });
 
-test("mobile navigation closes after selection and restores focus on Escape", async ({ page }) => {
+test("mobile navigation closes after selection and restores focus on Escape", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const menuButton = page.getByRole("button", { name: "Open menu" });
   await menuButton.click();
-  await page.getByRole("navigation", { name: "Mobile navigation" }).getByRole("link", {
-    name: "Timeline",
-  }).click();
+  await page
+    .getByRole("navigation", { name: "Mobile navigation" })
+    .getByRole("link", {
+      name: "Timeline",
+    })
+    .click();
   await expect(page).toHaveURL(/\/timeline$/);
-  await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeHidden();
+  await expect(
+    page.getByRole("navigation", { name: "Mobile navigation" }),
+  ).toBeHidden();
 
   await page.getByRole("button", { name: "Open menu" }).click();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
 });
 
-test("public route matrix has no serious accessibility or runtime errors", async ({ page }) => {
+test("public route matrix has no serious accessibility or runtime errors", async ({
+  page,
+}) => {
   const pageErrors: Array<{ url: string; message: string }> = [];
   page.on("pageerror", (error) =>
     pageErrors.push({ url: page.url(), message: error.stack ?? error.message }),
@@ -378,11 +453,13 @@ test("public route matrix has no serious accessibility or runtime errors", async
     "/search?q=labor",
     "/explore",
     "/episodes",
+    "/streams",
     "/timeline",
     "/topics/labor",
     `/v/${seededVideo.id}`,
     "/login",
     "/saved",
+    "/favorites",
     "/admin/dashboard",
     "/not-a-real-route",
   ];
@@ -393,22 +470,30 @@ test("public route matrix has no serious accessibility or runtime errors", async
       await page.goto(route);
       await page.waitForLoadState("networkidle");
       await page.addScriptTag({
-        path: path.resolve(process.cwd(), "../frontend/node_modules/axe-core/axe.min.js"),
+        path: path.resolve(
+          process.cwd(),
+          "../frontend/node_modules/axe-core/axe.min.js",
+        ),
       });
       const violations = await page.evaluate(async () => {
-        const axe = (window as typeof window & {
-          axe: {
-            run: () => Promise<{
-              violations: Array<{
-                id: string;
-                impact: string | null;
-                nodes: Array<{ target: unknown; failureSummary?: string }>;
+        const axe = (
+          window as typeof window & {
+            axe: {
+              run: () => Promise<{
+                violations: Array<{
+                  id: string;
+                  impact: string | null;
+                  nodes: Array<{ target: unknown; failureSummary?: string }>;
+                }>;
               }>;
-            }>;
-          };
-        }).axe;
+            };
+          }
+        ).axe;
         return (await axe.run()).violations
-          .filter((violation) => violation.impact === "critical" || violation.impact === "serious")
+          .filter(
+            (violation) =>
+              violation.impact === "critical" || violation.impact === "serious",
+          )
           .map((violation) => ({
             id: violation.id,
             nodes: violation.nodes.map((node) => ({
@@ -417,7 +502,10 @@ test("public route matrix has no serious accessibility or runtime errors", async
             })),
           }));
       });
-      expect(violations, `${colorScheme} ${route} accessibility violations`).toEqual([]);
+      expect(
+        violations,
+        `${colorScheme} ${route} accessibility violations`,
+      ).toEqual([]);
       const currentUrl = page.url();
       expect(
         pageErrors.filter((error) => error.url === currentUrl),
@@ -430,17 +518,26 @@ test("public route matrix has no serious accessibility or runtime errors", async
   }
 });
 
-test("core public routes do not overflow a 320px viewport", async ({ page }) => {
+test("core public routes do not overflow a 320px viewport", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 320, height: 720 });
-  for (const route of ["/", "/search?q=labor", "/explore", "/episodes", `/v/${seededVideo.id}`]) {
+  for (const route of [
+    "/",
+    "/search?q=labor",
+    "/explore",
+    "/episodes",
+    `/v/${seededVideo.id}`,
+  ]) {
     await page.goto(route);
     await page.waitForLoadState("networkidle");
     const dimensions = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
     }));
-    expect(dimensions.scrollWidth, `${route} horizontal overflow`).toBeLessThanOrEqual(
-      dimensions.clientWidth + 1,
-    );
+    expect(
+      dimensions.scrollWidth,
+      `${route} horizontal overflow`,
+    ).toBeLessThanOrEqual(dimensions.clientWidth + 1);
   }
 });

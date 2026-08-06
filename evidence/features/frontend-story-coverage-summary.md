@@ -23,6 +23,7 @@ Status: in progress
 - Added Saved coverage for synchronized viewing/deletion, sync-failure preservation, remote form states, and cross-tab reloads; fixed local searches disappearing while synchronization was pending or failed.
 - Added account coverage for role/identity metadata, unlink cancellation, session failure/empty states, and danger-zone disclosure/reset behavior.
 - Added VOD coverage for exact paragraph/sentence/block navigation, all reading layouts, follow pause/resume, chapter evidence, loading, in-VOD search and wrapping navigation, sequential match playback, authenticated saves, save failure, and quote-copy success/failure.
+- Added browser coverage for the `/streams` and `/favorites` compatibility routes and verified reduced-motion styles disable nonessential motion and smooth scrolling.
 
 ## Current local gate
 
@@ -33,10 +34,11 @@ Status: in progress
 - Coverage thresholds: pass.
 - Production build and bundle budget: pass at baseline; rerun required after the full coverage pass.
 - API/OpenAPI contracts: pass at baseline; rerun required after the full coverage pass.
+- Playwright Chromium: 12 public journey tests passed.
 
 ## Remaining
 
-- 4 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
+- 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency.
 - 24 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.

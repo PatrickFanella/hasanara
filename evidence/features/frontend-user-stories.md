@@ -167,7 +167,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | EP-013 | P1 | As a visitor, a no-match state suggests broadening filters. | Unit |
 | EP-014 | P1 | As a visitor, each VOD card clearly indicates transcript availability. | Unit |
 | EP-015 | P1 | As a visitor, I can open a VOD from its library card. | E2E |
-| EP-016 | P1 | As a visitor, the `/streams` compatibility route shows the same library as `/episodes`. | Gap |
+| EP-016 | P1 | As a visitor, the `/streams` compatibility route shows the same library as `/episodes`. | E2E |
 | TL-001 | P1 | As a visitor, I can browse the archive chronology by month or year. | E2E, Unit |
 | TL-002 | P1 | As a visitor, I can see the VOD count and runtime for each timeline bucket. | Unit |
 | TL-003 | P1 | As a visitor, I can open a timeline VOD. | Unit |
@@ -292,7 +292,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | SV-021 | P0 | As a newly signed-in user, successfully synchronized local searches are removed locally to prevent duplication. | Unit |
 | SV-022 | P1 | As a visitor, the UI distinguishes local-only saves from synchronized saves. | Unit |
 | SV-023 | P1 | As an anonymous visitor, I am invited to sign in to synchronize without being blocked from saving. | Unit |
-| SV-024 | P1 | As a visitor, the `/favorites` compatibility route shows the same content as `/saved`. | Gap |
+| SV-024 | P1 | As a visitor, the `/favorites` compatibility route shows the same content as `/saved`. | E2E |
 | SV-025 | P1 | As a visitor, locally saved items update across tabs or windows. | Unit |
 
 ## Authentication and account security
@@ -405,7 +405,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | NX-003 | P0 | As a visitor, focus order remains logical after route changes, disclosures, dialogs, and async updates. | Manual |
 | NX-004 | P0 | As a visitor, important loading, success, and error messages are announced without unexpected focus movement. | Partial |
 | NX-005 | P0 | As a visitor at 200% and 400% zoom, core tasks remain operable without lost content. | Manual |
-| NX-006 | P0 | As a visitor using reduced motion, nonessential animation and smooth scrolling respect my preference. | Gap |
+| NX-006 | P0 | As a visitor using reduced motion, nonessential animation and smooth scrolling respect my preference. | E2E |
 | NX-007 | P0 | As a visitor using high-contrast or forced-colors mode, controls and state remain distinguishable. | Manual |
 | NX-008 | P0 | As a mobile visitor, touch targets for primary actions are large enough and do not overlap. | Manual |
 | NX-009 | P0 | As a visitor on a slow connection, route and data loading states prevent duplicate or unsafe actions. | Partial |
