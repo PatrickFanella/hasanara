@@ -7,17 +7,67 @@ import { http } from '../services/api';
 import { renderWithProviders } from './test-utils';
 import axe from 'axe-core';
 
+let currentTopic = 'rent';
+let initialTimelineParams = new URLSearchParams();
+const serviceMocks = vi.hoisted(() => ({ addFavorite: vi.fn() }));
+
+vi.mock('../services', async () => {
+  const actual = await vi.importActual<typeof import('../services')>('../services');
+  return { ...actual, apiAddFavorite: serviceMocks.addFavorite, track: vi.fn() };
+});
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const React = await vi.importActual<typeof import('react')>('react');
   return {
     ...actual,
-    useParams: () => ({ query: 'rent' }),
+    useParams: () => ({ query: currentTopic }),
+    useSearchParams: () => {
+      const [params, setParams] = React.useState(() => new URLSearchParams(initialTimelineParams));
+      return [params, (next: URLSearchParams) => setParams(new URLSearchParams(next))] as const;
+    },
   };
 });
 
+function minimalMentionMap() {
+  return {
+    query: 'rent',
+    total_moments: 1,
+    total_videos: 1,
+    first_mentioned_year: 2026,
+    most_discussed_period: '2026',
+    most_discussed_count: 1,
+    recent_mentions_90d: 1,
+    related_topics: [],
+    top_episodes_count: 1,
+    query_time_ms: 3,
+    first_mention: null,
+    latest_mention: null,
+    top_episodes: [
+      {
+        video: { id: 'video-1', title: 'VOD one', channel_name: 'Channel Alpha' },
+        moments: [
+          {
+            id: 11,
+            video_id: 'video-1',
+            start_ms: 1000,
+            end_ms: 2000,
+            snippet: 'first <mark>rent</mark> mention',
+            source: 'whisper',
+          },
+        ],
+      },
+    ],
+  } as never;
+}
+
 describe('TopicPage', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
+    currentTopic = 'rent';
+    initialTimelineParams = new URLSearchParams();
+    serviceMocks.addFavorite.mockResolvedValue({ id: 'favorite-1' });
 
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: vi.fn() },
@@ -140,6 +190,7 @@ describe('TopicPage', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining('/v/video-1?t=1#seg-11')
     );
+    expect(await screen.findByRole('status')).toHaveTextContent('Quote copied.');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Save moment' })[0]);
     expect(toggleMock).toHaveBeenCalledWith(
@@ -165,5 +216,129 @@ describe('TopicPage', () => {
       'href',
       '/search?q=rent'
     );
+  });
+
+  it('persists timeline filters in the URL and distinguishes loading, empty, and failure states', async () => {
+    let resolveTimeline:
+      | ((value: Awaited<ReturnType<typeof api.getTopicTimeline>>) => void)
+      | undefined;
+    const timelineMock = vi
+      .spyOn(api, 'getTopicTimeline')
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveTimeline = resolve;
+          })
+      )
+      .mockRejectedValue(new DOMException('unavailable', 'AbortError'));
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+
+    renderWithProviders(<TopicPage />);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading topic timeline…');
+    resolveTimeline?.({ topic: 'rent', granularity: 'month', buckets: [] });
+    expect(await screen.findByText('No mentions were found in this range.')).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Granularity'), { target: { value: 'week' } });
+    await waitFor(() => expect(screen.getByLabelText('Granularity')).toHaveValue('week'));
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-05-01' } });
+    await waitFor(() => expect(screen.getByLabelText('From')).toHaveValue('2026-05-01'));
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-05-31' } });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Granularity')).toHaveValue('week');
+      expect(screen.getByLabelText('From')).toHaveValue('2026-05-01');
+      expect(screen.getByLabelText('To')).toHaveValue('2026-05-31');
+      expect(timelineMock).toHaveBeenLastCalledWith(
+        'rent',
+        {
+          granularity: 'week',
+          date_from: '2026-05-01',
+          date_to: '2026-05-31',
+        },
+        expect.any(AbortSignal)
+      );
+    });
+    expect(await screen.findByText('Topic timeline is temporarily unavailable.')).toBeVisible();
+  });
+
+  it('keeps topic evidence visible when opinion history fails', async () => {
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockRejectedValue(
+      new DOMException('unavailable', 'AbortError')
+    );
+
+    renderWithProviders(<TopicPage />);
+
+    expect(await screen.findByText('Opinion history is temporarily unavailable.')).toBeVisible();
+    expect(screen.getAllByText('VOD one')).not.toHaveLength(0);
+    expect(screen.getByText('rent', { selector: 'mark' })).toBeVisible();
+  });
+
+  it('announces quote-copy failure without hiding the topic moment', async () => {
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValue(new Error('denied'));
+
+    renderWithProviders(<TopicPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy quote' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The quote could not be copied.');
+    expect(screen.getByText('rent', { selector: 'mark' })).toBeVisible();
+  });
+
+  it('saves a topic moment remotely for an authenticated user', async () => {
+    vi.mocked(http.get).mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return { json: vi.fn().mockResolvedValue({ user: { id: 'user-1' } }) } as never;
+      }
+      if (path === 'auth/csrf') {
+        return { json: vi.fn().mockResolvedValue({ csrf_token: 'csrf-token' }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+
+    renderWithProviders(<TopicPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
+
+    expect(serviceMocks.addFavorite).toHaveBeenCalledWith({
+      video_id: 'video-1',
+      start_ms: 1000,
+      end_ms: 2000,
+      text: 'first rent mention',
+    });
+    expect(await screen.findByRole('button', { name: 'Saved moment' })).toBeDisabled();
+  });
+
+  it('reports save failure without marking the topic moment saved', async () => {
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue(minimalMentionMap());
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+    vi.spyOn(favorites, 'toggle').mockImplementation(() => {
+      throw new Error('storage unavailable');
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderWithProviders(<TopicPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save that moment.');
+    expect(screen.getByRole('button', { name: 'Save moment' })).toBeEnabled();
+  });
+
+  it('shows a recovery state instead of fetching an invalid empty topic', () => {
+    currentTopic = '';
+    const mentionMapMock = vi.spyOn(api, 'getMentionMap');
+
+    renderWithProviders(<TopicPage />);
+
+    expect(screen.getByText('Pick a topic from search results first.')).toBeVisible();
+    expect(mentionMapMock).not.toHaveBeenCalled();
   });
 });
