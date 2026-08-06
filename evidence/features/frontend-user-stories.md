@@ -81,40 +81,40 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | SE-006 | P1 | As a visitor, I can filter by minimum and maximum VOD duration. | Unit |
 | SE-007 | P1 | As a visitor, I can change result ordering. | Unit |
 | SE-008 | P1 | As a visitor, I can reset all filters and return to the search start state. | Unit |
-| SE-009 | P1 | As a visitor, I cannot submit a blank archive query. | Partial |
-| SE-010 | P1 | As a visitor, I see an announced loading state while transcripts are scanned. | Partial |
+| SE-009 | P1 | As a visitor, I cannot submit a blank archive query. | Unit |
+| SE-010 | P1 | As a visitor, I see an announced loading state while transcripts are scanned. | Unit |
 | SE-011 | P0 | As a visitor, results are grouped by VOD with a moment and VOD count. | Unit, E2E |
 | SE-012 | P1 | As a visitor, legacy flat search responses remain usable and grouped by VOD. | Unit |
-| SE-013 | P1 | As a visitor, I can see VOD title, channel, date, duration, and match count in a result group. | Partial |
+| SE-013 | P1 | As a visitor, I can see VOD title, channel, date, duration, and match count in a result group. | Unit |
 | SE-014 | P0 | As a visitor, I can open a matching transcript moment at the correct timestamp. | E2E |
-| SE-015 | P1 | As a visitor, I can open the containing VOD from its result header. | Gap |
+| SE-015 | P1 | As a visitor, I can open the containing VOD from its result header. | Unit |
 | SE-016 | P1 | As a visitor, matching text is highlighted without interpreting transcript markup as HTML. | Unit |
 | SE-017 | P1 | As a visitor, Unicode highlights align with the intended characters. | Unit |
-| SE-018 | P1 | As a visitor, I can play all matches within a VOD beginning at the first match. | Partial |
+| SE-018 | P1 | As a visitor, I can play all matches within a VOD beginning at the first match. | Unit |
 | SE-019 | P1 | As a visitor, I can copy a timestamp link for a result. | Unit |
 | SE-020 | P1 | As a visitor, successful timestamp copying is announced. | Unit |
 | SE-021 | P1 | As a visitor, clipboard failure produces an actionable error. | Unit |
 | SE-022 | P1 | As a visitor, I can copy a quote with VOD title, timestamp, and deep link. | Unit |
-| SE-023 | P1 | As an anonymous visitor, I can save a matching moment locally. | Partial |
-| SE-024 | P1 | As an authenticated user, I can save a matching moment to my account. | Gap |
-| SE-025 | P1 | As a visitor, a saved result is visibly and accessibly identified. | Partial |
-| SE-026 | P1 | As a visitor, save failure does not falsely show success. | Gap |
+| SE-023 | P1 | As an anonymous visitor, I can save a matching moment locally. | Unit |
+| SE-024 | P1 | As an authenticated user, I can save a matching moment to my account. | Unit |
+| SE-025 | P1 | As a visitor, a saved result is visibly and accessibly identified. | Unit |
+| SE-026 | P1 | As a visitor, save failure does not falsely show success. | Unit |
 | SE-027 | P1 | As a visitor, I can export every matching mention as JSON. | Unit |
 | SE-028 | P1 | As a visitor, I can export every matching mention as CSV. | Unit |
 | SE-029 | P1 | As a visitor, I can export every matching mention as M3U. | Unit |
 | SE-030 | P1 | As a visitor, exports preserve the active query and filters. | Unit |
 | SE-031 | P1 | As a visitor, I can add every matching mention to a persistent playback queue. | E2E, Unit |
 | SE-032 | P1 | As a visitor, queue creation reports the number of added moments. | Unit |
-| SE-033 | P1 | As a visitor, a queue-creation failure leaves existing queue data intact and reports an error. | Gap |
+| SE-033 | P1 | As a visitor, a queue-creation failure leaves existing queue data intact and reports an error. | Unit |
 | SE-034 | P1 | As a visitor, I can open a queued moment. | E2E |
 | SE-035 | P1 | As a visitor, I can remove one queued moment. | Unit |
 | SE-036 | P1 | As a visitor, I can clear the complete playback queue. | Unit |
 | SE-037 | P1 | As a visitor, I can open a mention map for my active query. | Unit |
 | SE-038 | P1 | As a visitor, I can carry the complete current query into the Save Search page. | Unit |
-| SE-039 | P1 | As a visitor, I see related search suggestions when available. | Partial |
+| SE-039 | P1 | As a visitor, I see related search suggestions when available. | Unit |
 | SE-040 | P1 | As a visitor, search remains usable when suggestions fail. | Unit |
 | SE-041 | P1 | As a visitor, an empty result explains how to broaden the query. | Unit |
-| SE-042 | P0 | As a visitor, a search API failure is announced without destroying my editable query. | Partial |
+| SE-042 | P0 | As a visitor, a search API failure is announced without destroying my editable query. | Unit |
 | SE-043 | P1 | As a visitor, changing a filter resets stale pagination appropriately. | Unit |
 | SE-044 | P1 | As a visitor sharing filtered search results, the recipient sees the same research state. | Manual |
 

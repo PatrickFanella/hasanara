@@ -17,10 +17,11 @@ Status: in progress
 - Added complete Home discovery-link and loading-placeholder coverage.
 - Added VOD-library skeleton/no-match coverage and timeline counts, VOD links, and loading coverage.
 - Added admin-event filter, summary, row/payload, and CSV-export coverage; connected each filter label to its control for accessible querying and form use.
+- Added search coverage for blank/loading states, result metadata and navigation, local and remote saves, save/queue failures, suggestions, and query-preserving API failure.
 
 ## Current local gate
 
-- Vitest: 40 files passed; 178 passed, 1 skipped.
+- Vitest: 40 files passed; 185 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
@@ -30,7 +31,7 @@ Status: in progress
 
 ## Remaining
 
-- 35 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
-- 62 rows have partial coverage that must be evaluated or strengthened.
+- 31 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
+- 54 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.

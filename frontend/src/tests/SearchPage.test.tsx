@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchPage from '../routes/SearchPage';
-import { api, http } from '../services';
+import { api, favorites, http } from '../services';
 import { renderWithProviders } from './test-utils';
 import axe from 'axe-core';
+import { formatDate } from '../features/archive/format';
 
 const searchParamsMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
+const serviceMocks = vi.hoisted(() => ({
+  addFavorite: vi.fn(),
+}));
 
 const groupedResult = {
   total_moments: 1,
@@ -40,6 +44,7 @@ vi.mock('../services', async () => {
   const actual = await vi.importActual<typeof import('../services')>('../services');
   return {
     ...actual,
+    apiAddFavorite: serviceMocks.addFavorite,
     track: vi.fn(),
   };
 });
@@ -54,8 +59,12 @@ vi.mock('react-router-dom', async () => {
 
 describe('SearchPage', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
+    vi.mocked(localStorage.getItem).mockReset();
+    vi.mocked(localStorage.setItem).mockReset();
     currentSearchParams = new URLSearchParams();
+    serviceMocks.addFavorite.mockResolvedValue({ id: 'favorite-1' });
 
     vi.spyOn(http, 'get').mockImplementation(((path: string) => {
       if (path === 'auth/me') {
@@ -134,6 +143,18 @@ describe('SearchPage', () => {
     });
 
     expect(screen.getByText('rent', { selector: 'mark' })).toBeInTheDocument();
+    expect(screen.getByText('Channel Alpha')).toBeInTheDocument();
+    expect(screen.getByText(formatDate('2026-05-10T00:00:00Z'))).toBeInTheDocument();
+    expect(screen.getByText('20:00')).toBeInTheDocument();
+    expect(screen.getByText('1', { selector: '.font-mono.text-3xl' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Open VOD one' })[0]).toHaveAttribute(
+      'href',
+      '/v/video-1'
+    );
+    expect(screen.getByRole('link', { name: 'Play all matches' })).toHaveAttribute(
+      'href',
+      '/v/video-1?t=12&q=rent&play=matches#seg-1'
+    );
 
     expect(screen.getByRole('link', { name: 'gaza' })).toHaveAttribute('href', '/search?q=gaza');
     expect((await axe.run(container)).violations).toEqual([]);
@@ -167,6 +188,28 @@ describe('SearchPage', () => {
     });
 
     expect(screen.queryByText('Suggested searches')).not.toBeInTheDocument();
+  });
+
+  it('prevents a blank query from being submitted', async () => {
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    const searchGroupedMock = vi.spyOn(api, 'searchGrouped');
+
+    renderWithProviders(<SearchPage />);
+
+    expect(screen.getByRole('button', { name: 'Search archive' })).toBeDisabled();
+    expect(searchGroupedMock).not.toHaveBeenCalled();
+  });
+
+  it('announces transcript scanning while search results load', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockImplementation(() => new Promise(() => {}));
+
+    renderWithProviders(<SearchPage />);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Searching the archive…');
+    expect(screen.getByText('Scanning transcripts…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Searching…' })).toBeDisabled();
   });
 
   it('exports and queues every matching mention', async () => {
@@ -272,5 +315,109 @@ describe('SearchPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The timestamp link could not be copied.'
     );
+  });
+
+  it('saves an anonymous result locally and identifies the saved result', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    const toggle = vi.spyOn(favorites, 'toggle').mockImplementation(() => {});
+
+    renderWithProviders(<SearchPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
+
+    expect(toggle).toHaveBeenCalledWith(
+      expect.objectContaining({ videoId: 'video-1', startMs: 12000, endMs: 18000 })
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Moment saved.');
+    expect(screen.getByRole('button', { name: 'Saved moment' })).toBeDisabled();
+  });
+
+  it('saves an authenticated result to the account', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.mocked(http.get).mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return {
+          json: vi.fn().mockResolvedValue({ user: { id: 'user-1', email: 'person@example.com' } }),
+        } as never;
+      }
+      if (path === 'auth/csrf') {
+        return { json: vi.fn().mockResolvedValue({ csrf_token: 'csrf-token' }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+
+    renderWithProviders(<SearchPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
+
+    expect(serviceMocks.addFavorite).toHaveBeenCalledWith({
+      video_id: 'video-1',
+      start_ms: 12000,
+      end_ms: 18000,
+      text: 'the rent is too high',
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent('Moment saved.');
+  });
+
+  it('reports save failure without marking the result saved', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    vi.spyOn(favorites, 'toggle').mockImplementation(() => {
+      throw new Error('storage full');
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderWithProviders(<SearchPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save this moment');
+    expect(screen.getByRole('button', { name: 'Save moment' })).toBeEnabled();
+    expect(screen.queryByText('Moment saved.')).not.toBeInTheDocument();
+  });
+
+  it('keeps the existing queue when queue creation fails', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    const existingQueue = [
+      {
+        video_id: 'existing-video',
+        video_title: 'Existing episode',
+        start_ms: 5000,
+        end_ms: 9000,
+        snippet: 'existing queue item',
+        source: 'whisper',
+        deep_link: '/v/existing-video?t=5',
+      },
+    ];
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify(existingQueue));
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    vi.spyOn(api, 'getMentionCollection').mockRejectedValue(new Error('unavailable'));
+
+    renderWithProviders(<SearchPage />);
+    expect(await screen.findByRole('link', { name: 'Existing episode at 5s' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add every mention to queue' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The playback queue could not be created.'
+    );
+    expect(screen.getByRole('link', { name: 'Existing episode at 5s' })).toBeInTheDocument();
+  });
+
+  it('announces search failure while preserving the editable query', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockRejectedValue(new Error('grouped unavailable'));
+    vi.spyOn(api, 'search').mockRejectedValue(new DOMException('search unavailable', 'AbortError'));
+
+    renderWithProviders(<SearchPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Search failed. Try again.');
+    const query = screen.getByRole('searchbox', { name: 'Search query' });
+    expect(query).toHaveValue('rent');
+    await userEvent.type(query, ' control');
+    expect(query).toHaveValue('rent control');
   });
 });
