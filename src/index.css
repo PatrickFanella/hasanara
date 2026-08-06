@@ -466,7 +466,7 @@ body {
   }
 
   .view-switch button {
-    @apply min-h-8 rounded-md px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-subtle transition-colors hover:text-ink;
+    @apply min-h-11 min-w-11 rounded-md px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-subtle transition-colors hover:text-ink;
   }
 
   .view-switch .view-switch-active {
@@ -486,7 +486,7 @@ body {
   }
 
   .toolbar-button {
-    @apply inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-surface-muted px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:border-border-strong hover:text-ink disabled:opacity-50;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md border border-border bg-surface-muted px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:border-border-strong hover:text-ink disabled:opacity-50;
   }
 
   .toolbar-button-accent {
@@ -494,7 +494,7 @@ body {
   }
 
   .follow-live-button {
-    @apply flex w-full items-center justify-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:border-accent/60 hover:bg-accent/15;
+    @apply flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:border-accent/60 hover:bg-accent/15;
   }
 
   .transcript-body {
@@ -523,7 +523,7 @@ body {
   }
 
   .transcript-timecode {
-    @apply font-mono text-[11px] font-semibold tracking-[0.04em] text-subtle transition-colors hover:text-accent;
+    @apply inline-flex min-h-11 min-w-11 items-center font-mono text-[11px] font-semibold tracking-[0.04em] text-subtle transition-colors hover:text-accent;
   }
 
   .transcript-speaker {
@@ -556,7 +556,7 @@ body {
   }
 
   .selection-action {
-    @apply rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:bg-surface hover:text-ink disabled:cursor-default disabled:opacity-55;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:bg-surface hover:text-ink disabled:cursor-default disabled:opacity-55;
   }
 
   .outline-panel {
@@ -594,6 +594,27 @@ body {
 
   .outline-time {
     @apply shrink-0 font-mono text-[9px] text-subtle;
+  }
+}
+
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline-color: Highlight;
+  }
+
+  [aria-current='page'],
+  [aria-pressed='true'],
+  .period-button-active,
+  .view-switch-active,
+  .outline-item-active,
+  .transcript-sentence-active,
+  .transcript-sentence-match {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .topic-timeline-bar {
+    background: CanvasText;
   }
 }
 
