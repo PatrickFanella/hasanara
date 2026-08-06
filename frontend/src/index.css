@@ -17,10 +17,12 @@
   --color-border-strong: #4a4a5b;
   --color-ink: #f1f1f4;
   --color-muted: #9a9aaa;
-  --color-subtle: #7f7f91;
+  --color-subtle: #8d8d9f;
   --color-accent: #b7ff3c;
   --color-accent-hover: #d1ff7a;
   --color-accent-soft: #1f2a12;
+  --color-accent-contrast: #101014;
+  --color-player-accent: #b7ff3c;
   --color-cta: #c084fc;
   --color-success: #b7ff3c;
   --color-success-soft: #1f2a12;
@@ -47,16 +49,17 @@
   --color-border-strong: #b9af9a;
   --color-ink: #1e1d22;
   --color-muted: #5f5c68;
-  --color-subtle: #7b7784;
-  --color-accent: #5d8f12;
-  --color-accent-hover: #79a31f;
+  --color-subtle: #6b6774;
+  --color-accent: #477007;
+  --color-accent-hover: #3f6505;
   --color-accent-soft: #edf5dd;
+  --color-accent-contrast: #ffffff;
   --color-cta: #7c3aed;
-  --color-success: #5d8f12;
+  --color-success: #477007;
   --color-success-soft: #edf5dd;
-  --color-warning: #a96d00;
+  --color-warning: #8b5900;
   --color-warning-soft: #fff1cf;
-  --color-danger: #c94b4b;
+  --color-danger: #a93a3a;
   --color-danger-soft: #fde1e1;
 }
 
@@ -99,7 +102,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid #b7ff3c;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -256,7 +259,7 @@ body {
   }
 
   .btn-primary {
-    @apply inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border border-accent/60 bg-accent px-3.5 py-1.5 text-center font-semibold text-[#101014] shadow-[0_0_0_1px_rgba(183,255,60,0.08),0_12px_30px_rgba(183,255,60,0.18)] transition-[color,background-color,border-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border border-accent/60 bg-accent px-3.5 py-1.5 text-center font-semibold text-accent-contrast shadow-[0_0_0_1px_rgba(183,255,60,0.08),0_12px_30px_rgba(183,255,60,0.18)] transition-[color,background-color,border-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
@@ -268,7 +271,7 @@ body {
   }
 
   .btn {
-    @apply inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border border-accent/60 bg-accent px-5 py-2 text-center font-semibold text-[#101014] shadow-[0_0_0_1px_rgba(183,255,60,0.08),0_14px_32px_rgba(183,255,60,0.18)] transition-[color,background-color,border-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border border-accent/60 bg-accent px-5 py-2 text-center font-semibold text-accent-contrast shadow-[0_0_0_1px_rgba(183,255,60,0.08),0_14px_32px_rgba(183,255,60,0.18)] transition-[color,background-color,border-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .badge-success {

@@ -203,4 +203,28 @@ describe('StreamsPage', () => {
     await waitFor(() => expect(screen.getByText('Pending stream')).toBeInTheDocument());
     expect(screen.queryByText('No transcript yet')).not.toBeInTheDocument();
   });
+
+  it('reports a library failure without presenting stale results or an empty state', async () => {
+    vi.spyOn(api, 'listStreamLibrary').mockRejectedValue(new Error('network unavailable'));
+
+    render(
+      <MemoryRouter initialEntries={['/episodes']}>
+        <StreamsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('VOD library unavailable');
+    expect(screen.queryByRole('region', { name: 'Stream results' })).not.toBeInTheDocument();
+    expect(screen.queryByText('No VODs match these filters.')).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('button', { name: /previous/i })
+        .every((button) => button.hasAttribute('disabled'))
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('button', { name: /next/i })
+        .every((button) => button.hasAttribute('disabled'))
+    ).toBe(true);
+  });
 });

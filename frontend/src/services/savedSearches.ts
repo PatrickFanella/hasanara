@@ -2,6 +2,22 @@ import type { SavedSearch, SavedSearchFilters } from '../types/api';
 
 const KEY = 'saved-searches:v1';
 
+export function savedSearchKey(query: string, filters: SavedSearchFilters) {
+  return JSON.stringify([
+    query.trim(),
+    filters.source ?? null,
+    filters.category ?? null,
+    filters.date_from ?? null,
+    filters.date_to ?? null,
+    filters.min_duration ?? null,
+    filters.max_duration ?? null,
+    filters.sort_by ?? null,
+    filters.video_id ?? null,
+    filters.limit ?? null,
+    filters.offset ?? null,
+  ]);
+}
+
 function load(): SavedSearch[] {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '[]') as SavedSearch[];

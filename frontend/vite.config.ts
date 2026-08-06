@@ -25,6 +25,7 @@ export default defineConfig(() => {
       setupFiles: './src/tests/setup.ts',
       coverage: {
         provider: 'v8',
+        reportsDirectory: '.artifacts/coverage',
         reporter: ['text', 'json', 'html'],
         exclude: [
           'node_modules/',

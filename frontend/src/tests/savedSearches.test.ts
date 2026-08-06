@@ -7,7 +7,7 @@ vi.stubGlobal('localStorage', {
 });
 vi.stubGlobal('crypto', { randomUUID: () => 'local-id' });
 
-import { localSavedSearches } from '../services/savedSearches';
+import { localSavedSearches, savedSearchKey } from '../services/savedSearches';
 
 describe('local saved searches', () => {
   beforeEach(() => {
@@ -27,5 +27,11 @@ describe('local saved searches', () => {
 
     localSavedSearches.remove(item.id);
     expect(localSavedSearches.list()).toEqual([]);
+  });
+
+  it('identifies equivalent filters independently of object key order', () => {
+    expect(savedSearchKey(' housing ', { source: 'best', category: 'politics' })).toBe(
+      savedSearchKey('housing', { category: 'politics', source: 'best' })
+    );
   });
 });

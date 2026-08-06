@@ -37,8 +37,8 @@ export default function PlayerPanel({ video, start, playerRef, className = '' }:
       )}
       <div className="flex items-center justify-between border-t border-white/10 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
         <span>Source video</span>
-        <span className="inline-flex items-center gap-1.5 text-accent">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Synced transcript
+        <span className="inline-flex items-center gap-1.5 text-player-accent">
+          <span className="h-1.5 w-1.5 rounded-full bg-player-accent" /> Synced transcript
         </span>
       </div>
     </div>

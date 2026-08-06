@@ -324,7 +324,7 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => selectPeriodKind(tab.kind)}
                 aria-pressed={active}
-                className={`shrink-0 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] transition-colors ${active ? 'bg-accent text-[#101014]' : 'text-muted hover:bg-surface-muted hover:text-ink'}`}
+                className={`shrink-0 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] transition-colors ${active ? 'bg-accent text-accent-contrast' : 'text-muted hover:bg-surface-muted hover:text-ink'}`}
               >
                 {tab.label}
               </button>

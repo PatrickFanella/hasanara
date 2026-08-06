@@ -33,7 +33,7 @@ export default function AppLayout() {
     <div className="flex min-h-screen flex-col bg-canvas text-ink transition-colors">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:min-h-[44px] focus:bg-accent focus:px-4 focus:py-2 focus:text-[#101014]"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:min-h-[44px] focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast"
       >
         Skip to main content
       </a>
@@ -346,7 +346,7 @@ export default function AppLayout() {
         <div className="mx-auto flex max-w-[100rem] flex-col gap-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between lg:px-6">
           <p>
             &copy; {new Date().getFullYear()} HasanAra. A{' '}
-            <a href="https://subcult.tv" className="action-link">
+            <a href="https://subcult.tv" className="action-link underline underline-offset-2">
               Subcult
             </a>{' '}
             project.

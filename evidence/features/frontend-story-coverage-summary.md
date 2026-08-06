@@ -1,0 +1,32 @@
+# Frontend story-coverage checkpoint
+
+Date: 2026-08-06
+Status: in progress
+
+## Completed in this checkpoint
+
+- Restored the standard coverage command by moving generated reports to a workspace-owned ignored artifacts path.
+- Added route recovery coverage for 404 and route exceptions.
+- Added VOD library failure-state coverage and fixed failure being displayed as a valid empty result.
+- Added idempotent anonymous-to-authenticated moment/search migration coverage and fixed saved-search duplication caused by object-key order.
+- Added timeline empty/failure coverage and fixed failure being displayed as valid empty data.
+- Added topic mention-map failure coverage.
+- Added home blank/trimmed search and summary-fallback coverage.
+- Added search filter reset, no-match guidance, timestamp copy, quote copy, and clipboard failure coverage.
+
+## Current local gate
+
+- Vitest: 39 files passed; 169 passed, 1 skipped.
+- ESLint: pass.
+- Prettier: pass.
+- TypeScript: pass.
+- Coverage thresholds: pass.
+- Production build and bundle budget: pass at baseline; rerun required after the full coverage pass.
+- API/OpenAPI contracts: pass at baseline; rerun required after the full coverage pass.
+
+## Remaining
+
+- 57 inventory rows still have an explicit automation `Gap` label.
+- 67 rows have partial coverage that must be evaluated or strengthened.
+- Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
+- Full Playwright matrix must be rerun after remaining browser stories are added.

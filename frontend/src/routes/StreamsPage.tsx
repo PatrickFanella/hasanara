@@ -156,6 +156,13 @@ export default function StreamsPage() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <div className="surface-card text-center" role="alert">
+          <p className="text-lg font-medium text-ink">VOD library unavailable</p>
+          <p className="mt-2 text-muted">
+            The archive could not load VODs right now. Refresh the page to try again.
+          </p>
+        </div>
       ) : sortedItems.length > 0 ? (
         <section aria-label="Stream results" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sortedItems.map((video) => (

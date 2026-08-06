@@ -150,4 +150,20 @@ describe('TopicPage', () => {
     });
     expect((await axe.run(container)).violations).toEqual([]);
   });
+
+  it('announces a mention-map failure without crashing the rest of the topic route', async () => {
+    vi.spyOn(api, 'getMentionMap').mockRejectedValue(new Error('search unavailable'));
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({ buckets: [] } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+
+    renderWithProviders(<TopicPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Topic page failed to load.');
+    expect(screen.getByRole('heading', { name: 'Topic: rent' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Timeline range' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open search' })).toHaveAttribute(
+      'href',
+      '/search?q=rent'
+    );
+  });
 });
