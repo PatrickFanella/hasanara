@@ -26,6 +26,7 @@ Status: in progress
 - Added browser coverage for the `/streams` and `/favorites` compatibility routes and verified reduced-motion styles disable nonessential motion and smooth scrolling.
 - Added admin coverage for opinion revisions, archive-period filters/validation/failures, metadata validation/failures, label status/kind/query filters, mutation failures, access/navigation, and accessible chart values; fixed missing label-kind filtering, unreachable announced sort validation, period live-region semantics, dashboard failure recovery, and line-chart text alternatives.
 - Added coverage for lazy-route announcements, OAuth identity-conflict recovery, focus-stable async notices, local-only anonymous saves, immediate private-data removal on sign-out, hostile/Unicode content, browser history restoration, and refreshed topic/VOD deep links.
+- Updated the pinned `cryptography` dependency from 49.0.0 to 50.0.0 after the release audit found `PYSEC-2026-3552`; the follow-up Python audit reports no known vulnerabilities after the repository's documented unreachable Torch exception.
 
 ## Current local gate
 
@@ -40,6 +41,7 @@ Status: in progress
 - Playwright Chromium: 14 public journey tests passed.
 - Playwright Firefox: 14 public journey tests passed.
 - Playwright Mobile Chrome: 14 public journey tests passed, including the explore, video/transcript, and 320px overflow stories.
+- Full repository verifier: pass with Python 3.11 and host Node 24 (1,495 backend tests, migrations, static analysis, security audits, all frontend gates, and seeded Chromium); repeat under the release-pinned Node 20 runtime in CI because this host does not provide `mise` or Node 20.
 
 ## Remaining
 
