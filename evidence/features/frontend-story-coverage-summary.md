@@ -19,10 +19,11 @@ Status: in progress
 - Added admin-event filter, summary, row/payload, and CSV-export coverage; connected each filter label to its control for accessible querying and form use.
 - Added search coverage for blank/loading states, result metadata and navigation, local and remote saves, save/queue failures, suggestions, and query-preserving API failure.
 - Added Explore coverage for custom weekly ranges, refresh-in-place failure, period narrative, and all topic/source/facet empty states.
+- Added topic coverage for URL-backed timeline filters and states, opinion failure isolation, quote/save success and failure, authenticated saves, and empty-topic recovery.
 
 ## Current local gate
 
-- Vitest: 40 files passed; 188 passed, 1 skipped.
+- Vitest: 40 files passed; 194 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
@@ -32,7 +33,7 @@ Status: in progress
 
 ## Remaining
 
-- 26 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
-- 50 rows have partial coverage that must be evaluated or strengthened.
+- 21 inventory rows still have an explicit automation `Gap` label, including one WebKit runner dependency.
+- 44 rows have partial coverage that must be evaluated or strengthened.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
 - Full Playwright matrix must be rerun after remaining browser stories are added.

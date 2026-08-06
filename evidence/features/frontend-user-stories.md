@@ -190,23 +190,23 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | TP-008 | P1 | As a visitor, I can play all topic matches in a top VOD. | Unit |
 | TP-009 | P1 | As a visitor, I can view grouped topic results and source labels. | Unit |
 | TP-010 | P1 | As a visitor, I can open the full search for this topic. | Unit |
-| TP-011 | P1 | As a visitor, I can change topic timeline granularity. | Partial |
-| TP-012 | P1 | As a visitor, I can restrict the topic timeline by date range. | Partial |
-| TP-013 | P1 | As a visitor, timeline filters persist in the URL. | Partial |
+| TP-011 | P1 | As a visitor, I can change topic timeline granularity. | Unit |
+| TP-012 | P1 | As a visitor, I can restrict the topic timeline by date range. | Unit |
+| TP-013 | P1 | As a visitor, timeline filters persist in the URL. | Unit |
 | TP-014 | P1 | As a visitor, I can open evidence from a timeline bucket. | E2E |
-| TP-015 | P1 | As a visitor, topic timeline loading, empty, and unavailable states are distinct. | Partial |
+| TP-015 | P1 | As a visitor, topic timeline loading, empty, and unavailable states are distinct. | Unit |
 | TP-016 | P1 | As a visitor, I can inspect labeled model-generated opinion history with citations and revisions. | Unit |
 | TP-017 | P1 | As a visitor, an empty opinion history is understandable and accessible. | E2E, Unit |
-| TP-018 | P1 | As a visitor, opinion-history failure does not hide the rest of the topic page. | Gap |
-| TP-019 | P1 | As a visitor, I can copy a citation-ready topic quote. | Partial |
-| TP-020 | P1 | As a visitor, quote-copy failure is announced. | Gap |
-| TP-021 | P1 | As an anonymous visitor, I can save a topic moment locally. | Partial |
-| TP-022 | P1 | As an authenticated user, I can save a topic moment remotely. | Gap |
-| TP-023 | P1 | As a visitor, topic save failure does not falsely mark the moment as saved. | Gap |
+| TP-018 | P1 | As a visitor, opinion-history failure does not hide the rest of the topic page. | Unit |
+| TP-019 | P1 | As a visitor, I can copy a citation-ready topic quote. | Unit |
+| TP-020 | P1 | As a visitor, quote-copy failure is announced. | Unit |
+| TP-021 | P1 | As an anonymous visitor, I can save a topic moment locally. | Unit |
+| TP-022 | P1 | As an authenticated user, I can save a topic moment remotely. | Unit |
+| TP-023 | P1 | As a visitor, topic save failure does not falsely mark the moment as saved. | Unit |
 | TP-024 | P2 | As an administrator, I can correct an opinion by supplying a reason and retain revision history. | Partial |
 | TP-025 | P2 | As an administrator, I can retract an opinion by supplying a reason and retain revision history. | Partial |
 | TP-026 | P1 | As a non-admin user, I cannot see opinion correction or retraction controls. | Unit |
-| TP-027 | P1 | As a visitor following an invalid empty topic, I receive a useful recovery state. | Gap |
+| TP-027 | P1 | As a visitor following an invalid empty topic, I receive a useful recovery state. | Unit |
 | TP-028 | P0 | As a visitor, topic load failure is announced without a route crash. | Unit |
 
 ## VOD, player, transcript, and exports
