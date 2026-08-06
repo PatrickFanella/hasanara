@@ -33,8 +33,8 @@ NPM_ROUTER_SOURCE = "1124282"
 NPM_BRACE_SOURCES = {
     "1130588": "GHSA-mh99-v99m-4gvg",
     "1130589": "GHSA-mh99-v99m-4gvg",
-    "1130707": "GHSA-rgw5-rvv9-x895",
-    "1130708": "GHSA-rgw5-rvv9-x895",
+    "1130736": "GHSA-rgw5-rvv9-x895",
+    "1130737": "GHSA-rgw5-rvv9-x895",
 }
 NPM_ALLOWED_ROUTER_NODES = {
     "node_modules/react-router": "7.18.1",

@@ -2,9 +2,23 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { NotFoundPage, RouteErrorPage } from '../routes/RouteStates';
+import { NotFoundPage, PageSuspense, RouteErrorPage } from '../routes/RouteStates';
 
 describe('route recovery states', () => {
+  it('announces a useful fallback while a lazy route is loading', () => {
+    function PendingRoute(): never {
+      throw new Promise(() => undefined);
+    }
+
+    render(
+      <PageSuspense>
+        <PendingRoute />
+      </PageSuspense>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading page…');
+  });
+
   it('lets a visitor recover from an unknown route', () => {
     render(
       <MemoryRouter initialEntries={['/missing']}>

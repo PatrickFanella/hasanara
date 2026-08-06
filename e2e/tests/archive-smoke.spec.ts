@@ -338,6 +338,53 @@ test("reduced-motion preference disables nonessential motion and smooth scrollin
   expect(styles.transitionDuration).toBeLessThanOrEqual(0.01);
 });
 
+test("browser history restores URL-driven research context", async ({
+  page,
+}) => {
+  await page.goto("/search?q=labor");
+  await expect(
+    page.getByRole("searchbox", { name: "Search query" }),
+  ).toHaveValue("labor");
+  await expect(page.getByText("labor rights").first()).toBeVisible();
+
+  await page.goto("/timeline");
+  await expect(
+    page.getByRole("heading", { name: "Archive chronology" }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/search\?q=labor$/);
+  await expect(
+    page.getByRole("searchbox", { name: "Search query" }),
+  ).toHaveValue("labor");
+  await expect(page.getByText("labor rights").first()).toBeVisible();
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/timeline$/);
+  await expect(
+    page.getByRole("heading", { name: "Archive chronology" }),
+  ).toBeVisible();
+});
+
+test("refresh preserves topic filters and exact transcript deep links", async ({
+  page,
+}) => {
+  await page.goto(
+    "/topics/labor?granularity=week&date_from=2026-06-01&date_to=2026-06-30",
+  );
+  await page.reload();
+  await expect(page.getByLabel("Granularity")).toHaveValue("week");
+  await expect(page.locator('input[name="date_from"]')).toHaveValue("2026-06-01");
+  await expect(page.locator('input[name="date_to"]')).toHaveValue("2026-06-30");
+
+  await page.goto(`/v/${seededVideo.id}?t=12#block-0`);
+  await expect(page.locator("#block-0")).toHaveAttribute("data-active", "true");
+  await page.reload();
+  await expect(page).toHaveURL(
+    new RegExp(`/v/${seededVideo.id}\\?t=12#block-0$`),
+  );
+  await expect(page.locator("#block-0")).toHaveAttribute("data-active", "true");
+});
+
 test("every mention can become a persistent in-app playback queue", async ({
   page,
 }) => {

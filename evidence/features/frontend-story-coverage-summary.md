@@ -25,21 +25,24 @@ Status: in progress
 - Added VOD coverage for exact paragraph/sentence/block navigation, all reading layouts, follow pause/resume, chapter evidence, loading, in-VOD search and wrapping navigation, sequential match playback, authenticated saves, save failure, and quote-copy success/failure.
 - Added browser coverage for the `/streams` and `/favorites` compatibility routes and verified reduced-motion styles disable nonessential motion and smooth scrolling.
 - Added admin coverage for opinion revisions, archive-period filters/validation/failures, metadata validation/failures, label status/kind/query filters, mutation failures, access/navigation, and accessible chart values; fixed missing label-kind filtering, unreachable announced sort validation, period live-region semantics, dashboard failure recovery, and line-chart text alternatives.
+- Added coverage for lazy-route announcements, OAuth identity-conflict recovery, focus-stable async notices, local-only anonymous saves, immediate private-data removal on sign-out, hostile/Unicode content, browser history restoration, and refreshed topic/VOD deep links.
 
 ## Current local gate
 
-- Vitest: 40 files passed; 222 passed, 1 skipped.
+- Vitest: 40 files passed; 226 passed, 1 skipped.
 - ESLint: pass.
 - Prettier: pass.
 - TypeScript: pass.
 - Coverage thresholds: pass.
-- Production build and bundle budget: pass at baseline; rerun required after the full coverage pass.
-- API/OpenAPI contracts: pass at baseline; rerun required after the full coverage pass.
-- Playwright Chromium: 12 public journey tests passed.
+- Production build and bundle budget: pass; main bundle is 106.87 KiB gzip against a 150 KiB limit and every lazy route is below its 100 KiB limit.
+- API/OpenAPI contracts: pass with the repository's pinned Python 3.11 environment.
+- npm security exception gate: pass after refreshing npm's reassigned source IDs for the same pinned `brace-expansion` GHSA; no critical advisory is present and all accepted high-severity paths remain version-locked, dev-only or unreachable.
+- Playwright Chromium: 14 public journey tests passed.
+- Playwright Firefox: 14 public journey tests passed.
+- Playwright Mobile Chrome: 14 public journey tests passed, including the explore, video/transcript, and 320px overflow stories.
 
 ## Remaining
 
-- 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency.
-- 12 rows have partial coverage that must be evaluated or strengthened.
+- 1 inventory row still has an explicit automation `Gap` label: the WebKit runner dependency. Desktop WebKit and Mobile Safari fail before application startup because this host lacks `libevent-2.1-7t64`, `libwebpdemux2`, `libavif16`, `libharfbuzz-icu0`, `libmanette-0.2-0`, `libenchant-2-2`, `libhyphen0`, and `libwoff1`; install them with `sudo npx playwright install-deps` on the release runner.
+- No inventory row retains a `Partial` label.
 - Manual/external protocols remain for real OAuth/deployment integrations, WebKit/Mobile Safari host testing, screen reader, keyboard-only research tasks, zoom/reflow, forced colors, and moderated beta evidence.
-- Full Playwright matrix must be rerun after remaining browser stories are added.

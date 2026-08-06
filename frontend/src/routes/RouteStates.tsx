@@ -4,7 +4,15 @@ import { Link, isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
 export function PageSuspense({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<div className="p-6 text-muted">Loading page…</div>}>{children}</Suspense>
+    <Suspense
+      fallback={
+        <div className="p-6 text-muted" role="status" aria-live="polite">
+          Loading page…
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
   );
 }
 

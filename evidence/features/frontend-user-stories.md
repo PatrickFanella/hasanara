@@ -38,7 +38,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | GL-016 | P0 | As a visitor, serious and critical accessibility violations are absent on all core public routes in light mode. | E2E |
 | GL-017 | P0 | As a visitor, serious and critical accessibility violations are absent on all core public routes in dark mode. | E2E |
 | GL-018 | P0 | As a visitor at 320px width, core public routes do not overflow horizontally. | E2E |
-| GL-019 | P1 | As a visitor, every lazy-loaded route displays a useful loading state. | Partial |
+| GL-019 | P1 | As a visitor, every lazy-loaded route displays a useful loading state. | Unit |
 | GL-020 | P0 | As a visitor following an unknown URL, I see a 404 and can return home. | E2E |
 | GL-021 | P0 | As a visitor encountering a route exception, I can retry or return home. | Unit |
 | GL-022 | P0 | As a visitor, navigation between routes does not report stale-document runtime errors. | E2E |
@@ -146,7 +146,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | EX-022 | P1 | As a visitor, I can open a content tag as a transcript search. | Unit |
 | EX-023 | P1 | As a visitor, missing people or tag facets are explained. | Unit |
 | EX-024 | P1 | As a keyboard user, horizontally scrollable period-kind controls remain operable and visibly selected. | Manual |
-| EX-025 | P1 | As a mobile visitor, period controls and evidence cards remain usable without content loss. | E2E, Partial |
+| EX-025 | P1 | As a mobile visitor, period controls and evidence cards remain usable without content loss. | E2E |
 
 ## VOD library and archive timeline
 
@@ -263,7 +263,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | VD-048 | P0 | As a visitor, failure to load or operate the YouTube API does not crash the transcript and permits retry. | Unit |
 | VD-049 | P1 | As a visitor navigating between VODs, the old player is destroyed and state resets. | Unit |
 | VD-050 | P1 | As a keyboard user, timestamps, transcript sentences, save, copy, search, and layout controls are operable. | Manual |
-| VD-051 | P1 | As a mobile visitor, player and transcript controls remain usable without overlap or overflow. | E2E, Partial |
+| VD-051 | P1 | As a mobile visitor, player and transcript controls remain usable without overlap or overflow. | E2E |
 
 ## Saved moments, saved searches, and synchronization
 
@@ -319,7 +319,7 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | AU-018 | P1 | As a user, unknown profile errors remain form-level. | Unit |
 | AU-019 | P1 | As a user, a saved profile refreshes shell identity information. | Unit |
 | AU-020 | P0 | As a user, I can link a second Google or Twitch identity through a protected authorization start. | Unit |
-| AU-021 | P0 | As a user, an identity already owned by another account is not silently merged. | Partial |
+| AU-021 | P0 | As a user, an identity already owned by another account is not silently merged. | Unit, API |
 | AU-022 | P0 | As a user, unlinking an identity requires a deliberate confirmation step. | Unit |
 | AU-023 | P0 | As a user, my final sign-in identity cannot be removed. | Unit |
 | AU-024 | P1 | As a user, I can cancel an identity unlink. | Unit |
@@ -403,22 +403,22 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 | NX-001 | P0 | As a keyboard-only user, I can complete recent-VOD discovery, timestamped citation, playback verification, and recovery. | Manual |
 | NX-002 | P0 | As a screen-reader user, I can complete recent-VOD discovery, timestamped citation, playback verification, and recovery. | Manual |
 | NX-003 | P0 | As a visitor, focus order remains logical after route changes, disclosures, dialogs, and async updates. | Manual |
-| NX-004 | P0 | As a visitor, important loading, success, and error messages are announced without unexpected focus movement. | Partial |
+| NX-004 | P0 | As a visitor, important loading, success, and error messages are announced without unexpected focus movement. | Unit |
 | NX-005 | P0 | As a visitor at 200% and 400% zoom, core tasks remain operable without lost content. | Manual |
 | NX-006 | P0 | As a visitor using reduced motion, nonessential animation and smooth scrolling respect my preference. | E2E |
 | NX-007 | P0 | As a visitor using high-contrast or forced-colors mode, controls and state remain distinguishable. | Manual |
 | NX-008 | P0 | As a mobile visitor, touch targets for primary actions are large enough and do not overlap. | Manual |
-| NX-009 | P0 | As a visitor on a slow connection, route and data loading states prevent duplicate or unsafe actions. | Partial |
-| NX-010 | P0 | As a visitor whose network drops mid-action, the UI never reports a save, role change, deletion, or export as successful unless confirmed. | Partial |
-| NX-011 | P0 | As a visitor, back/forward navigation restores URL-driven filters, periods, timestamps, and queries coherently. | Partial |
-| NX-012 | P0 | As a visitor, refreshing a deep link preserves its route and intended research context. | Partial |
+| NX-009 | P0 | As a visitor on a slow connection, route and data loading states prevent duplicate or unsafe actions. | Unit |
+| NX-010 | P0 | As a visitor whose network drops mid-action, the UI never reports a save, role change, deletion, or export as successful unless confirmed. | Unit |
+| NX-011 | P0 | As a visitor, back/forward navigation restores URL-driven filters, periods, timestamps, and queries coherently. | E2E |
+| NX-012 | P0 | As a visitor, refreshing a deep link preserves its route and intended research context. | E2E |
 | NX-013 | P0 | As a visitor, public routes work with the deployed API base, CSP, cookies, OAuth redirects, and analytics endpoint. | Manual |
-| NX-014 | P0 | As a visitor, production content containing punctuation, Unicode, emoji, angle brackets, and long unbroken text renders safely. | Unit, Partial |
+| NX-014 | P0 | As a visitor, production content containing punctuation, Unicode, emoji, angle brackets, and long unbroken text renders safely. | Unit |
 | NX-015 | P0 | As a visitor, user-controlled transcript or metadata content cannot execute script or inject markup. | Unit, API |
 | NX-016 | P0 | As a visitor, sensitive tokens, cookies, provider IDs, and private payload fields never appear in rendered errors or analytics. | Unit, Manual |
-| NX-017 | P0 | As an anonymous visitor, local saved data remains scoped to my browser and is not sent before I authenticate. | Partial |
+| NX-017 | P0 | As an anonymous visitor, local saved data remains scoped to my browser and is not sent before I authenticate. | Unit |
 | NX-018 | P0 | As a user signing in after anonymous use, synchronization is idempotent and does not lose or duplicate saves. | Unit |
-| NX-019 | P0 | As a user signing out, private account and synchronized-save data disappears from the UI immediately. | Partial |
+| NX-019 | P0 | As a user signing out, private account and synchronized-save data disappears from the UI immediately. | Unit |
 | NX-020 | P0 | As a visitor, the current production bundle remains within its launch size budgets. | Automated build gate |
 | NX-021 | P0 | As a visitor, no critical production dependency vulnerability applies to a reachable application path. | Automated/manual review |
 | NX-022 | P0 | As a Mobile Safari user, all P0 public journeys pass on WebKit. | Gap — runner dependency |
@@ -428,18 +428,22 @@ Priorities: **P0** blocks a safe public launch; **P1** is important public funct
 
 ## Existing browser journeys
 
-The current Playwright suite contains 10 durable journeys:
+The current Playwright suite contains 14 durable journeys:
 
 1. Search from the populated archive home.
 2. Preserve a timeline period when opening the VOD library.
 3. Browse the seeded VOD library.
-4. Build and persist an every-mention playback queue.
-5. Inspect topic timeline evidence and the empty opinion state.
-6. Read, save, remove, and reopen a formatted transcript moment.
-7. Redirect anonymous Account access and recover from a 404.
-8. Close mobile navigation after selection and restore focus with Escape.
-9. Check the public route matrix for serious accessibility issues and runtime errors in light/dark themes.
-10. Check core public routes for overflow at 320px.
+4. Open the `/streams` and `/favorites` compatibility routes.
+5. Verify reduced-motion styles in an emulated user preference.
+6. Restore a URL-driven search when navigating backward and forward.
+7. Preserve topic filters and exact transcript block links through refresh.
+8. Build and persist an every-mention playback queue.
+9. Inspect topic timeline evidence and the empty opinion state.
+10. Read, save, remove, and reopen a formatted transcript moment.
+11. Redirect anonymous Account access and recover from a 404.
+12. Close mobile navigation after selection and restore focus on Escape.
+13. Check the public route matrix for serious accessibility issues and runtime errors in light/dark themes.
+14. Check core public routes for overflow at 320px.
 
 ## Recommended automation order
 
@@ -459,5 +463,5 @@ The current Playwright suite contains 10 durable journeys:
 This file contains **355 distinct frontend and launch stories**. The count is intentionally broader than the number of screens: each important permission, state transition, failure mode, persistence boundary, and access mode is treated as a separate user-observable promise.
 
 - Priority mix: 87 P0, 256 P1, and 12 P2 stories.
-- Current evidence touches 37 stories through E2E coverage and 218 through unit/component coverage.
-- 62 stories have only partial journey coverage, 41 are explicit automation gaps, and 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.
+- Current evidence touches 42 stories through E2E coverage and 311 through unit/component coverage.
+- No stories retain partial browser coverage, 1 has an explicit automation gap, and 17 require manual validation. These coverage labels overlap when a story needs more than one kind of proof.

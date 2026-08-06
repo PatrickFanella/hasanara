@@ -19,7 +19,7 @@ describe('PlainTranscriptTurns', () => {
                   video_id: 'video-1',
                   start_ms: 0,
                   end_ms: 1000,
-                  snippet: '🚀 rent <img src=x onerror=alert(1)>',
+                  snippet: `🚀 rent — 日本語 “quoted” <img src=x onerror=alert(1)> ${'x'.repeat(200)}`,
                   highlights: [{ start: 2, end: 6 }],
                 },
               },
@@ -35,7 +35,9 @@ describe('PlainTranscriptTurns', () => {
     );
 
     expect(screen.getByText('rent', { selector: 'mark' })).toBeInTheDocument();
-    expect(screen.getByRole('note')).toHaveTextContent('🚀 rent <img src=x onerror=alert(1)>');
+    expect(screen.getByRole('note')).toHaveTextContent(
+      `🚀 rent — 日本語 “quoted” <img src=x onerror=alert(1)> ${'x'.repeat(200)}`
+    );
     expect(container.querySelector('img')).not.toBeInTheDocument();
   });
 });

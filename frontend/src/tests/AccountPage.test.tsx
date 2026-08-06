@@ -56,9 +56,9 @@ function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
 }
 
-function renderPage() {
+function renderPage(entry = '/account') {
   return render(
-    <MemoryRouter initialEntries={['/account']}>
+    <MemoryRouter initialEntries={[entry]}>
       <AuthProvider>
         <Routes>
           <Route path="/account" element={<AccountPage />} />
@@ -387,6 +387,30 @@ describe('AccountPage', () => {
     renderPage();
 
     expect(await screen.findByTestId('location')).toHaveTextContent('/login');
+  });
+
+  it('explains an identity ownership conflict without merging account identities', async () => {
+    installApi((request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith('/auth/me')) {
+        return json({ user, role: 'moderator', capabilities: [] });
+      }
+      if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
+      if (path.endsWith('/account')) {
+        return json({ ...account, identities: [googleIdentity] });
+      }
+      return json({ error: 'unexpected' }, 500);
+    });
+
+    renderPage('/account?error=identity_conflict');
+
+    expect(
+      await screen.findByText(
+        'That identity is already linked to another HasanAra account. No accounts were merged.'
+      )
+    ).toBeVisible();
+    expect(screen.getByText('Google')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Link Twitch' })).toBeEnabled();
   });
 
   it('shows a retryable session error when auth initialization fails', async () => {
