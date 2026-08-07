@@ -101,7 +101,7 @@ describe('YouTubePlayer', () => {
     // Call seekTo via ref
     ref.current?.seekTo(120);
 
-    expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true);
+    await waitFor(() => expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true));
   });
 
   it('can seek and play via ref', async () => {
@@ -114,8 +114,10 @@ describe('YouTubePlayer', () => {
 
     ref.current?.seekTo(120, { play: true });
 
-    expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true);
-    expect(mockPlayer.playVideo).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true);
+      expect(mockPlayer.playVideo).toHaveBeenCalled();
+    });
   });
 
   it('exposes play, pause, and togglePlay methods via ref', async () => {
@@ -151,7 +153,7 @@ describe('YouTubePlayer', () => {
 
     ref.current?.seekTo(120, { play: true });
 
-    expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true);
+    await waitFor(() => expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true));
     expect(mockPlayer.playVideo).not.toHaveBeenCalled();
   });
 
