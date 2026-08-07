@@ -334,6 +334,10 @@ jobs:
           canonical_digest="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
           [[ "$canonical_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$canonical_digest" == "$pushed_digest" ]]
+          # Materialize the immutable reference in the authenticated host daemon.
+          # Trivy runs in a container and cannot invoke host credential helpers,
+          # but it can inspect this local digest through the mounted Docker socket.
+          docker pull "$IMAGE@$canonical_digest" >/dev/null
           printf 'digest=%s\n' "$canonical_digest" >> "$GITHUB_OUTPUT"
       - name: Block digest high and critical application-library vulnerabilities
         env:

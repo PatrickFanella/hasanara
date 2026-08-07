@@ -1101,6 +1101,7 @@ def test_release_workflow_contracts() -> None:
     assert "trap cleanup EXIT" in publish
     assert 'docker buildx imagetools inspect "$IMAGE:$TAG"' in publish
     assert '[[ "$canonical_digest" == "$pushed_digest" ]]' in publish
+    assert 'docker pull "$IMAGE@$canonical_digest" >/dev/null' in publish
     assert 'printf \'digest=%s\\n\' "$canonical_digest" >> "$GITHUB_OUTPUT"' in publish
     assert "for attempt in 1 2 3; do" in publish
     assert publish.count("https://git.subcult.tv/v2/token") == 1

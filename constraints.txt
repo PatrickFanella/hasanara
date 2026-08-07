@@ -4,7 +4,7 @@
 # Exclude NVIDIA CUDA packages from constraints as they conflict with ROCm builds
 
 aiohappyeyeballs==2.6.1
-aiohttp==3.14.1
+aiohttp==3.14.3
 aiosignal==1.4.0
 alembic==1.17.0
 annotated-doc==0.0.4
