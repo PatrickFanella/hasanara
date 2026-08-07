@@ -8,11 +8,13 @@ Run the focused gates locally with:
 ```bash
 python scripts/check_security_exceptions.py
 pip-audit --local --skip-editable \
-  --ignore-vuln GHSA-rrmf-rvhw-rf47
+  --ignore-vuln GHSA-rrmf-rvhw-rf47 \
+  --ignore-vuln PYSEC-2026-3624
 pip-audit -r requirements.txt --no-deps --disable-pip
 pip-audit -r constraints.txt --no-deps --disable-pip
 pip-audit -r requirements-ml-runtime.txt --no-deps --disable-pip \
-  --ignore-vuln GHSA-rrmf-rvhw-rf47
+  --ignore-vuln GHSA-rrmf-rvhw-rf47 \
+  --ignore-vuln PYSEC-2026-3624
 bandit -r app/ worker/ -lll -ii
 python scripts/check_security_exceptions.py --npm-audit --package-dir frontend
 ```
@@ -38,6 +40,20 @@ digest, and supplies the immutable digest to every Helm workload. The retired
 GitHub/GHCR and duplicate production workflows must not be restored.
 
 ## Active exceptions
+
+`PYSEC-2026-3624` affects the transitive `lightning==2.6.5` dependency used
+by the diarization worker. The vulnerable path imports an attacker-controlled
+`_instantiator` while loading a Lightning checkpoint. HasanAra does not accept
+checkpoint or model uploads, does not call `LightningModule.load_from_checkpoint`,
+and keeps model identifiers operator-controlled; CI fails if a direct call is
+introduced. Upstream has committed a fix but has not published a patched PyPI
+release.
+
+- Owner: backend maintainers
+- Approved: 2026-08-07
+- Expires: 2026-08-09
+- Required action: upgrade to the first compatible patched Lightning release
+  and remove the exact ignore immediately
 
 `GHSA-rrmf-rvhw-rf47` affects `torch==2.11.0` in the transcription and
 diarization worker images. It requires local invocation of `torch.jit.script`.
