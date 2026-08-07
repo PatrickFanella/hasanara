@@ -6,7 +6,6 @@ import shlex
 import subprocess
 import tempfile
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
@@ -17,6 +16,7 @@ from app.settings import settings
 from worker.po_token_manager import TokenType, get_token_manager
 from worker.token_utils import redact_tokens_from_command
 from worker.youtube.errors import YouTubeErrorKind, classify_youtube_error
+from worker.youtube.types import YouTubeCaptionFetchError, YouTubeCaptionRateLimitError, YTCaptionTrack, YTSegment
 from worker.youtube.yt_dlp_executor import YtDlpError, YtDlpExecutor
 
 logger = get_logger(__name__)
@@ -49,29 +49,6 @@ except ImportError:
     ytdlp_operation_duration_seconds = _DummyMetric()
     ytdlp_operation_errors_total = _DummyMetric()
     ytdlp_token_usage_total = _DummyMetric()
-
-
-@dataclass
-class YTSegment:
-    start: float
-    end: float
-    text: str
-
-
-@dataclass
-class YTCaptionTrack:
-    url: str
-    language: Optional[str]
-    kind: str  # 'auto' or 'manual'
-    ext: str  # 'json3', 'vtt', etc.
-
-
-class YouTubeCaptionFetchError(RuntimeError):
-    """Caption track exists, but download or parsing failed transiently/ambiguously."""
-
-
-class YouTubeCaptionRateLimitError(YouTubeCaptionFetchError):
-    """Caption download hit an explicit YouTube rate limit."""
 
 
 def _build_metadata_strategies() -> List[Tuple[str, List[str]]]:

@@ -122,22 +122,3 @@ def job_state_from_video_states(video_states: Iterable[VideoState]) -> JobState:
     if any(state == VideoState.DOWNLOADING for state in states):
         return JobState.DOWNLOADING
     return JobState.DOWNLOADING if any(state in active_states for state in states) else JobState.PENDING
-
-
-def can_start_native_transcription(
-    *,
-    staged: bool,
-    own_caption_state: CaptionIngestState,
-    batch_job_count: int,
-    expected_batch_jobs: int,
-    batch_has_open_caption_work: bool,
-) -> bool:
-    if not staged:
-        return True
-    if own_caption_state.value not in TERMINAL_CAPTION_INGEST_STATES:
-        return False
-    if batch_job_count < expected_batch_jobs:
-        return False
-    if batch_has_open_caption_work:
-        return False
-    return True

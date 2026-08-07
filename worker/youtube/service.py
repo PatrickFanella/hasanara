@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from app.logging_config import get_logger
 from app.settings import settings
-from worker.youtube_captions import YTCaptionTrack, YTSegment
+from worker.youtube.types import YTCaptionTrack, YTSegment
 
 logger = get_logger(__name__)
 

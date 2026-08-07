@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 @dataclass(frozen=True)
 class NativePipelineDependencies:
     settings: Any = field(default_factory=lambda: settings)
-    logger: Any = logger
+    logger: Any = field(default_factory=lambda: logger)
     download_audio: Callable[[str, Path], Path] = download_audio
     ensure_wav_16k: Callable[[Path], Path] = ensure_wav_16k
     chunk_audio: Callable[[Path, int], list[Chunk]] = chunk_audio

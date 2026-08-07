@@ -1,18 +1,13 @@
-"""YouTube worker adapter package.
-
-Service exports are resolved lazily so importing a low-level adapter such as
-``worker.youtube.errors`` cannot recursively import the legacy caption module.
-"""
+"""YouTube worker adapter package with cycle-safe lazy service exports."""
 
 from importlib import import_module
 from typing import Any
 
 from .errors import YouTubeError, YouTubeErrorKind, classify_youtube_error
+from .types import YouTubeCaptionFetchError, YouTubeCaptionRateLimitError, YTCaptionTrack, YTSegment
 from .yt_dlp_executor import YtDlpError, YtDlpExecutionResult, YtDlpExecutor
 
 _SERVICE_EXPORTS = {
-    "YouTubeCaptionFetchError",
-    "YouTubeCaptionRateLimitError",
     "YouTubeCaptionResult",
     "YouTubeService",
     "download_audio",
@@ -38,5 +33,9 @@ __all__ = [
     "YtDlpError",
     "YtDlpExecutionResult",
     "YtDlpExecutor",
+    "YouTubeCaptionFetchError",
+    "YouTubeCaptionRateLimitError",
+    "YTCaptionTrack",
+    "YTSegment",
     *_SERVICE_EXPORTS,
 ]

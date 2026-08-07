@@ -46,6 +46,7 @@ services:
             disable: true
         ports: !override []
         restart: unless-stopped
+        stop_grace_period: 1h
 
     summary-refresher:
         image: hasanara-api:latest

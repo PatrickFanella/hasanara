@@ -1,8 +1,10 @@
+import json
 import os
+import signal
 import socket
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
-from threading import Thread
+from threading import Event, Lock, Thread
 
 from prometheus_client import start_http_server
 from sqlalchemy import create_engine, text
@@ -46,7 +48,62 @@ video_processing_pipeline = default_video_processing_pipeline(engine)
 WORKER_ID = f"{socket.gethostname()}-{os.getpid()}"
 
 
-def update_heartbeat():
+class WorkerLifecycle:
+    """Coordinate signal-driven draining across claim and execution lanes."""
+
+    def __init__(self) -> None:
+        self.shutdown_requested = Event()
+        self._lock = Lock()
+        self._active_video_ids: set[str] = set()
+
+    def request_shutdown(self) -> None:
+        self.shutdown_requested.set()
+
+    def set_active_video(self, video_id) -> None:
+        """Compatibility helper for single-work callers and lifecycle tests."""
+        with self._lock:
+            self._active_video_ids = {str(video_id)} if video_id is not None else set()
+
+    def begin_video(self, video_id) -> None:
+        with self._lock:
+            self._active_video_ids.add(str(video_id))
+
+    def end_video(self, video_id) -> None:
+        with self._lock:
+            self._active_video_ids.discard(str(video_id))
+
+    @property
+    def active_video_id(self) -> str | None:
+        with self._lock:
+            return next(iter(self._active_video_ids), None)
+
+    @property
+    def active_count(self) -> int:
+        with self._lock:
+            return len(self._active_video_ids)
+
+    @property
+    def state(self) -> str:
+        if self.shutdown_requested.is_set():
+            return "draining" if self.active_count else "stopping"
+        return "running"
+
+    def wait(self, seconds: float) -> bool:
+        return self.shutdown_requested.wait(seconds)
+
+
+worker_lifecycle = WorkerLifecycle()
+
+
+def _request_graceful_shutdown(signum, _frame) -> None:
+    worker_lifecycle.request_shutdown()
+    logger.info(
+        "Worker drain requested",
+        extra={"signal": signum, "active_video_count": worker_lifecycle.active_count},
+    )
+
+
+def update_heartbeat(*, state: str | None = None):
     """Update worker heartbeat in database."""
     try:
         with engine.begin() as conn:
@@ -66,7 +123,12 @@ def update_heartbeat():
                     "worker_id": WORKER_ID,
                     "hostname": socket.gethostname(),
                     "pid": os.getpid(),
-                    "metrics": "{}",  # Can be extended with additional metrics
+                    "metrics": json.dumps(
+                        {
+                            "state": state or worker_lifecycle.state,
+                            "active_video_count": worker_lifecycle.active_count,
+                        }
+                    ),
                 },
             )
             logger.debug("Worker heartbeat updated", extra={"worker_id": WORKER_ID})
@@ -108,32 +170,32 @@ def update_queue_metrics():
 
 def gpu_metrics_collector():
     """Background thread to periodically collect GPU metrics."""
-    while True:
+    while not worker_lifecycle.shutdown_requested.is_set():
         try:
             try_collect_gpu_metrics()
         except Exception as e:
             logger.debug("GPU metrics collection failed", extra={"error": str(e)})
-        time.sleep(30)  # Update every 30 seconds
+        worker_lifecycle.wait(30)
 
 
 def heartbeat_updater():
     """Background thread to periodically update worker heartbeat."""
-    while True:
+    while not worker_lifecycle.shutdown_requested.is_set():
         try:
             update_heartbeat()
         except Exception as e:
             logger.debug("Heartbeat update failed", extra={"error": str(e)})
-        time.sleep(HEARTBEAT_INTERVAL)
+        worker_lifecycle.wait(HEARTBEAT_INTERVAL)
 
 
 def source_cleanup_reconciler():
     """Keep cleanup I/O off the transcription polling lane."""
-    while True:
+    while not worker_lifecycle.shutdown_requested.is_set():
         try:
             reconcile_pending_source_deletions(limit=SOURCE_CLEANUP_BATCH_SIZE)
         except Exception as exc:
             logger.warning("Source deletion reconciliation failed", extra={"error_type": type(exc).__name__})
-        time.sleep(SOURCE_CLEANUP_INTERVAL)
+        worker_lifecycle.wait(SOURCE_CLEANUP_INTERVAL)
 
 
 def pending_video_claim_sql() -> str:
@@ -213,6 +275,7 @@ def process_claimed_video(video_id, lease) -> None:
             )
     finally:
         video_id_ctx.set(None)
+        worker_lifecycle.end_video(video_id)
 
 
 def run():
@@ -220,6 +283,9 @@ def run():
 
     # Validate JavaScript runtime for yt-dlp before starting worker
     validate_js_runtime_or_exit()
+
+    signal.signal(signal.SIGTERM, _request_graceful_shutdown)
+    signal.signal(signal.SIGINT, _request_graceful_shutdown)
 
     logger.info("Worker service started", extra={"worker_id": WORKER_ID})
 
@@ -267,10 +333,10 @@ def run():
     executor = ThreadPoolExecutor(max_workers=max_parallel, thread_name_prefix="video-job")
     active: set[Future] = set()
 
-    while True:
+    while not worker_lifecycle.shutdown_requested.is_set():
         active = {future for future in active if not future.done()}
         if len(active) >= max_parallel:
-            time.sleep(POLL_INTERVAL)
+            worker_lifecycle.wait(POLL_INTERVAL)
             continue
         logger.debug("Polling for work: expand jobs and pick a video")
         with engine.begin() as conn:
@@ -398,7 +464,10 @@ def run():
             ).first()
             if not row:
                 logger.debug("No pending videos found. Sleeping", extra={"sleep_seconds": POLL_INTERVAL})
-                time.sleep(POLL_INTERVAL)
+                worker_lifecycle.wait(POLL_INTERVAL)
+                continue
+            if worker_lifecycle.shutdown_requested.is_set():
+                logger.info("Drain requested before claim; leaving video pending")
                 continue
             video_id, job_id = row
             lease = claim_job_attempt(
@@ -421,7 +490,13 @@ def run():
             )
             if transition.rowcount != 1:
                 continue
+        worker_lifecycle.begin_video(video_id)
         active.add(executor.submit(process_claimed_video, video_id, lease))
+
+    update_heartbeat(state="draining" if worker_lifecycle.active_count else "stopping")
+    executor.shutdown(wait=True)
+    update_heartbeat(state="stopped")
+    logger.info("Worker service stopped after graceful drain")
 
 
 def main():
