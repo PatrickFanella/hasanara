@@ -1414,7 +1414,7 @@ def test_release_cross_browser_marker_gate_contract() -> None:
     assert "e2e/test-results" in report.group(0) and "e2e/playwright-report" in report.group(0)
 
     assert "needs: cross-browser" in gate
-    assert "if: always()" in gate
+    assert "if: always()" not in gate
     assert "uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262" in gate
     assert "ref: ${{ gitea.sha }}" in gate
     assert gate.count(download_sha) == 4
