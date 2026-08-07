@@ -6,6 +6,7 @@ import time
 import uuid
 from hashlib import sha256
 from typing import Generator
+from urllib.parse import urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +24,19 @@ except ImportError as e:
     logging.warning("Could not import app.main (missing dependencies): %s", e)
 
 logger = logging.getLogger(__name__)
+
+
+def _assert_destructive_test_database(database_url: str) -> None:
+    """Refuse destructive integration cleanup unless every safety gate is explicit."""
+    database_name = urlparse(database_url).path.lstrip("/")
+    requirements = {
+        "ENVIRONMENT=test": os.environ.get("ENVIRONMENT") == "test",
+        "ALLOW_DESTRUCTIVE_TEST_DB=1": os.environ.get("ALLOW_DESTRUCTIVE_TEST_DB") == "1",
+        "database name begins hasanara_test": database_name.startswith("hasanara_test"),
+    }
+    failed = [name for name, satisfied in requirements.items() if not satisfied]
+    if failed:
+        raise RuntimeError("Refusing destructive integration cleanup: " + ", ".join(failed))
 
 
 @pytest.fixture(scope="session")
@@ -89,12 +103,10 @@ def authenticated_client(integration_client, integration_db) -> Generator:
     user_id = uuid.uuid4()
     token = f"test-session-{uuid.uuid4()}"
     integration_db.execute(
-        text(
-            """
+        text("""
             INSERT INTO users (id, email, name, oauth_provider, oauth_subject, plan, role)
             VALUES (:id, :email, 'Integration User', 'google', :subject, 'pro', 'user')
-            """
-        ),
+            """),
         {
             "id": user_id,
             "email": f"integration-{user_id}@example.com",
@@ -102,7 +114,9 @@ def authenticated_client(integration_client, integration_db) -> Generator:
         },
     )
     integration_db.execute(
-        text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:user_id, :token_hash, now() + interval '1 day')"),
+        text(
+            "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:user_id, :token_hash, now() + interval '1 day')"
+        ),
         {"user_id": user_id, "token_hash": sha256(token.encode()).hexdigest()},
     )
     integration_db.commit()
@@ -127,6 +141,8 @@ def clean_test_data(integration_engine):
     if integration_engine is None:
         yield
         return
+
+    _assert_destructive_test_database(str(integration_engine.url))
 
     # Clean up before test
     with integration_engine.begin() as conn:

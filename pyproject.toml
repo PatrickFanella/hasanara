@@ -78,6 +78,7 @@ exclude_dirs = ["frontend", ".venv", "venv", "tests"]
 skips = ["B101"]  # Skip assert_used test
 
 [tool.pytest.ini_options]
+norecursedirs = [".git", ".venv", "venv", "docker-volumes", "data", "deploy-backups"]
 markers = [
     "timeout: marks tests with execution timeout (deselect with '-m \"not timeout\"')",
 ]
