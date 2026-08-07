@@ -21,6 +21,8 @@ def _cell_text(value: Any) -> str:
 
 
 def _neutralize_formula(value: str) -> str:
+    if value.startswith(("\t", "\r")):
+        return "'" + value
     for character in value:
         if character.isspace() or unicodedata.category(character).startswith("C"):
             continue
