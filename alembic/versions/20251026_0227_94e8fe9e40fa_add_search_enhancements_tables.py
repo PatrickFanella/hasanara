@@ -31,8 +31,7 @@ def upgrade() -> None:
     op.execute("CREATE INDEX IF NOT EXISTS videos_language_idx ON videos(language)")
 
     # Create search_suggestions table for autocomplete
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS search_suggestions (
             id BIGSERIAL PRIMARY KEY,
             term TEXT NOT NULL,
@@ -40,14 +39,12 @@ def upgrade() -> None:
             last_used TIMESTAMPTZ NOT NULL DEFAULT now(),
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE UNIQUE INDEX IF NOT EXISTS search_suggestions_term_idx ON search_suggestions(LOWER(term))")
     op.execute("CREATE INDEX IF NOT EXISTS search_suggestions_frequency_idx ON search_suggestions(frequency DESC)")
 
     # Create user_searches table for search history
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS user_searches (
             id BIGSERIAL PRIMARY KEY,
             user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -57,8 +54,7 @@ def upgrade() -> None:
             query_time_ms INT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS user_searches_user_id_idx ON user_searches(user_id, created_at DESC)")
     op.execute("CREATE INDEX IF NOT EXISTS user_searches_query_idx ON user_searches(query)")
     op.execute("CREATE INDEX IF NOT EXISTS user_searches_created_at_idx ON user_searches(created_at DESC)")

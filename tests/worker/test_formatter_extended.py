@@ -23,14 +23,14 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "你好世界", "start": 0, "end": 1000},
             {"text": "这是一个测试", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         # Chinese text should have punctuation added
         assert result[0]["text"].endswith(".")
@@ -46,15 +46,15 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "こんにちは", "start": 0, "end": 1000},
             {"text": "カタカナテスト", "start": 1000, "end": 2000},
             {"text": "漢字のテスト", "start": 2000, "end": 3000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 3
         for seg in result:
             assert seg["text"].endswith(".")
@@ -67,14 +67,14 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "مرحبا بك", "start": 0, "end": 1000},
             {"text": "هذا اختبار", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         # RTL text should be preserved correctly
         assert "مرحبا" in result[0]["text"]
@@ -89,14 +89,14 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "привет мир", "start": 0, "end": 1000},
             {"text": "это тест", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         # First letter should be capitalized
         assert result[0]["text"][0].isupper()
@@ -110,14 +110,14 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "Hello 你好 مرحبا", "start": 0, "end": 1000},
             {"text": "Test テスト тест", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         # All scripts should be preserved
         assert "Hello" in result[0]["text"]
@@ -132,13 +132,13 @@ class TestMultilingualSupport:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "नमस्ते दुनिया", "start": 0, "end": 1000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 1
         assert "नमस्ते" in result[0]["text"]
 
@@ -156,15 +156,15 @@ class TestEdgeCases:
             "segment_by_sentences": False,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         # Create a very long text (2000+ words)
         long_text = " ".join(["word"] * 2000)
         segments = [
             {"text": long_text, "start": 0, "end": 10000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 1
         # Should handle without error
         assert len(result[0]["text"]) > 1000
@@ -177,14 +177,14 @@ class TestEdgeCases:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "Hello world 😀 👍", "start": 0, "end": 1000},
             {"text": "Testing 🎉 🎊 🎈", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         # Emojis should be preserved
         assert "😀" in result[0]["text"]
@@ -199,15 +199,15 @@ class TestEdgeCases:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "The price is $19.99", "start": 0, "end": 1000},
             {"text": "2 + 2 = 4", "start": 1000, "end": 2000},
             {"text": "Temperature: -5°C", "start": 2000, "end": 3000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 3
         # Numbers and symbols should be preserved
         assert "$19.99" in result[0]["text"]
@@ -222,14 +222,14 @@ class TestEdgeCases:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "Visit https://example.com", "start": 0, "end": 1000},
             {"text": "Email me at test@example.com", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 2
         assert "https://example.com" in result[0]["text"]
         assert "test@example.com" in result[1]["text"]
@@ -241,15 +241,15 @@ class TestEdgeCases:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "What?!", "start": 0, "end": 1000},
             {"text": "Really...?", "start": 1000, "end": 2000},
             {"text": "No!!!", "start": 2000, "end": 3000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 3
         # Should not add extra punctuation when already present
         assert not result[0]["text"].endswith("?!.")
@@ -266,15 +266,15 @@ class TestEdgeCases:
             "speaker_format": "inline",
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "a", "start": 0, "end": 100},
             {"text": "I", "start": 100, "end": 200},
             {"text": "?", "start": 200, "end": 300},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # Should preserve all single-character segments when detect_hallucinations is False
         assert len(result) == 3
         assert [seg["text"] for seg in result] == ["a", "I", "?"]
@@ -287,16 +287,16 @@ class TestEdgeCases:
             "add_sentence_punctuation": False,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "   ", "start": 0, "end": 1000},
             {"text": "\t\n\r", "start": 1000, "end": 2000},
             {"text": "Valid text", "start": 2000, "end": 3000},
             {"text": "     ", "start": 3000, "end": 4000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # Only valid segment should remain
         assert len(result) == 1
         assert result[0]["text"] == "Valid text"
@@ -316,21 +316,21 @@ class TestDeterministicBehavior:
             "add_sentence_punctuation": True,
             "capitalize_sentences": True,
         }
-        
+
         segments = [
             {"text": "um hello like you know", "start": 0, "end": 1000},
             {"text": "this is basically a test", "start": 1000, "end": 2000},
         ]
-        
+
         # Run formatting multiple times
         results = []
         for _ in range(5):
             formatter = TranscriptFormatter(config=config)
             result = formatter.format_segments(segments.copy())
             results.append(result)
-        
+
         # All results should be identical
-        for i, result in enumerate(results[1:], start=1):
+        for _i, result in enumerate(results[1:], start=1):
             assert len(results[0]) == len(result)
             for j in range(len(results[0])):
                 assert results[0][j]["text"] == result[j]["text"]
@@ -343,20 +343,20 @@ class TestDeterministicBehavior:
             "enabled": True,
             "segment_by_sentences": True,
         }
-        
+
         segments = [
             {"text": "First sentence. Second sentence. Third sentence.", "start": 0, "end": 3000},
         ]
-        
+
         # Run multiple times
         results = []
         for _ in range(3):
             formatter = TranscriptFormatter(config=config)
             result = formatter.format_segments(segments.copy())
             results.append(result)
-        
+
         # Timings should be identical
-        for i, result in enumerate(results[1:], start=1):
+        for _i, result in enumerate(results[1:], start=1):
             assert len(results[0]) == len(result)
             for j in range(len(results[0])):
                 assert results[0][j]["start"] == result[j]["start"]
@@ -374,15 +374,12 @@ class TestPerformance:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         # Create 1000 segments
-        segments = [
-            {"text": f"Segment number {i}", "start": i * 1000, "end": (i + 1) * 1000}
-            for i in range(1000)
-        ]
-        
+        segments = [{"text": f"Segment number {i}", "start": i * 1000, "end": (i + 1) * 1000} for i in range(1000)]
+
         result = formatter.format_segments(segments)
-        
+
         # Should complete without timeout or error
         assert len(result) == 1000
 
@@ -395,15 +392,12 @@ class TestPerformance:
             "max_gap_for_merge_ms": 500,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         # Create 100 short segments with small gaps
-        segments = [
-            {"text": f"Short {i}", "start": i * 600, "end": i * 600 + 300}
-            for i in range(100)
-        ]
-        
+        segments = [{"text": f"Short {i}", "start": i * 600, "end": i * 600 + 300} for i in range(100)]
+
         result = formatter.format_segments(segments)
-        
+
         # Should merge many segments
         assert len(result) < len(segments)
 
@@ -419,13 +413,13 @@ class TestCornerCasesPunctuation:
             "segment_by_sentences": False,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "Hello! How are you? I'm fine.", "start": 0, "end": 3000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert len(result) == 1
         # Should not add extra punctuation
         assert not result[0]["text"].endswith("..")
@@ -437,15 +431,15 @@ class TestCornerCasesPunctuation:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "What", "start": 0, "end": 1000},
             {"text": "Amazing", "start": 1000, "end": 2000},
             {"text": "Really", "start": 2000, "end": 3000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # All should get terminal punctuation
         for seg in result:
             assert seg["text"][-1] in ".!?"
@@ -461,13 +455,13 @@ class TestCornerCasesCapitalization:
             "capitalize_sentences": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "this is all lowercase", "start": 0, "end": 1000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         assert result[0]["text"][0].isupper()
 
     def test_preserves_acronyms_in_all_caps(self):
@@ -479,14 +473,14 @@ class TestCornerCasesCapitalization:
             "merge_short_segments": False,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "NASA AND FBI ARE HERE", "start": 0, "end": 1000},
             {"text": "THE USA IS GREAT", "start": 1000, "end": 2000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # Acronyms should be preserved
         assert "NASA" in result[0]["text"]
         assert "FBI" in result[0]["text"]
@@ -500,13 +494,13 @@ class TestCornerCasesCapitalization:
             "add_sentence_punctuation": False,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "This is Mixed Case", "start": 0, "end": 1000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # Should remain unchanged
         assert result[0]["text"] == "This is Mixed Case"
 
@@ -523,14 +517,14 @@ class TestLanguageSpecificBehavior:
             "normalize_whitespace": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         # "like" is a filler in English, but might be meaningful in other contexts
         segments = [
             {"text": "我喜欢这个", "start": 0, "end": 1000},  # Chinese: "I like this"
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # Chinese text should be preserved
         assert len(result) == 1
         assert "喜欢" in result[0]["text"]
@@ -542,16 +536,16 @@ class TestLanguageSpecificBehavior:
             "add_sentence_punctuation": True,
         }
         formatter = TranscriptFormatter(config=config)
-        
+
         segments = [
             {"text": "English text", "start": 0, "end": 1000},
             {"text": "中文文本", "start": 1000, "end": 2000},
             {"text": "Русский текст", "start": 2000, "end": 3000},
             {"text": "النص العربي", "start": 3000, "end": 4000},
         ]
-        
+
         result = formatter.format_segments(segments)
-        
+
         # All should have punctuation added
         for seg in result:
             assert seg["text"].endswith(".")

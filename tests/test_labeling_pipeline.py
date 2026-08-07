@@ -67,25 +67,40 @@ def test_extract_labels_for_video_persists_windows_and_assignments(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "build_windows_from_segments",
-        lambda segments, source: [
-            SimpleNamespace(
-                source=source,
-                start_ms=0,
-                end_ms=1000,
-                text=f"{source} window",
-                text_hash=f"{source}-hash",
-                segment_ids=[1],
-                token_count=2,
-            )
-        ]
-        if segments
-        else [],
+        lambda segments, source: (
+            [
+                SimpleNamespace(
+                    source=source,
+                    start_ms=0,
+                    end_ms=1000,
+                    text=f"{source} window",
+                    text_hash=f"{source}-hash",
+                    segment_ids=[1],
+                    token_count=2,
+                )
+            ]
+            if segments
+            else []
+        ),
     )
-    monkeypatch.setattr(pipeline, "persist_windows", lambda _db, video_id, windows: windows_written.append((video_id, list(windows))) or len(windows))
+    monkeypatch.setattr(
+        pipeline,
+        "persist_windows",
+        lambda _db, video_id, windows: windows_written.append((video_id, list(windows))) or len(windows),
+    )
     monkeypatch.setattr(
         pipeline,
         "_load_existing_aliases",
-        lambda _db: [{"label_id": "label-1", "label": "Gaza", "kind": "topic", "alias": "gaza", "status": "active", "is_ambiguous": False}],
+        lambda _db: [
+            {
+                "label_id": "label-1",
+                "label": "Gaza",
+                "kind": "topic",
+                "alias": "gaza",
+                "status": "active",
+                "is_ambiguous": False,
+            }
+        ],
     )
     monkeypatch.setattr(
         pipeline,
@@ -157,13 +172,29 @@ def test_extract_labels_for_video_uses_keyphrase_assignment_source(monkeypatch):
 
     monkeypatch.setattr(pipeline, "create_extraction_run", lambda *args, **kwargs: "run-2")
     monkeypatch.setattr(pipeline, "finish_extraction_run", lambda *args, **kwargs: captured.append((args[2], kwargs)))
-    monkeypatch.setattr(pipeline, "load_source_segments", lambda *_args, **_kwargs: [{"id": 1, "start_ms": 0, "end_ms": 1000, "text": "keyphrase segment"}])
+    monkeypatch.setattr(
+        pipeline,
+        "load_source_segments",
+        lambda *_args, **_kwargs: [{"id": 1, "start_ms": 0, "end_ms": 1000, "text": "keyphrase segment"}],
+    )
     monkeypatch.setattr(
         pipeline,
         "build_windows_from_segments",
-        lambda segments, source: [SimpleNamespace(source=source, start_ms=0, end_ms=1000, text="keyphrase window", text_hash=f"{source}-hash", segment_ids=[1], token_count=2)]
-        if segments
-        else [],
+        lambda segments, source: (
+            [
+                SimpleNamespace(
+                    source=source,
+                    start_ms=0,
+                    end_ms=1000,
+                    text="keyphrase window",
+                    text_hash=f"{source}-hash",
+                    segment_ids=[1],
+                    token_count=2,
+                )
+            ]
+            if segments
+            else []
+        ),
     )
     monkeypatch.setattr(pipeline, "persist_windows", lambda *_args, **_kwargs: 1)
     monkeypatch.setattr(pipeline, "_load_existing_aliases", lambda _db: [])
@@ -202,9 +233,13 @@ def test_extract_labels_for_video_uses_keyphrase_assignment_source(monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr(pipeline, "upsert_label_candidate", lambda _db, **kwargs: kwargs.get("label", "label-2") or "label-2")
+    monkeypatch.setattr(
+        pipeline, "upsert_label_candidate", lambda _db, **kwargs: kwargs.get("label", "label-2") or "label-2"
+    )
     assignment_calls = []
-    monkeypatch.setattr(pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-2")
+    monkeypatch.setattr(
+        pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-2"
+    )
 
     result = pipeline.extract_labels_for_video(db, video_id="video-2", extraction_tier="cheap")
 
@@ -255,7 +290,9 @@ def test_extract_labels_for_video_uses_title_assignment_source(monkeypatch):
     monkeypatch.setattr(pipeline, "extract_keyphrase_candidates", lambda _windows, **kwargs: [])
     monkeypatch.setattr(pipeline, "extract_alias_candidates", lambda _windows, _aliases: [])
     monkeypatch.setattr(pipeline, "upsert_label_candidate", lambda _db, **kwargs: "label-chadvice")
-    monkeypatch.setattr(pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-title")
+    monkeypatch.setattr(
+        pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-title"
+    )
 
     result = pipeline.extract_labels_for_video(db, video_id="video-title", extraction_tier="cheap")
 
@@ -274,11 +311,44 @@ def test_extract_labels_for_video_skips_assignments_for_hidden_labels(monkeypatc
 
     monkeypatch.setattr(pipeline, "create_extraction_run", lambda *args, **kwargs: "run-hidden")
     monkeypatch.setattr(pipeline, "finish_extraction_run", lambda *args, **kwargs: None)
-    monkeypatch.setattr(pipeline, "load_source_segments", lambda *_args, **_kwargs: [{"id": 1, "start_ms": 0, "end_ms": 1000, "text": "hidden label text"}])
-    monkeypatch.setattr(pipeline, "build_windows_from_segments", lambda segments, source: [SimpleNamespace(source=source, start_ms=0, end_ms=1000, text="hidden label text", text_hash=f"{source}-hash", segment_ids=[1], token_count=3)] if segments else [])
+    monkeypatch.setattr(
+        pipeline,
+        "load_source_segments",
+        lambda *_args, **_kwargs: [{"id": 1, "start_ms": 0, "end_ms": 1000, "text": "hidden label text"}],
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "build_windows_from_segments",
+        lambda segments, source: (
+            [
+                SimpleNamespace(
+                    source=source,
+                    start_ms=0,
+                    end_ms=1000,
+                    text="hidden label text",
+                    text_hash=f"{source}-hash",
+                    segment_ids=[1],
+                    token_count=3,
+                )
+            ]
+            if segments
+            else []
+        ),
+    )
     monkeypatch.setattr(pipeline, "persist_windows", lambda *_args, **_kwargs: 1)
     monkeypatch.setattr(pipeline, "_load_existing_aliases", lambda _db: [])
-    monkeypatch.setattr(pipeline, "_load_policy", lambda _db, label_kind, unit_type, extraction_tier: {"min_publish_score": 0.90, "min_review_score": 0.65, "min_evidence_count": 1, "min_distinct_videos": 1, "require_existing_canonical": False, "auto_publish_enabled": True})
+    monkeypatch.setattr(
+        pipeline,
+        "_load_policy",
+        lambda _db, label_kind, unit_type, extraction_tier: {
+            "min_publish_score": 0.90,
+            "min_review_score": 0.65,
+            "min_evidence_count": 1,
+            "min_distinct_videos": 1,
+            "require_existing_canonical": False,
+            "auto_publish_enabled": True,
+        },
+    )
     monkeypatch.setattr(
         pipeline,
         "extract_keyphrase_candidates",
@@ -289,12 +359,22 @@ def test_extract_labels_for_video_skips_assignments_for_hidden_labels(monkeypatc
                 aliases=("hidden junk",),
                 confidence_score=0.95,
                 component_scores={"occurrences": 3.0, "distinct_videos": 1.0},
-                evidence=({"extractor": "keyphrase", "video_id": "video-hidden", "start_ms": 0, "end_ms": 1000, "snippet": "hidden label text"},),
+                evidence=(
+                    {
+                        "extractor": "keyphrase",
+                        "video_id": "video-hidden",
+                        "start_ms": 0,
+                        "end_ms": 1000,
+                        "snippet": "hidden label text",
+                    },
+                ),
             )
         ],
     )
     monkeypatch.setattr(pipeline, "upsert_label_candidate", lambda _db, **kwargs: "label-hidden")
-    monkeypatch.setattr(pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-hidden")
+    monkeypatch.setattr(
+        pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-hidden"
+    )
 
     def fake_execute(sql, params=None):
         if "SELECT title FROM videos" in str(sql):
@@ -319,8 +399,14 @@ def test_extract_labels_for_video_marks_failed_run_and_reraises(monkeypatch):
     calls = []
 
     monkeypatch.setattr(pipeline, "create_extraction_run", lambda *args, **kwargs: "run-3")
-    monkeypatch.setattr(pipeline, "finish_extraction_run", lambda _db, run_id, status, metrics, error=None: calls.append((run_id, status, metrics, error)))
-    monkeypatch.setattr(pipeline, "load_source_segments", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        pipeline,
+        "finish_extraction_run",
+        lambda _db, run_id, status, metrics, error=None: calls.append((run_id, status, metrics, error)),
+    )
+    monkeypatch.setattr(
+        pipeline, "load_source_segments", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
 
     with pytest.raises(RuntimeError, match="boom"):
         pipeline.extract_labels_for_video(db, video_id="video-3", extraction_tier="cheap")

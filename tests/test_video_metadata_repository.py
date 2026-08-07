@@ -10,8 +10,8 @@ from app.archive.video_metadata_repository import (
     list_people_admin,
     list_tags_admin,
     materialize_label_assignments_to_metadata,
-    seed_default_tags,
     search_videos_for_admin,
+    seed_default_tags,
     set_video_metadata,
     slugify,
     update_person,
@@ -49,7 +49,9 @@ class _FakeMetadataDb:
     def rollback(self):
         self.rollback_count += 1
 
-    def add_video(self, *, video_id: str | uuid.UUID, title: str, youtube_id: str = "yt-1", channel_name: str = "HasanAbi"):
+    def add_video(
+        self, *, video_id: str | uuid.UUID, title: str, youtube_id: str = "yt-1", channel_name: str = "HasanAbi"
+    ):
         self.videos[str(video_id)] = {
             "id": video_id,
             "youtube_id": youtube_id,
@@ -252,9 +254,7 @@ class _FakeMetadataDb:
                 rows = [
                     row
                     for row in rows
-                    if q in row["title"].lower()
-                    or q in row["youtube_id"].lower()
-                    or q in row["channel_name"].lower()
+                    if q in row["title"].lower() or q in row["youtube_id"].lower() or q in row["channel_name"].lower()
                 ]
             rows.sort(key=lambda row: (row["created_at"] is None, row["created_at"]))
             return _FakeResult(rows=rows[: params["limit"]])

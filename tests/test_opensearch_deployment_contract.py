@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SEARCH_ENV_TO_KEY = {
     "SEARCH_BACKEND": "search-backend",

@@ -22,7 +22,13 @@ def test_policy_auto_publishes_gold_with_enough_evidence():
 
 
 def test_policy_sends_weak_candidate_to_shadow():
-    candidate = {"kind": "topic", "unit_type": "window", "confidence_score": 0.4, "evidence_count": 1, "distinct_videos": 1}
+    candidate = {
+        "kind": "topic",
+        "unit_type": "window",
+        "confidence_score": 0.4,
+        "evidence_count": 1,
+        "distinct_videos": 1,
+    }
     policy = {
         "min_publish_score": 0.90,
         "min_review_score": 0.65,
@@ -36,7 +42,13 @@ def test_policy_sends_weak_candidate_to_shadow():
 
 
 def test_policy_marks_safe_existing_label_as_silver_auto_publish():
-    candidate = {"kind": "topic", "unit_type": "window", "confidence_score": 0.82, "evidence_count": 2, "distinct_videos": 1}
+    candidate = {
+        "kind": "topic",
+        "unit_type": "window",
+        "confidence_score": 0.82,
+        "evidence_count": 2,
+        "distinct_videos": 1,
+    }
     policy = {
         "min_publish_score": 0.90,
         "min_review_score": 0.65,
@@ -50,7 +62,13 @@ def test_policy_marks_safe_existing_label_as_silver_auto_publish():
 
 
 def test_policy_auto_publish_disabled_returns_candidate_tiers_only():
-    candidate = {"kind": "topic", "unit_type": "window", "confidence_score": 0.93, "evidence_count": 3, "distinct_videos": 2}
+    candidate = {
+        "kind": "topic",
+        "unit_type": "window",
+        "confidence_score": 0.93,
+        "evidence_count": 3,
+        "distinct_videos": 2,
+    }
     policy = {
         "min_publish_score": 0.90,
         "min_review_score": 0.65,
@@ -64,7 +82,13 @@ def test_policy_auto_publish_disabled_returns_candidate_tiers_only():
 
 
 def test_policy_require_existing_canonical_blocks_gold_for_non_existing():
-    candidate = {"kind": "topic", "unit_type": "window", "confidence_score": 0.95, "evidence_count": 3, "distinct_videos": 2}
+    candidate = {
+        "kind": "topic",
+        "unit_type": "window",
+        "confidence_score": 0.95,
+        "evidence_count": 3,
+        "distinct_videos": 2,
+    }
     policy = {
         "min_publish_score": 0.90,
         "min_review_score": 0.65,

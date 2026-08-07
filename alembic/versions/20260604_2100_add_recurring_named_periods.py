@@ -11,7 +11,6 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision: str = "20260604_2100_recurring_periods"
 down_revision: Union[str, None] = "20260604_1800_video_metadata"

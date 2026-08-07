@@ -148,7 +148,9 @@ def test_search_best_builds_expected_sql_and_preserves_source():
 
 
 def test_legacy_postgres_search_paths_return_plain_snippets(monkeypatch):
-    monkeypatch.setattr("app.metrics.search_queries_total.labels", lambda **_kwargs: type("Metric", (), {"inc": lambda self: None})())
+    monkeypatch.setattr(
+        "app.metrics.search_queries_total.labels", lambda **_kwargs: type("Metric", (), {"inc": lambda self: None})()
+    )
     native_db = FakeDB(
         [
             {

@@ -132,7 +132,10 @@ class TestVideosRoutes:
         response = client.delete(f"/videos/{video_id}")
 
         assert response.status_code == 204
-        assert db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one() == 0
+        assert (
+            db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one()
+            == 0
+        )
 
     def test_regular_user_cannot_delete_ownerless_retained_video(self, client: TestClient, db_session):
         job_id, video_id = uuid.uuid4(), uuid.uuid4()
@@ -149,7 +152,10 @@ class TestVideosRoutes:
         response = client.delete(f"/videos/{video_id}")
 
         assert response.status_code == 403
-        assert db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one() == 1
+        assert (
+            db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one()
+            == 1
+        )
 
     def test_delete_missing_video_returns_not_found(self, client: TestClient):
         response = client.delete(f"/videos/{uuid.uuid4()}")
@@ -160,42 +166,106 @@ class TestVideosRoutes:
         user_id, job_id, video_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
         token = secrets.token_urlsafe(32)
         with test_engine.begin() as connection:
-            connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"), {"id": str(user_id), "email": f"video-audit-{user_id}@example.com"})
-            connection.execute(text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"), {"id": str(user_id), "hash": hashlib.sha256(token.encode()).hexdigest()})
-            connection.execute(text("INSERT INTO jobs (id, kind, input_url, owner_user_id) VALUES (:job, 'single', 'https://example.test', :user)"), {"job": str(job_id), "user": str(user_id)})
-            connection.execute(text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"), {"video": str(video_id), "job": str(job_id), "youtube": f"audit-{video_id}"})
+            connection.execute(
+                text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"),
+                {"id": str(user_id), "email": f"video-audit-{user_id}@example.com"},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
+                {"id": str(user_id), "hash": hashlib.sha256(token.encode()).hexdigest()},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO jobs (id, kind, input_url, owner_user_id) VALUES (:job, 'single', 'https://example.test', :user)"
+                ),
+                {"job": str(job_id), "user": str(user_id)},
+            )
+            connection.execute(
+                text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"),
+                {"video": str(video_id), "job": str(job_id), "youtube": f"audit-{video_id}"},
+            )
         app.dependency_overrides[get_user_required] = lambda: {"id": str(user_id), "role": "user"}
-        monkeypatch.setattr("app.routes.videos.write_audit_from_request", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")))
+        monkeypatch.setattr(
+            "app.routes.videos.write_audit_from_request",
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")),
+        )
         client._transport.raise_server_exceptions = False
         try:
-            response = client.delete(f"/videos/{video_id}", cookies={"tc_session": token}, headers={"Origin": settings.FRONTEND_ORIGIN, "X-CSRF-Token": csrf_token(token)})
+            response = client.delete(
+                f"/videos/{video_id}",
+                cookies={"tc_session": token},
+                headers={"Origin": settings.FRONTEND_ORIGIN, "X-CSRF-Token": csrf_token(token)},
+            )
         finally:
             app.dependency_overrides.pop(get_user_required, None)
 
         assert response.status_code == 500
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one() == 1
-            assert connection.execute(text("SELECT count(*) FROM source_deletions WHERE video_id=:id"), {"id": str(video_id)}).scalar_one() == 0
-            assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE user_id=:id"), {"id": str(user_id)}).scalar_one() == 0
+            assert (
+                connection.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one()
+                == 1
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM source_deletions WHERE video_id=:id"), {"id": str(video_id)}
+                ).scalar_one()
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM audit_logs WHERE user_id=:id"), {"id": str(user_id)}
+                ).scalar_one()
+                == 0
+            )
         with test_engine.begin() as connection:
             connection.execute(text("DELETE FROM users WHERE id=:id"), {"id": str(user_id)})
 
-    def test_source_deletion_returns_success_when_post_commit_cleanup_fails(self, client: TestClient, db_session, test_engine, authenticated_job_user, monkeypatch):
+    def test_source_deletion_returns_success_when_post_commit_cleanup_fails(
+        self, client: TestClient, db_session, test_engine, authenticated_job_user, monkeypatch
+    ):
         job_id, video_id = uuid.uuid4(), uuid.uuid4()
-        db_session.execute(text("INSERT INTO jobs (id, kind, input_url, owner_user_id) VALUES (:job, 'single', 'https://example.test', :owner)"), {"job": str(job_id), "owner": authenticated_job_user["id"]})
-        db_session.execute(text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"), {"video": str(video_id), "job": str(job_id), "youtube": f"cleanup-{video_id}"})
+        db_session.execute(
+            text(
+                "INSERT INTO jobs (id, kind, input_url, owner_user_id) VALUES (:job, 'single', 'https://example.test', :owner)"
+            ),
+            {"job": str(job_id), "owner": authenticated_job_user["id"]},
+        )
+        db_session.execute(
+            text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"),
+            {"video": str(video_id), "job": str(job_id), "youtube": f"cleanup-{video_id}"},
+        )
         db_session.commit()
-        monkeypatch.setattr("app.source_deletion.invalidate_video_data", lambda _id: (_ for _ in ()).throw(RuntimeError("cleanup failed")))
+        monkeypatch.setattr(
+            "app.source_deletion.invalidate_video_data",
+            lambda _id: (_ for _ in ()).throw(RuntimeError("cleanup failed")),
+        )
         monkeypatch.setattr("app.source_deletion._delete_file", lambda _path: None)
         monkeypatch.setattr("app.source_deletion._delete_index_documents", lambda _id, _index: None)
 
         response = client.delete(f"/videos/{video_id}")
 
         assert response.status_code == 204
-        assert db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one() == 0
-        tombstone = db_session.execute(text("SELECT cleanup_status FROM source_deletions WHERE video_id=:id"), {"id": str(video_id)}).mappings().one()
+        assert (
+            db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one()
+            == 0
+        )
+        tombstone = (
+            db_session.execute(
+                text("SELECT cleanup_status FROM source_deletions WHERE video_id=:id"), {"id": str(video_id)}
+            )
+            .mappings()
+            .one()
+        )
         assert tombstone == {"cleanup_status": "pending"}
-        assert db_session.execute(text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND resource_id=:video"), {"id": authenticated_job_user["id"], "video": str(video_id)}).scalar_one() == 1
+        assert (
+            db_session.execute(
+                text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND resource_id=:video"),
+                {"id": authenticated_job_user["id"], "video": str(video_id)},
+            ).scalar_one()
+            == 1
+        )
         with test_engine.begin() as connection:
             connection.execute(text("DELETE FROM users WHERE id=:id"), {"id": authenticated_job_user["id"]})
 

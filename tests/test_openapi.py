@@ -1,6 +1,5 @@
 """Test OpenAPI specification validation."""
 
-
 import pytest
 from fastapi.testclient import TestClient
 from openapi_spec_validator import validate

@@ -12,15 +12,11 @@ class TestDatabaseIndices:
 
     def test_jobs_queue_ordering_index_exists(self, db_session):
         """Test that jobs_queue_ordering_idx index exists."""
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 SELECT indexname FROM pg_indexes
                 WHERE tablename = 'jobs'
                 AND indexname = 'jobs_queue_ordering_idx'
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         # Index may not exist yet if migration hasn't run
         # This test will pass once migration is applied
@@ -29,59 +25,43 @@ class TestDatabaseIndices:
 
     def test_jobs_pending_partial_index_exists(self, db_session):
         """Test that jobs_pending_idx partial index exists."""
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 SELECT indexname FROM pg_indexes
                 WHERE tablename = 'jobs'
                 AND indexname = 'jobs_pending_idx'
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         if result:
             assert result == "jobs_pending_idx"
 
     def test_users_email_index_exists(self, db_session):
         """Test that users_email_idx index exists."""
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 SELECT indexname FROM pg_indexes
                 WHERE tablename = 'users'
                 AND indexname = 'users_email_idx'
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         if result:
             assert result == "users_email_idx"
 
     def test_events_user_created_index_exists(self, db_session):
         """Test that events_user_created_idx index exists."""
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 SELECT indexname FROM pg_indexes
                 WHERE tablename = 'events'
                 AND indexname = 'events_user_created_idx'
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         assert result == "events_user_created_idx"
 
     def test_sessions_user_id_index_exists(self, db_session):
         """Fresh schema includes the sessions user ownership lookup index."""
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 SELECT indexname FROM pg_indexes
                 WHERE tablename = 'sessions'
                 AND indexname = 'sessions_user_id_idx'
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         assert result == "sessions_user_id_idx"
 
@@ -172,17 +152,13 @@ class TestQueryPerformance:
 
         # Query for pending jobs (worker hot path)
         # This should use jobs_pending_idx or jobs_queue_ordering_idx
-        result = db_session.execute(
-            text(
-                """
+        result = db_session.execute(text("""
                 EXPLAIN (FORMAT JSON)
                 SELECT * FROM jobs
                 WHERE state IN ('pending', 'downloading')
                 ORDER BY priority, created_at
                 LIMIT 10
-                """
-            )
-        ).scalar()
+                """)).scalar()
 
         # Check that explain plan exists (index usage details depend on data volume)
         assert result is not None
@@ -246,13 +222,11 @@ class TestQueryPerformance:
 
         # Quota check query (should use events_user_created_idx)
         count = db_session.execute(
-            text(
-                """
+            text("""
                 SELECT COUNT(*) FROM events
                 WHERE user_id = :user_id
                 AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC')
-                """
-            ),
+                """),
             {"user_id": str(user_id)},
         ).scalar()
 

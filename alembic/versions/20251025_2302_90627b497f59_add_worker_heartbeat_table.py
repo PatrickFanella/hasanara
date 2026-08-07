@@ -19,8 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add worker_heartbeat table for health monitoring."""
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS worker_heartbeat (
             id SERIAL PRIMARY KEY,
             worker_id TEXT NOT NULL,
@@ -30,8 +29,7 @@ def upgrade() -> None:
             metrics JSONB DEFAULT '{}'::jsonb,
             UNIQUE (worker_id)
         )
-        """
-    )
+        """)
     op.execute("CREATE INDEX IF NOT EXISTS worker_heartbeat_last_seen_idx ON worker_heartbeat(last_seen)")
 
 

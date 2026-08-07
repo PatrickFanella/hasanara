@@ -25,22 +25,18 @@ class TestVideoTranscriptFlow:
         video_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
@@ -62,44 +58,36 @@ class TestVideoTranscriptFlow:
         transcript_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 
         # Insert segments
         for i, seg in enumerate(sample_transcript_segments):
             integration_db.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO segments (transcript_id, idx, start_ms, end_ms, text, speaker_label)
                     VALUES (:transcript_id, :idx, :start_ms, :end_ms, :text, :speaker_label)
-                """
-                ),
+                """),
                 {
                     "transcript_id": str(transcript_id),
                     "idx": i,
@@ -135,22 +123,18 @@ class TestVideoTranscriptFlow:
         video_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video Title', 300, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
@@ -178,22 +162,18 @@ class TestVideoStates:
 
         # Create job and video
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
@@ -223,22 +203,18 @@ class TestDatabaseIntegrity:
 
         # Create job and video
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()

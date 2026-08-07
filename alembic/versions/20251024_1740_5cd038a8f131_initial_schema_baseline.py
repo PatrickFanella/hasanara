@@ -26,8 +26,7 @@ def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
 
     # Create job_state enum
-    op.execute(
-        """
+    op.execute("""
         DO $$ BEGIN
             CREATE TYPE job_state AS ENUM (
                 'pending',
@@ -42,12 +41,10 @@ def upgrade() -> None:
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
-    """
-    )
+    """)
 
     # Create jobs table
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             kind TEXT NOT NULL CHECK (kind IN ('single','channel')),
@@ -59,12 +56,10 @@ def upgrade() -> None:
             priority INT NOT NULL DEFAULT 100,
             meta JSONB DEFAULT '{}'::jsonb
         )
-    """
-    )
+    """)
 
     # Create videos table
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS videos (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
@@ -80,14 +75,12 @@ def upgrade() -> None:
             idx INT,
             UNIQUE (job_id, youtube_id)
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS videos_job_id_idx ON videos(job_id)")
     op.execute("CREATE INDEX IF NOT EXISTS videos_state_idx ON videos(state)")
 
     # Create transcripts table
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS transcripts (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
@@ -96,13 +89,11 @@ def upgrade() -> None:
             model TEXT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS transcripts_video_id_idx ON transcripts(video_id)")
 
     # Create segments table
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS segments (
             id BIGSERIAL PRIMARY KEY,
             video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
@@ -116,39 +107,33 @@ def upgrade() -> None:
             token_count INT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS segments_video_time_idx ON segments(video_id, start_ms)")
 
     # Full-text search support for segments
     op.execute("ALTER TABLE segments ADD COLUMN IF NOT EXISTS text_tsv tsvector")
 
-    op.execute(
-        """
+    op.execute("""
         CREATE OR REPLACE FUNCTION segments_tsv_trigger() RETURNS trigger LANGUAGE plpgsql AS $segments_tsv$
         BEGIN
             NEW.text_tsv := to_tsvector('english', COALESCE(NEW.text, ''));
             RETURN NEW;
         END
         $segments_tsv$
-    """
-    )
+    """)
 
-    op.execute(
-        """
+    op.execute("""
         DO $$ BEGIN
             CREATE TRIGGER segments_tsv_update
             BEFORE INSERT OR UPDATE OF text ON segments
             FOR EACH ROW EXECUTE FUNCTION segments_tsv_trigger();
         EXCEPTION WHEN duplicate_object THEN null; END $$
-    """
-    )
+    """)
 
     op.execute("CREATE INDEX IF NOT EXISTS segments_text_tsv_idx ON segments USING GIN (text_tsv)")
 
     # YouTube auto-generated transcript storage
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS youtube_transcripts (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
@@ -158,13 +143,11 @@ def upgrade() -> None:
             full_text TEXT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE UNIQUE INDEX IF NOT EXISTS youtube_transcripts_video_unique ON youtube_transcripts(video_id)")
     op.execute("CREATE INDEX IF NOT EXISTS youtube_transcripts_video_idx ON youtube_transcripts(video_id)")
 
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS youtube_segments (
             id BIGSERIAL PRIMARY KEY,
             youtube_transcript_id UUID NOT NULL REFERENCES youtube_transcripts(id) ON DELETE CASCADE,
@@ -173,8 +156,7 @@ def upgrade() -> None:
             text TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute(
         "CREATE INDEX IF NOT EXISTS youtube_segments_time_idx ON youtube_segments(youtube_transcript_id, start_ms)"
     )
@@ -182,32 +164,27 @@ def upgrade() -> None:
     # Full-text search support for youtube_segments
     op.execute("ALTER TABLE youtube_segments ADD COLUMN IF NOT EXISTS text_tsv tsvector")
 
-    op.execute(
-        """
+    op.execute("""
         CREATE OR REPLACE FUNCTION youtube_segments_tsv_trigger() RETURNS trigger LANGUAGE plpgsql AS $yt_segments_tsv$
         BEGIN
             NEW.text_tsv := to_tsvector('english', COALESCE(NEW.text, ''));
             RETURN NEW;
         END
         $yt_segments_tsv$
-    """
-    )
+    """)
 
-    op.execute(
-        """
+    op.execute("""
         DO $$ BEGIN
             CREATE TRIGGER youtube_segments_tsv_update
             BEFORE INSERT OR UPDATE OF text ON youtube_segments
             FOR EACH ROW EXECUTE FUNCTION youtube_segments_tsv_trigger();
         EXCEPTION WHEN duplicate_object THEN null; END $$
-    """
-    )
+    """)
 
     op.execute("CREATE INDEX IF NOT EXISTS youtube_segments_text_tsv_idx ON youtube_segments USING GIN (text_tsv)")
 
     # Users, sessions, and favorites for web frontend
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email TEXT,
@@ -222,11 +199,9 @@ def upgrade() -> None:
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             UNIQUE (oauth_provider, oauth_subject)
         )
-    """
-    )
+    """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -236,12 +211,10 @@ def upgrade() -> None:
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             expires_at TIMESTAMPTZ
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token)")
 
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS favorites (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -251,14 +224,12 @@ def upgrade() -> None:
             text TEXT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS favorites_user_idx ON favorites(user_id)")
     op.execute("CREATE INDEX IF NOT EXISTS favorites_video_idx ON favorites(video_id)")
 
     # Analytics events
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE IF NOT EXISTS events (
             id BIGSERIAL PRIMARY KEY,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -267,8 +238,7 @@ def upgrade() -> None:
             type TEXT NOT NULL,
             payload JSONB NOT NULL DEFAULT '{}'::jsonb
         )
-    """
-    )
+    """)
     op.execute("CREATE INDEX IF NOT EXISTS events_created_idx ON events(created_at)")
     op.execute("CREATE INDEX IF NOT EXISTS events_type_idx ON events(type)")
 

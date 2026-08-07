@@ -45,9 +45,12 @@ class TestLazyBackendImports:
                 raise ImportError("torch intentionally unavailable")
             return original_import(name, *args, **kwargs)
 
-        with patch.object(whisper_runner, "_ct2", None), patch.object(whisper_runner, "_torch", None), patch.dict(
-            "sys.modules", {"faster_whisper": fake_faster_whisper}
-        ), patch("builtins.__import__", side_effect=block_torch):
+        with (
+            patch.object(whisper_runner, "_ct2", None),
+            patch.object(whisper_runner, "_torch", None),
+            patch.dict("sys.modules", {"faster_whisper": fake_faster_whisper}),
+            patch("builtins.__import__", side_effect=block_torch),
+        ):
             whisper_runner._lazy_imports()
             assert whisper_runner._ct2 is ct2_model
             assert whisper_runner._torch is None
@@ -77,9 +80,12 @@ class TestLazyBackendImports:
                 raise ImportError("torch intentionally unavailable")
             return original_import(name, *args, **kwargs)
 
-        with patch.object(whisper_runner, "_torch", None), patch.object(whisper_runner, "_torch_whisper", None), patch(
-            "builtins.__import__", side_effect=block_torch
-        ), pytest.raises(RuntimeError, match="requires torch"):
+        with (
+            patch.object(whisper_runner, "_torch", None),
+            patch.object(whisper_runner, "_torch_whisper", None),
+            patch("builtins.__import__", side_effect=block_torch),
+            pytest.raises(RuntimeError, match="requires torch"),
+        ):
             whisper_runner._try_load_torch("base", force_gpu=False)
 
     @patch("worker.whisper_runner.settings")
@@ -89,8 +95,9 @@ class TestLazyBackendImports:
         ct2_model = Mock()
         fake_faster_whisper.__dict__["WhisperModel"] = ct2_model
 
-        with patch.object(whisper_runner, "_ct2", None), patch.dict(
-            "sys.modules", {"faster_whisper": fake_faster_whisper}
+        with (
+            patch.object(whisper_runner, "_ct2", None),
+            patch.dict("sys.modules", {"faster_whisper": fake_faster_whisper}),
         ):
             whisper_runner._try_load_ct2("base", device="auto", compute_type="float32")
             assert whisper_runner._ct2 is ct2_model

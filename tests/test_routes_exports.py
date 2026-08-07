@@ -33,7 +33,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         # Create test video with YouTube transcript
@@ -82,7 +86,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -130,7 +138,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -176,7 +188,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -223,7 +239,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -274,7 +294,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -323,7 +347,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         job_id = uuid.uuid4()
@@ -371,7 +399,11 @@ class TestExportRoutes:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 

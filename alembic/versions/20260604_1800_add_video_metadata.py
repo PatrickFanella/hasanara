@@ -12,7 +12,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 # revision identifiers, used by Alembic.
 revision: str = "20260604_1800_video_metadata"
 down_revision: Union[str, None] = "20260604_named_periods"
@@ -26,7 +25,12 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("slug", sa.Text(), nullable=False, unique=True),
         sa.Column("display_name", sa.Text(), nullable=False),
-        sa.Column("aliases", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "aliases",
+            sa.JSON().with_variant(postgresql.JSONB(), "postgresql"),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("status", sa.Text(), nullable=False, server_default=sa.text("'published'")),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default=sa.text("0")),
@@ -35,8 +39,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "archive_video_people",
-        sa.Column("video_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("videos.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("person_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("archive_people.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "video_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("videos.id", ondelete="CASCADE"), nullable=False
+        ),
+        sa.Column(
+            "person_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("archive_people.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("role", sa.Text(), nullable=False, server_default=sa.text("'guest'")),
         sa.Column("confidence", sa.Text(), nullable=False, server_default=sa.text("'admin'")),
         sa.Column("notes", sa.Text(), nullable=True),
@@ -57,8 +68,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "archive_video_taggings",
-        sa.Column("video_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("videos.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("tag_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("archive_video_tags.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "video_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("videos.id", ondelete="CASCADE"), nullable=False
+        ),
+        sa.Column(
+            "tag_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("archive_video_tags.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("confidence", sa.Text(), nullable=False, server_default=sa.text("'admin'")),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),

@@ -3,7 +3,6 @@
 import pytest
 from sqlalchemy import text
 
-
 REQUIRED_COLUMNS = {
     "caption_ingest_state": {"data_type": "text", "is_nullable": "NO", "default_contains": "'pending'"},
     "caption_ingest_error": {"data_type": "text", "is_nullable": "YES", "default_contains": None},
@@ -19,15 +18,13 @@ REQUIRED_CONSTRAINTS = {
 
 def _column_contract(db_session, table_name: str, column_name: str):
     result = db_session.execute(
-        text(
-            """
+        text("""
             SELECT data_type, is_nullable, column_default
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = :table_name
               AND column_name = :column_name
-            """
-        ),
+            """),
         {"table_name": table_name, "column_name": column_name},
     )
     return result.mappings().first()
@@ -35,8 +32,7 @@ def _column_contract(db_session, table_name: str, column_name: str):
 
 def _constraint_definition(db_session, table_name: str, constraint_name: str) -> str | None:
     result = db_session.execute(
-        text(
-            """
+        text("""
             SELECT pg_get_constraintdef(c.oid) AS definition
             FROM pg_constraint c
             JOIN pg_class t ON t.oid = c.conrelid
@@ -44,8 +40,7 @@ def _constraint_definition(db_session, table_name: str, constraint_name: str) ->
             WHERE n.nspname = 'public'
               AND t.relname = :table_name
               AND c.conname = :constraint_name
-            """
-        ),
+            """),
         {"table_name": table_name, "constraint_name": constraint_name},
     )
     row = result.mappings().first()

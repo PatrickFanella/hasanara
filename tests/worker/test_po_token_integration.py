@@ -1,6 +1,5 @@
 """Tests for PO token integration in audio downloads and caption fetching."""
 
-import json
 import subprocess
 from unittest.mock import MagicMock, patch
 
@@ -249,8 +248,8 @@ class TestCaptionTokenIntegration:
         mock_get_manager.return_value = mock_manager
 
         # Mock failed fetch with token error
-        from worker.youtube.yt_dlp_executor import YtDlpError
         from worker.youtube.errors import YouTubeErrorKind
+        from worker.youtube.yt_dlp_executor import YtDlpError
 
         mock_executor = mock_run.return_value
         mock_executor.run_json.side_effect = YtDlpError(
@@ -357,9 +356,7 @@ class TestTokenLoggingSafety:
     @patch("worker.youtube_captions.YtDlpExecutor")
     @patch("worker.youtube_captions.get_token_manager")
     @patch("worker.youtube_captions.settings")
-    def test_caption_logs_do_not_contain_token_values(
-        self, mock_settings, mock_get_manager, mock_run, mock_logger
-    ):
+    def test_caption_logs_do_not_contain_token_values(self, mock_settings, mock_get_manager, mock_run, mock_logger):
         """Test that caption fetch logs do not expose token values."""
         from worker.youtube_captions import _yt_dlp_json
 

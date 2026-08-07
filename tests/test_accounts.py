@@ -1,9 +1,9 @@
 """Behavioral tests for canonical account and opaque-session operations."""
 
 import hashlib
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier, Event
-import uuid
 
 import pytest
 from sqlalchemy import text
@@ -32,7 +32,9 @@ def twitch_profile(subject: str, email: str | None) -> ProviderProfile:
 
 
 def identity_count(db, user_id) -> int:
-    return db.execute(text("SELECT count(*) FROM user_identities WHERE user_id=:user_id"), {"user_id": str(user_id)}).scalar_one()
+    return db.execute(
+        text("SELECT count(*) FROM user_identities WHERE user_id=:user_id"), {"user_id": str(user_id)}
+    ).scalar_one()
 
 
 def test_sign_in_creates_user_and_identity(db_session):
@@ -50,7 +52,9 @@ def test_sign_in_existing_identity_returns_same_user_and_does_not_replace_canoni
     assert second.user["id"] == first.user["id"]
     assert second.created is False
     assert second.user["email"] == "a@example.com"
-    identity = db_session.execute(text("SELECT provider_email FROM user_identities WHERE user_id=:user_id"), {"user_id": str(first.user["id"])}).scalar_one()
+    identity = db_session.execute(
+        text("SELECT provider_email FROM user_identities WHERE user_id=:user_id"), {"user_id": str(first.user["id"])}
+    ).scalar_one()
     assert identity == "new@example.com"
 
 
@@ -90,12 +94,17 @@ def test_bootstrap_identity_promotes_a_preexisting_backfilled_account_once(db_se
 
     assert result.user["role"] == "admin"
     assert repeat.user["role"] == "admin"
-    assert db_session.execute(text("SELECT count(*) FROM audit_logs WHERE action='bootstrap_admin_promoted'")).scalar_one() == 1
+    assert (
+        db_session.execute(text("SELECT count(*) FROM audit_logs WHERE action='bootstrap_admin_promoted'")).scalar_one()
+        == 1
+    )
 
 
 def test_bootstrap_identity_promotes_a_preexisting_moderator_once(db_session, monkeypatch):
     original = sign_in_identity(db_session, google_profile("bootstrap-moderator", "moderator@example.com"))
-    db_session.execute(text("UPDATE users SET role='moderator' WHERE id=:user_id"), {"user_id": str(original.user["id"])})
+    db_session.execute(
+        text("UPDATE users SET role='moderator' WHERE id=:user_id"), {"user_id": str(original.user["id"])}
+    )
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_IDENTITIES", frozenset({"google:bootstrap-moderator"}))
 
     result = sign_in_identity(db_session, google_profile("bootstrap-moderator", "changed@example.com"))
@@ -103,7 +112,10 @@ def test_bootstrap_identity_promotes_a_preexisting_moderator_once(db_session, mo
 
     assert result.user["role"] == "admin"
     assert repeat.user["role"] == "admin"
-    assert db_session.execute(text("SELECT count(*) FROM audit_logs WHERE action='bootstrap_admin_promoted'")).scalar_one() == 1
+    assert (
+        db_session.execute(text("SELECT count(*) FROM audit_logs WHERE action='bootstrap_admin_promoted'")).scalar_one()
+        == 1
+    )
 
 
 def test_concurrent_sign_ins_converge_on_one_identity(test_engine):
@@ -125,7 +137,9 @@ def test_concurrent_sign_ins_converge_on_one_identity(test_engine):
         assert len({str(result.user["id"]) for result in results}) == 1
     finally:
         with test_engine.begin() as connection:
-            connection.execute(text("DELETE FROM user_identities WHERE provider='google' AND subject='concurrent-sign-in'"))
+            connection.execute(
+                text("DELETE FROM user_identities WHERE provider='google' AND subject='concurrent-sign-in'")
+            )
             connection.execute(text("DELETE FROM users WHERE email='race@example.com'"))
 
 
@@ -160,18 +174,25 @@ def test_concurrent_links_allow_one_owner_and_reject_the_collision(test_engine):
         assert {str(owner) for owner in owners if owner is not None} <= {str(user_id) for user_id in user_ids}
     finally:
         with test_engine.begin() as connection:
-            connection.execute(text("DELETE FROM user_identities WHERE provider='twitch' AND subject='concurrent-link'"))
-            connection.execute(text("DELETE FROM users WHERE id = ANY(:ids)"), {"ids": [str(user_id) for user_id in user_ids]})
+            connection.execute(
+                text("DELETE FROM user_identities WHERE provider='twitch' AND subject='concurrent-link'")
+            )
+            connection.execute(
+                text("DELETE FROM users WHERE id = ANY(:ids)"), {"ids": [str(user_id) for user_id in user_ids]}
+            )
 
 
 def test_session_database_value_cannot_replay_cookie(db_session):
     user = sign_in_identity(db_session, google_profile("g-1", "a@example.com"))
     raw_token = create_session(db_session, user.user["id"], user_agent=None, ip_address=None)
     token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    stored = db_session.execute(text("""
+    stored = db_session.execute(
+        text("""
         SELECT token_hash FROM sessions
         WHERE user_id = :user_id AND token_hash = :token_hash
-    """), {"user_id": str(user.user["id"]), "token_hash": token_hash}).scalar_one()
+    """),
+        {"user_id": str(user.user["id"]), "token_hash": token_hash},
+    ).scalar_one()
     from app.common.session import get_user_from_session
 
     assert stored == token_hash
@@ -183,46 +204,133 @@ def test_session_database_value_cannot_replay_cookie(db_session):
 def test_delete_account_scrubs_retained_records_without_committing(db_session):
     user_id = uuid.uuid4()
     job_id = uuid.uuid4()
-    db_session.execute(text("INSERT INTO users (id, email, role) VALUES (:id, 'delete@example.com', 'user')"), {"id": str(user_id)})
-    db_session.execute(text("""
+    db_session.execute(
+        text("INSERT INTO users (id, email, role) VALUES (:id, 'delete@example.com', 'user')"), {"id": str(user_id)}
+    )
+    db_session.execute(
+        text("""
         INSERT INTO jobs (id, kind, input_url, owner_user_id, meta)
         VALUES (:job_id, 'single', 'https://example.com/delete', :user_id,
                 CAST(:meta AS jsonb))
-    """), {"job_id": str(job_id), "user_id": str(user_id), "meta": '{"owner_user_id": "' + str(user_id) + '", "api_key_id": "key"}'})
-    db_session.execute(text("""
+    """),
+        {
+            "job_id": str(job_id),
+            "user_id": str(user_id),
+            "meta": '{"owner_user_id": "' + str(user_id) + '", "api_key_id": "key"}',
+        },
+    )
+    db_session.execute(
+        text("""
         INSERT INTO source_deletions (video_id, youtube_id, owner_user_id, deleted_by_user_id, backup_exclusion_until)
         VALUES (:video_id, 'delete', :user_id, :user_id, now() + interval '1 day')
-    """), {"video_id": str(uuid.uuid4()), "user_id": str(user_id)})
-    db_session.execute(text("INSERT INTO events (user_id, type, payload) VALUES (:user_id, 'search', '{\"email\": \"delete@example.com\"}')"), {"user_id": str(user_id)})
-    write_audit_event(db_session, ACTION_USER_DATA_DELETION, user_id=user_id, details={"email": "delete@example.com"}, ip_address="127.0.0.1", user_agent="test-agent")
+    """),
+        {"video_id": str(uuid.uuid4()), "user_id": str(user_id)},
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO events (user_id, type, payload) VALUES (:user_id, 'search', '{\"email\": \"delete@example.com\"}')"
+        ),
+        {"user_id": str(user_id)},
+    )
+    write_audit_event(
+        db_session,
+        ACTION_USER_DATA_DELETION,
+        user_id=user_id,
+        details={"email": "delete@example.com"},
+        ip_address="127.0.0.1",
+        user_agent="test-agent",
+    )
 
     delete_account(db_session, user_id)
 
     assert db_session.in_transaction()
     assert db_session.execute(text("SELECT count(*) FROM users WHERE id=:id"), {"id": str(user_id)}).scalar_one() == 0
-    assert db_session.execute(text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job_id)}).mappings().one() == {"owner_user_id": None, "meta": {}}
-    tombstone = db_session.execute(text("SELECT owner_user_id, deleted_by_user_id FROM source_deletions WHERE youtube_id='delete'")).mappings().one()
+    assert db_session.execute(
+        text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job_id)}
+    ).mappings().one() == {"owner_user_id": None, "meta": {}}
+    tombstone = (
+        db_session.execute(
+            text("SELECT owner_user_id, deleted_by_user_id FROM source_deletions WHERE youtube_id='delete'")
+        )
+        .mappings()
+        .one()
+    )
     assert tombstone == {"owner_user_id": None, "deleted_by_user_id": None}
-    assert db_session.execute(text("SELECT user_id, payload FROM events WHERE type='search' ORDER BY id DESC LIMIT 1")).mappings().one() == {"user_id": None, "payload": {}}
-    audit = db_session.execute(text("SELECT user_id, ip_address, user_agent, details FROM audit_logs WHERE action=:action"), {"action": ACTION_USER_DATA_DELETION}).mappings().one()
+    assert db_session.execute(
+        text("SELECT user_id, payload FROM events WHERE type='search' ORDER BY id DESC LIMIT 1")
+    ).mappings().one() == {"user_id": None, "payload": {}}
+    audit = (
+        db_session.execute(
+            text("SELECT user_id, ip_address, user_agent, details FROM audit_logs WHERE action=:action"),
+            {"action": ACTION_USER_DATA_DELETION},
+        )
+        .mappings()
+        .one()
+    )
     assert audit == {"user_id": None, "ip_address": None, "user_agent": None, "details": {}}
 
 
 def test_delete_account_comprehensively_removes_personal_data_and_retains_archive(db_session):
     """Account removal anonymizes retained archive data without deleting it."""
     user_id, job_id, video_id, transcript_id = (uuid.uuid4() for _ in range(4))
-    db_session.execute(text("INSERT INTO users (id, email, role) VALUES (:id, 'complete-delete@example.com', 'user')"), {"id": str(user_id)})
+    db_session.execute(
+        text("INSERT INTO users (id, email, role) VALUES (:id, 'complete-delete@example.com', 'user')"),
+        {"id": str(user_id)},
+    )
     token = create_session(db_session, user_id, user_agent="test", ip_address="127.0.0.1")
-    db_session.execute(text("INSERT INTO user_identities (user_id, provider, subject) VALUES (:id, 'google', :subject)"), {"id": str(user_id), "subject": f"complete-{user_id}"})
-    db_session.execute(text("INSERT INTO jobs (id, kind, input_url, owner_user_id, meta) VALUES (:job, 'single', 'https://example.test', :user, CAST(:meta AS jsonb))"), {"job": str(job_id), "user": str(user_id), "meta": '{"owner_user_id": "' + str(user_id) + '", "api_key_id": "private"}'})
-    db_session.execute(text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"), {"video": str(video_id), "job": str(job_id), "youtube": f"archive-{video_id}"})
-    db_session.execute(text("INSERT INTO transcripts (id, video_id, model) VALUES (:id, :video, 'base')"), {"id": str(transcript_id), "video": str(video_id)})
-    db_session.execute(text("INSERT INTO favorites (user_id, video_id, start_ms, end_ms) VALUES (:user, :video, 0, 1)"), {"user": str(user_id), "video": str(video_id)})
-    db_session.execute(text("INSERT INTO user_searches (user_id, query) VALUES (:user, 'private search')"), {"user": str(user_id)})
-    db_session.execute(text("INSERT INTO saved_searches (id, user_id, query, filters) VALUES (:id, :user, 'saved private search', '{}'::jsonb)"), {"id": str(uuid.uuid4()), "user": str(user_id)})
-    db_session.execute(text("INSERT INTO api_keys (user_id, name, key_hash, key_prefix) VALUES (:user, 'private', :hash, 'tc_test...')"), {"user": str(user_id), "hash": "a" * 64})
-    db_session.execute(text("INSERT INTO source_deletions (video_id, youtube_id, owner_user_id, deleted_by_user_id, backup_exclusion_until) VALUES (:video, :youtube, :user, :user, now())"), {"video": str(uuid.uuid4()), "youtube": f"tombstone-{user_id}", "user": str(user_id)})
-    db_session.execute(text("INSERT INTO events (user_id, type, payload) VALUES (:user, 'private', '{\"email\": \"complete-delete@example.com\"}')"), {"user": str(user_id)})
+    db_session.execute(
+        text("INSERT INTO user_identities (user_id, provider, subject) VALUES (:id, 'google', :subject)"),
+        {"id": str(user_id), "subject": f"complete-{user_id}"},
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO jobs (id, kind, input_url, owner_user_id, meta) VALUES (:job, 'single', 'https://example.test', :user, CAST(:meta AS jsonb))"
+        ),
+        {
+            "job": str(job_id),
+            "user": str(user_id),
+            "meta": '{"owner_user_id": "' + str(user_id) + '", "api_key_id": "private"}',
+        },
+    )
+    db_session.execute(
+        text("INSERT INTO videos (id, job_id, youtube_id) VALUES (:video, :job, :youtube)"),
+        {"video": str(video_id), "job": str(job_id), "youtube": f"archive-{video_id}"},
+    )
+    db_session.execute(
+        text("INSERT INTO transcripts (id, video_id, model) VALUES (:id, :video, 'base')"),
+        {"id": str(transcript_id), "video": str(video_id)},
+    )
+    db_session.execute(
+        text("INSERT INTO favorites (user_id, video_id, start_ms, end_ms) VALUES (:user, :video, 0, 1)"),
+        {"user": str(user_id), "video": str(video_id)},
+    )
+    db_session.execute(
+        text("INSERT INTO user_searches (user_id, query) VALUES (:user, 'private search')"), {"user": str(user_id)}
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO saved_searches (id, user_id, query, filters) VALUES (:id, :user, 'saved private search', '{}'::jsonb)"
+        ),
+        {"id": str(uuid.uuid4()), "user": str(user_id)},
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO api_keys (user_id, name, key_hash, key_prefix) VALUES (:user, 'private', :hash, 'tc_test...')"
+        ),
+        {"user": str(user_id), "hash": "a" * 64},
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO source_deletions (video_id, youtube_id, owner_user_id, deleted_by_user_id, backup_exclusion_until) VALUES (:video, :youtube, :user, :user, now())"
+        ),
+        {"video": str(uuid.uuid4()), "youtube": f"tombstone-{user_id}", "user": str(user_id)},
+    )
+    db_session.execute(
+        text(
+            "INSERT INTO events (user_id, type, payload) VALUES (:user, 'private', '{\"email\": \"complete-delete@example.com\"}')"
+        ),
+        {"user": str(user_id)},
+    )
     write_audit_event(db_session, "private", user_id=user_id, details={"email": "complete-delete@example.com"})
 
     delete_account(db_session, user_id)
@@ -230,20 +338,44 @@ def test_delete_account_comprehensively_removes_personal_data_and_retains_archiv
     assert token
     assert db_session.execute(text("SELECT count(*) FROM users WHERE id=:id"), {"id": str(user_id)}).scalar_one() == 0
     for table in ("sessions", "user_identities", "favorites", "user_searches", "saved_searches"):
-        assert db_session.execute(text(f"SELECT count(*) FROM {table} WHERE user_id=:id"), {"id": str(user_id)}).scalar_one() == 0
-    api_key_state = db_session.execute(text("SELECT revoked_at IS NOT NULL FROM api_keys WHERE user_id=:id"), {"id": str(user_id)}).scalar_one_or_none()
+        assert (
+            db_session.execute(
+                text(f"SELECT count(*) FROM {table} WHERE user_id=:id"), {"id": str(user_id)}
+            ).scalar_one()
+            == 0
+        )
+    api_key_state = db_session.execute(
+        text("SELECT revoked_at IS NOT NULL FROM api_keys WHERE user_id=:id"), {"id": str(user_id)}
+    ).scalar_one_or_none()
     assert api_key_state is None or api_key_state is True
-    assert db_session.execute(text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job_id)}).mappings().one() == {"owner_user_id": None, "meta": {}}
-    assert db_session.execute(text("SELECT owner_user_id, deleted_by_user_id FROM source_deletions WHERE youtube_id=:youtube"), {"youtube": f"tombstone-{user_id}"}).mappings().one() == {"owner_user_id": None, "deleted_by_user_id": None}
-    assert db_session.execute(text("SELECT user_id, payload FROM events WHERE type='private'" )).mappings().one() == {"user_id": None, "payload": {}}
-    assert db_session.execute(text("SELECT user_id, details FROM audit_logs WHERE action='private'" )).mappings().one() == {"user_id": None, "details": {}}
+    assert db_session.execute(
+        text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job_id)}
+    ).mappings().one() == {"owner_user_id": None, "meta": {}}
+    assert db_session.execute(
+        text("SELECT owner_user_id, deleted_by_user_id FROM source_deletions WHERE youtube_id=:youtube"),
+        {"youtube": f"tombstone-{user_id}"},
+    ).mappings().one() == {"owner_user_id": None, "deleted_by_user_id": None}
+    assert db_session.execute(text("SELECT user_id, payload FROM events WHERE type='private'")).mappings().one() == {
+        "user_id": None,
+        "payload": {},
+    }
+    assert db_session.execute(
+        text("SELECT user_id, details FROM audit_logs WHERE action='private'")
+    ).mappings().one() == {"user_id": None, "details": {}}
     assert db_session.execute(text("SELECT count(*) FROM videos WHERE id=:id"), {"id": str(video_id)}).scalar_one() == 1
-    assert db_session.execute(text("SELECT count(*) FROM transcripts WHERE id=:id"), {"id": str(transcript_id)}).scalar_one() == 1
+    assert (
+        db_session.execute(
+            text("SELECT count(*) FROM transcripts WHERE id=:id"), {"id": str(transcript_id)}
+        ).scalar_one()
+        == 1
+    )
 
 
 def test_delete_account_rejects_the_final_admin_without_mutation(db_session):
     user_id = uuid.uuid4()
-    db_session.execute(text("INSERT INTO users (id, email, role) VALUES (:id, 'admin@example.com', 'admin')"), {"id": str(user_id)})
+    db_session.execute(
+        text("INSERT INTO users (id, email, role) VALUES (:id, 'admin@example.com', 'admin')"), {"id": str(user_id)}
+    )
     token = create_session(db_session, user_id, user_agent=None, ip_address=None)
 
     with pytest.raises(FinalAdminError):
@@ -251,7 +383,10 @@ def test_delete_account_rejects_the_final_admin_without_mutation(db_session):
 
     assert token
     assert db_session.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(user_id)}).scalar_one() == "admin"
-    assert db_session.execute(text("SELECT count(*) FROM sessions WHERE user_id=:id"), {"id": str(user_id)}).scalar_one() == 1
+    assert (
+        db_session.execute(text("SELECT count(*) FROM sessions WHERE user_id=:id"), {"id": str(user_id)}).scalar_one()
+        == 1
+    )
 
 
 def test_job_ownership_normalization_is_the_shared_runtime_contract():
@@ -264,11 +399,14 @@ def test_job_ownership_normalization_is_the_shared_runtime_contract():
         owner_user_id=owner_id,
         api_key_id="authoritative-key",
     ) == {"owner_user_id": owner_id, "api_key_id": "authoritative-key", "safe": True}
-    assert normalize_job_ownership_meta(
-        {"owner_user_id": owner_id, "api_key_id": "authoritative-key"},
-        owner_user_id=None,
-        api_key_id=None,
-    ) == {}
+    assert (
+        normalize_job_ownership_meta(
+            {"owner_user_id": owner_id, "api_key_id": "authoritative-key"},
+            owner_user_id=None,
+            api_key_id=None,
+        )
+        == {}
+    )
 
 
 def test_concurrent_admin_deletions_leave_an_admin(test_engine):
@@ -308,7 +446,10 @@ def test_concurrent_admin_deletions_leave_an_admin(test_engine):
         assert remaining == 1
     finally:
         with test_engine.begin() as connection:
-            connection.execute(text("DELETE FROM users WHERE id = ANY(CAST(:ids AS uuid[]))"), {"ids": [str(user_id) for user_id in user_ids]})
+            connection.execute(
+                text("DELETE FROM users WHERE id = ANY(CAST(:ids AS uuid[]))"),
+                {"ids": [str(user_id) for user_id in user_ids]},
+            )
 
 
 def test_account_deletion_serializes_with_admin_role_mutation(test_engine):
@@ -320,7 +461,10 @@ def test_account_deletion_serializes_with_admin_role_mutation(test_engine):
     demotion_locked, release_demotion, deletion_finished = Event(), Event(), Event()
     with test_engine.begin() as connection:
         for user_id in user_ids:
-            connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'admin')"), {"id": str(user_id), "email": f"mutation-race-{user_id}@example.com"})
+            connection.execute(
+                text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'admin')"),
+                {"id": str(user_id), "email": f"mutation-race-{user_id}@example.com"},
+            )
 
     def demote():
         with SessionLocal(bind=test_engine) as session:
@@ -354,7 +498,16 @@ def test_account_deletion_serializes_with_admin_role_mutation(test_engine):
             demotion.result(timeout=10)
             assert deletion.result(timeout=10) == "final_admin"
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT count(*) FROM users WHERE id = ANY(CAST(:ids AS uuid[])) AND role='admin'"), {"ids": [str(user_id) for user_id in user_ids]}).scalar_one() >= 1
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM users WHERE id = ANY(CAST(:ids AS uuid[])) AND role='admin'"),
+                    {"ids": [str(user_id) for user_id in user_ids]},
+                ).scalar_one()
+                >= 1
+            )
     finally:
         with test_engine.begin() as connection:
-            connection.execute(text("DELETE FROM users WHERE id = ANY(CAST(:ids AS uuid[]))"), {"ids": [str(user_id) for user_id in user_ids]})
+            connection.execute(
+                text("DELETE FROM users WHERE id = ANY(CAST(:ids AS uuid[]))"),
+                {"ids": [str(user_id) for user_id in user_ids]},
+            )

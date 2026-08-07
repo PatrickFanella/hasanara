@@ -9,13 +9,16 @@ from unittest.mock import call, patch
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
+from app.archive.video_metadata_repository import create_person, create_tag, set_video_metadata
+from app.csrf import csrf_token
+from app.routes import archive as archive_routes
 from app.schemas import (
     ArchiveIntelligenceResponse,
     ArchivePeriodOption,
     ArchivePeriodOptionsResponse,
+    ArchivePersonUpdate,
     ArchiveSummary,
     ArchiveVideoMetadataUpdate,
-    ArchivePersonUpdate,
     ArchiveVideoTagUpdate,
     EpisodeSearchGroup,
     GroupedSearchResponse,
@@ -23,9 +26,6 @@ from app.schemas import (
     SearchMoment,
     VideoInfo,
 )
-from app.archive.video_metadata_repository import create_person, create_tag, set_video_metadata
-from app.routes import archive as archive_routes
-from app.csrf import csrf_token
 from app.settings import settings
 
 
@@ -33,7 +33,9 @@ def _csrf_headers(token: str) -> dict[str, str]:
     return {"Origin": settings.FRONTEND_ORIGIN, "X-CSRF-Token": csrf_token(token)}
 
 
-def _create_completed_video(db_session, *, youtube_id: str, title: str, uploaded_at: datetime, duration_seconds: int = 120):
+def _create_completed_video(
+    db_session, *, youtube_id: str, title: str, uploaded_at: datetime, duration_seconds: int = 120
+):
     job_id = uuid.uuid4()
     video_id = uuid.uuid4()
     db_session.execute(
@@ -41,12 +43,10 @@ def _create_completed_video(db_session, *, youtube_id: str, title: str, uploaded
         {"id": str(job_id), "url": f"https://youtube.com/watch?v={youtube_id}"},
     )
     db_session.execute(
-        text(
-            """
+        text("""
             INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state, uploaded_at, created_at, updated_at)
             VALUES (:id, :job_id, :youtube_id, 0, :title, :duration_seconds, 'completed', :uploaded_at, :uploaded_at, :uploaded_at)
-            """
-        ),
+            """),
         {
             "id": str(video_id),
             "job_id": str(job_id),
@@ -64,12 +64,18 @@ def _create_user_session(db_session, *, email: str = "user@example.com") -> str:
     user_id = uuid.uuid4()
     session_token = secrets.token_urlsafe(32)
     db_session.execute(
-        text("INSERT INTO users (id, email, oauth_provider, oauth_subject, plan) VALUES (:id, :email, 'google', :subject, 'free')"),
+        text(
+            "INSERT INTO users (id, email, oauth_provider, oauth_subject, plan) VALUES (:id, :email, 'google', :subject, 'free')"
+        ),
         {"id": str(user_id), "email": email, "subject": f"{email}-subject"},
     )
     db_session.execute(
         text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-        {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+        {
+            "uid": str(user_id),
+            "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+            "exp": datetime.utcnow() + timedelta(days=1),
+        },
     )
     db_session.commit()
     return session_token
@@ -85,12 +91,13 @@ class TestArchiveRoutes:
             duration_seconds=360,
         )
         db_session.execute(
-            text("INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 0, 1000, :text, NULL)"),
+            text(
+                "INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 0, 1000, :text, NULL)"
+            ),
             {"vid": str(video_id), "text": "archive searchable words here"},
         )
         db_session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO archive_summary_stats (
                     id, video_count, total_duration_seconds, transcript_word_count, archive_updated_at, calculated_at
                 ) VALUES (
@@ -102,8 +109,7 @@ class TestArchiveRoutes:
                     transcript_word_count = EXCLUDED.transcript_word_count,
                     archive_updated_at = EXCLUDED.archive_updated_at,
                     calculated_at = EXCLUDED.calculated_at
-                """
-            ),
+                """),
             {"updated_at": datetime(2026, 5, 1, tzinfo=timezone.utc)},
         )
         db_session.execute(
@@ -130,7 +136,9 @@ class TestArchiveRoutes:
             duration_seconds=3600,
         )
         db_session.execute(
-            text("INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 1000, 5000, :text, NULL)"),
+            text(
+                "INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 1000, 5000, :text, NULL)"
+            ),
             {"vid": str(video_id), "text": "ICE protests and Gaza coverage made this a major news segment."},
         )
         person = create_person(db_session, {"display_name": "Guest One", "slug": "guest-one"})
@@ -148,17 +156,14 @@ class TestArchiveRoutes:
         label_id = uuid.uuid4()
         assignment_id = uuid.uuid4()
         db_session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO archive_labels (id, slug, label, kind, status, source, publish_tier, confidence_score)
                 VALUES (:id, 'okbuddy', 'Okbuddy', 'series', 'published', 'hybrid', 'gold', 0.91)
-                """
-            ),
+                """),
             {"id": str(label_id)},
         )
         db_session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO archive_label_assignments (
                     id, label_id, video_id, unit_type, start_ms, end_ms, status, publish_tier,
                     confidence_score, evidence_count, evidence, source, assignment_key
@@ -166,8 +171,7 @@ class TestArchiveRoutes:
                     :id, :label_id, :video_id, 'window', 1000, 5000, 'auto_published', 'gold',
                     0.89, 1, CAST(:evidence AS jsonb), 'alias', 'okbuddy-video-1'
                 )
-                """
-            ),
+                """),
             {
                 "id": str(assignment_id),
                 "label_id": str(label_id),
@@ -183,8 +187,13 @@ class TestArchiveRoutes:
             duration_seconds=1800,
         )
         db_session.execute(
-            text("INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 1000, 5000, :text, NULL)"),
-            {"vid": str(outside_video_id), "text": "Outside archive coverage should stay out of the selected May period facets."},
+            text(
+                "INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 1000, 5000, :text, NULL)"
+            ),
+            {
+                "vid": str(outside_video_id),
+                "text": "Outside archive coverage should stay out of the selected May period facets.",
+            },
         )
         outside_person = create_person(db_session, {"display_name": "Outside Guest", "slug": "outside-guest"})
         outside_tag = create_tag(db_session, {"label": "Outside Tag", "slug": "outside-tag"})
@@ -196,7 +205,9 @@ class TestArchiveRoutes:
         )
         db_session.commit()
 
-        response = client.get("/archive/intelligence?topic_limit=4&period_limit=3&granularity=month&date_from=2026-05-01&date_to=2026-05-31")
+        response = client.get(
+            "/archive/intelligence?topic_limit=4&period_limit=3&granularity=month&date_from=2026-05-01&date_to=2026-05-31"
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -265,7 +276,9 @@ class TestArchiveRoutes:
         mock_invalidate_cache.assert_called_once_with(video_id)
 
     @patch("app.routes.archive.invalidate_cache_pattern")
-    def test_admin_person_and_tag_updates_invalidate_video_cache_pattern(self, mock_invalidate_cache_pattern, db_session):
+    def test_admin_person_and_tag_updates_invalidate_video_cache_pattern(
+        self, mock_invalidate_cache_pattern, db_session
+    ):
         person = create_person(db_session, {"display_name": "Guest One", "slug": "guest-one"})
         tag = create_tag(db_session, {"label": "Chadvice", "slug": "chadvice"})
 
@@ -296,7 +309,9 @@ class TestArchiveRoutes:
             periods=[],
         )
 
-        response = client.get("/archive/intelligence?topic_limit=4&period_limit=3&granularity=week&date_from=2026-05-01&date_to=2026-05-31&period=2026-05")
+        response = client.get(
+            "/archive/intelligence?topic_limit=4&period_limit=3&granularity=week&date_from=2026-05-01&date_to=2026-05-31&period=2026-05"
+        )
 
         assert response.status_code == 200
         assert response.json()["people"] == []
@@ -377,7 +392,10 @@ class TestArchiveRoutes:
         assert client.patch("/admin/archive/metadata/tags/test", json={"label": "Updated"}).status_code == 401
         assert client.get("/admin/archive/metadata/videos").status_code == 401
         assert client.get(f"/admin/archive/metadata/videos/{uuid.uuid4()}").status_code == 401
-        assert client.put(f"/admin/archive/metadata/videos/{uuid.uuid4()}", json={"people": [], "tags": []}).status_code == 401
+        assert (
+            client.put(f"/admin/archive/metadata/videos/{uuid.uuid4()}", json={"people": [], "tags": []}).status_code
+            == 401
+        )
         assert client.post("/admin/archive/metadata/seed-tags").status_code == 401
 
     def test_admin_archive_period_routes_require_admin(self, client: TestClient, db_session):
@@ -395,18 +413,57 @@ class TestArchiveRoutes:
             ).status_code
             == 403
         )
-        assert client.patch("/admin/archive/periods/test-period", json={"label": "Updated"}, cookies=cookies, headers=headers).status_code == 403
-        assert client.post("/admin/archive/periods/test-period/refresh", cookies=cookies, headers=headers).status_code == 403
+        assert (
+            client.patch(
+                "/admin/archive/periods/test-period", json={"label": "Updated"}, cookies=cookies, headers=headers
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post("/admin/archive/periods/test-period/refresh", cookies=cookies, headers=headers).status_code
+            == 403
+        )
         assert client.post("/admin/archive/periods/seed", cookies=cookies, headers=headers).status_code == 403
         assert client.get("/admin/archive/metadata/people", cookies=cookies).status_code == 403
-        assert client.post("/admin/archive/metadata/people", json={"display_name": "Test"}, cookies=cookies, headers=headers).status_code == 403
-        assert client.patch("/admin/archive/metadata/people/test", json={"display_name": "Updated"}, cookies=cookies, headers=headers).status_code == 403
+        assert (
+            client.post(
+                "/admin/archive/metadata/people", json={"display_name": "Test"}, cookies=cookies, headers=headers
+            ).status_code
+            == 403
+        )
+        assert (
+            client.patch(
+                "/admin/archive/metadata/people/test",
+                json={"display_name": "Updated"},
+                cookies=cookies,
+                headers=headers,
+            ).status_code
+            == 403
+        )
         assert client.get("/admin/archive/metadata/tags", cookies=cookies).status_code == 403
-        assert client.post("/admin/archive/metadata/tags", json={"label": "Test"}, cookies=cookies, headers=headers).status_code == 403
-        assert client.patch("/admin/archive/metadata/tags/test", json={"label": "Updated"}, cookies=cookies, headers=headers).status_code == 403
+        assert (
+            client.post(
+                "/admin/archive/metadata/tags", json={"label": "Test"}, cookies=cookies, headers=headers
+            ).status_code
+            == 403
+        )
+        assert (
+            client.patch(
+                "/admin/archive/metadata/tags/test", json={"label": "Updated"}, cookies=cookies, headers=headers
+            ).status_code
+            == 403
+        )
         assert client.get("/admin/archive/metadata/videos", cookies=cookies).status_code == 403
         assert client.get(f"/admin/archive/metadata/videos/{uuid.uuid4()}", cookies=cookies).status_code == 403
-        assert client.put(f"/admin/archive/metadata/videos/{uuid.uuid4()}", json={"people": [], "tags": []}, cookies=cookies, headers=headers).status_code == 403
+        assert (
+            client.put(
+                f"/admin/archive/metadata/videos/{uuid.uuid4()}",
+                json={"people": [], "tags": []},
+                cookies=cookies,
+                headers=headers,
+            ).status_code
+            == 403
+        )
         assert client.post("/admin/archive/metadata/seed-tags", cookies=cookies, headers=headers).status_code == 403
 
     def test_video_info_includes_public_metadata_arrays(self, client: TestClient, db_session):
@@ -459,7 +516,9 @@ class TestArchiveRoutes:
         )
         for vid, text_value in ((first_video, "first archive transcript"), (second_video, "second archive transcript")):
             db_session.execute(
-                text("INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 0, 1000, :text, NULL)"),
+                text(
+                    "INSERT INTO segments (video_id, start_ms, end_ms, text, speaker_label) VALUES (:vid, 0, 1000, :text, NULL)"
+                ),
                 {"vid": str(vid), "text": text_value},
             )
         db_session.commit()
@@ -482,7 +541,9 @@ class TestArchiveRoutes:
             highlights=[{"start": 0, "end": 5}],
             source="whisper",
         )
-        mock_grouped_search.return_value = GroupedSearchResponse(total_moments=1, total_videos=1, groups=[EpisodeSearchGroup(video=video, moments=[moment])], query_time_ms=7)
+        mock_grouped_search.return_value = GroupedSearchResponse(
+            total_moments=1, total_videos=1, groups=[EpisodeSearchGroup(video=video, moments=[moment])], query_time_ms=7
+        )
 
         response = client.get("/search/grouped?q=match&source=native")
         assert response.status_code == 200

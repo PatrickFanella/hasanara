@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+
 from app.csrf import csrf_token
 from app.settings import settings
 
@@ -25,7 +26,11 @@ def _session_user(db, *, email: str, role: str = "user", plan: str = "free") -> 
     )
     db.execute(
         text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :expires)"),
-        {"uid": user_id, "token_hash": hashlib.sha256(token.encode()).hexdigest(), "expires": datetime.utcnow() + timedelta(days=1)},
+        {
+            "uid": user_id,
+            "token_hash": hashlib.sha256(token.encode()).hexdigest(),
+            "expires": datetime.utcnow() + timedelta(days=1),
+        },
     )
     db.commit()
     return user_id, token
@@ -75,7 +80,12 @@ def test_vocabulary_owner_isolation_and_global_visibility(client: TestClient, db
     assert {item["id"] for item in listed.json()} == {created_id, global_id}
 
     assert client.get(f"/vocabularies/{other_id_value}", cookies={"tc_session": owner_token}).status_code == 404
-    assert client.delete(f"/vocabularies/{other_id_value}", cookies={"tc_session": owner_token}, headers=_csrf_headers(owner_token)).status_code == 404
+    assert (
+        client.delete(
+            f"/vocabularies/{other_id_value}", cookies={"tc_session": owner_token}, headers=_csrf_headers(owner_token)
+        ).status_code
+        == 404
+    )
 
 
 def test_only_admin_can_manage_global_vocabularies(client: TestClient, db_session):
@@ -102,7 +112,12 @@ def test_only_admin_can_manage_global_vocabularies(client: TestClient, db_sessio
         text("SELECT user_id, is_global FROM user_vocabularies WHERE id=:id"), {"id": vocabulary_id}
     ).first()
     assert row == (None, True)
-    assert client.delete(f"/vocabularies/{vocabulary_id}", cookies={"tc_session": admin_token}, headers=_csrf_headers(admin_token)).status_code == 204
+    assert (
+        client.delete(
+            f"/vocabularies/{vocabulary_id}", cookies={"tc_session": admin_token}, headers=_csrf_headers(admin_token)
+        ).status_code
+        == 204
+    )
 
 
 def test_auth_me_adds_role_and_capabilities(client: TestClient, db_session):

@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from worker.youtube.service import YouTubeCaptionResult, YouTubeService
-from worker.youtube_captions import YTCaptionTrack, YTSegment, YouTubeCaptionRateLimitError
+from worker.youtube_captions import YouTubeCaptionRateLimitError, YTCaptionTrack, YTSegment
 
 
 def test_service_fetch_metadata_wraps_existing_helper():

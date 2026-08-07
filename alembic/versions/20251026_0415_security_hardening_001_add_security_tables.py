@@ -65,8 +65,7 @@ def upgrade() -> None:
 
     # Add role column to users table if not exists
     # Note: Using op.execute to avoid errors if column already exists
-    op.execute(
-        """
+    op.execute("""
         DO $$ BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.columns
@@ -76,17 +75,14 @@ def upgrade() -> None:
                 CREATE INDEX users_role_idx ON users(role);
             END IF;
         END $$;
-    """
-    )
+    """)
 
     # Update sessions table to have proper expiration (if not set)
-    op.execute(
-        """
+    op.execute("""
         UPDATE sessions
         SET expires_at = created_at + interval '24 hours'
         WHERE expires_at IS NULL;
-    """
-    )
+    """)
 
 
 def downgrade() -> None:

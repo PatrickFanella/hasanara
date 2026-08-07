@@ -48,12 +48,18 @@ def _create_user_session(db_session, *, email: str = "user@example.com") -> str:
     user_id = uuid.uuid4()
     session_token = secrets.token_urlsafe(32)
     db_session.execute(
-        text("INSERT INTO users (id, email, oauth_provider, oauth_subject, plan) VALUES (:id, :email, 'google', :subject, 'free')"),
+        text(
+            "INSERT INTO users (id, email, oauth_provider, oauth_subject, plan) VALUES (:id, :email, 'google', :subject, 'free')"
+        ),
         {"id": str(user_id), "email": email, "subject": f"{email}-subject"},
     )
     db_session.execute(
         text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-        {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+        {
+            "uid": str(user_id),
+            "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+            "exp": datetime.utcnow() + timedelta(days=1),
+        },
     )
     db_session.commit()
     return session_token
@@ -74,7 +80,13 @@ def _label_row(label_id: uuid.UUID, *, label: str = "Old Label", slug: str = "ol
     }
 
 
-def _assignment_row(assignment_id: uuid.UUID, label_id: uuid.UUID, *, assignment_status: str = "candidate", label_status: str = "candidate"):
+def _assignment_row(
+    assignment_id: uuid.UUID,
+    label_id: uuid.UUID,
+    *,
+    assignment_status: str = "candidate",
+    label_status: str = "candidate",
+):
     return {
         "id": assignment_id,
         "video_id": uuid.uuid4(),
@@ -121,7 +133,10 @@ def test_labeling_admin_routes_require_auth(client: TestClient):
     assert client.get("/admin/archive/labels").status_code == 401
     assert client.get(f"/admin/archive/labels/{label_id}/assignments").status_code == 401
     assert client.post(f"/admin/archive/labels/{label_id}/review", json={"action": "approve"}).status_code == 401
-    assert client.post(f"/admin/archive/label-assignments/{assignment_id}/review", json={"action": "approve"}).status_code == 401
+    assert (
+        client.post(f"/admin/archive/label-assignments/{assignment_id}/review", json={"action": "approve"}).status_code
+        == 401
+    )
     assert client.post(f"/admin/archive/labels/extract-video/{video_id}").status_code == 401
 
 
@@ -135,9 +150,25 @@ def test_labeling_admin_routes_require_admin(client: TestClient, db_session):
 
     assert client.get("/admin/archive/labels", cookies=cookies).status_code == 403
     assert client.get(f"/admin/archive/labels/{label_id}/assignments", cookies=cookies).status_code == 403
-    assert client.post(f"/admin/archive/labels/{label_id}/review", json={"action": "approve"}, cookies=cookies, headers=headers).status_code == 403
-    assert client.post(f"/admin/archive/label-assignments/{assignment_id}/review", json={"action": "approve"}, cookies=cookies, headers=headers).status_code == 403
-    assert client.post(f"/admin/archive/labels/extract-video/{video_id}", cookies=cookies, headers=headers).status_code == 403
+    assert (
+        client.post(
+            f"/admin/archive/labels/{label_id}/review", json={"action": "approve"}, cookies=cookies, headers=headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            f"/admin/archive/label-assignments/{assignment_id}/review",
+            json={"action": "approve"},
+            cookies=cookies,
+            headers=headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(f"/admin/archive/labels/extract-video/{video_id}", cookies=cookies, headers=headers).status_code
+        == 403
+    )
 
 
 def test_review_label_action_updates_status_and_feedback():
@@ -181,12 +212,21 @@ def test_extract_video_route_calls_pipeline_and_commits(monkeypatch):
         captured["db"] = db_arg
         captured["video_id"] = video_id
         captured["extraction_tier"] = extraction_tier
-        return {"video_id": video_id, "extraction_tier": extraction_tier, "run_id": "run-1", "windows": 2, "candidates": 1, "assignments": 3}
+        return {
+            "video_id": video_id,
+            "extraction_tier": extraction_tier,
+            "run_id": "run-1",
+            "windows": 2,
+            "candidates": 1,
+            "assignments": 3,
+        }
 
     monkeypatch.setattr(archive_routes, "extract_labels_for_video", fake_extract)
 
     video_id = uuid.uuid4()
-    result = archive_routes.admin_extract_labels_for_video(video_id=video_id, extraction_tier="balanced", db=db, user={"id": uuid.uuid4()})
+    result = archive_routes.admin_extract_labels_for_video(
+        video_id=video_id, extraction_tier="balanced", db=db, user={"id": uuid.uuid4()}
+    )
 
     assert captured == {"db": db, "video_id": str(video_id), "extraction_tier": "balanced"}
     assert result.run_id == "run-1"

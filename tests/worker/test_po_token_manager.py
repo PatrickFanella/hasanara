@@ -84,7 +84,7 @@ class TestPOTokenCache:
         cache.set(token)
         time.sleep(0.1)  # Brief pause
         retrieved = cache.get(TokenType.PLAYER)
-        
+
         # Should return None because token is expired
         assert retrieved is None
 
@@ -113,7 +113,7 @@ class TestPOTokenCache:
     def test_cache_with_context(self):
         """Test cache with context keys."""
         cache = POTokenCache(ttl=3600, cooldown_seconds=60)
-        
+
         # Same token type but different contexts
         token1 = POToken(
             value="token_region_us",
@@ -148,13 +148,13 @@ class TestPOTokenCache:
 
         # One miss (no token cached)
         cache.get(TokenType.PLAYER)
-        
+
         # Set token
         cache.set(token)
-        
+
         # One hit (token is cached)
         cache.get(TokenType.PLAYER)
-        
+
         stats = cache.get_stats()
         assert stats["hits"] == 1
         assert stats["misses"] == 1
@@ -287,13 +287,13 @@ class TestPOTokenManager:
 
         # Get token to cache it
         manager.get_token(TokenType.PLAYER)
-        
+
         # Clear cache
         manager.clear_cache()
-        
+
         # Next get should go to provider again (cache miss)
         manager.get_token(TokenType.PLAYER)
-        
+
         stats = manager.get_stats()
         assert stats["cache"]["cached_tokens"] == 1  # Only current token
         assert stats["cache"]["hits"] == 0  # No hits after clear

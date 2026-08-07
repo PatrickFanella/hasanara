@@ -19,8 +19,9 @@ from app.archive.labeling import (
     UnitType,
 )
 
-
-MIGRATION_PATH = Path(__file__).resolve().parent.parent / "alembic" / "versions" / "20260604_2300_add_label_extraction_system.py"
+MIGRATION_PATH = (
+    Path(__file__).resolve().parent.parent / "alembic" / "versions" / "20260604_2300_add_label_extraction_system.py"
+)
 
 
 def _load_migration_module():
@@ -34,7 +35,18 @@ def _load_migration_module():
 def test_labeling_types_expose_contract_literals_and_dataclasses():
     assert set(get_args(RunScope)) == {"video", "batch", "period", "backfill"}
     assert set(get_args(ExtractionTier)) == {"cheap", "balanced", "premium"}
-    assert set(get_args(LabelKind)) == {"topic", "person", "series", "category", "event", "game", "org", "meme", "place", "issue"}
+    assert set(get_args(LabelKind)) == {
+        "topic",
+        "person",
+        "series",
+        "category",
+        "event",
+        "game",
+        "org",
+        "meme",
+        "place",
+        "issue",
+    }
     assert set(get_args(LabelStatus)) == {"candidate", "review", "published", "hidden", "rejected", "merged"}
     assert set(get_args(LabelSource)) == {"admin", "automatic", "hybrid", "seed"}
     assert set(get_args(PublishTier)) == {"gold", "silver", "bronze", "shadow"}
@@ -43,7 +55,17 @@ def test_labeling_types_expose_contract_literals_and_dataclasses():
     assert set(get_args(ChapterSource)) == {"automatic", "manual", "hybrid"}
     assert set(get_args(UnitType)) == {"vod", "chapter", "window", "segment"}
     assert set(get_args(AssignmentStatus)) == {"candidate", "auto_published", "admin_approved", "rejected", "shadow"}
-    assert set(get_args(AssignmentSource)) == {"alias", "keyphrase", "search", "title", "embedding_cluster", "llm", "metadata", "admin", "hybrid"}
+    assert set(get_args(AssignmentSource)) == {
+        "alias",
+        "keyphrase",
+        "search",
+        "title",
+        "embedding_cluster",
+        "llm",
+        "metadata",
+        "admin",
+        "hybrid",
+    }
 
     signal = CandidateSignal(source="title", label="okbuddy", alias="okbuddy", score=0.9, evidence={"video_id": "v1"})
     candidate = LabelCandidate(label="okbuddy", kind="topic", aliases=("ok buddy",), confidence_score=0.95)
@@ -104,7 +126,10 @@ def test_labeling_migration_contains_expected_schema_contract():
     assert "unique=True" in source
     assert "archive_label_assignments_public_idx" in source
     assignments_table_source = source.split('"archive_label_assignments"', 1)[1].split('"archive_label_feedback"', 1)[0]
-    assert 'sa.Column("source", sa.Text(), nullable=False, server_default=sa.text("\'automatic\'"))' not in assignments_table_source
+    assert (
+        'sa.Column("source", sa.Text(), nullable=False, server_default=sa.text("\'automatic\'"))'
+        not in assignments_table_source
+    )
     assert 'sa.Column("source", sa.Text(), nullable=False)' in assignments_table_source
     assert "quality_tier" not in source
     assert "extraction_tier" in source

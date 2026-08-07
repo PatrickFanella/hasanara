@@ -6,7 +6,6 @@ Revises: 20260712_opinions
 
 from alembic import op
 
-
 revision = "20260714_linked_identities"
 down_revision = "20260712_opinions"
 branch_labels = None

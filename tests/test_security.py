@@ -12,7 +12,15 @@ from sqlalchemy import text
 from app.audit import ACTION_ADMIN_ACTION, ACTION_API_KEY_CREATED, ACTION_API_KEY_REVOKED
 from app.csrf import csrf_token
 from app.policy import CAP_ADMIN_ACCESS, CAP_MODERATION_ACCESS, CAP_VOCABULARIES_GLOBAL, capabilities_for_role
-from app.security import ROLE_ADMIN, ROLE_MODERATOR, ROLE_USER, generate_api_key, get_user_role, has_role, verify_api_key
+from app.security import (
+    ROLE_ADMIN,
+    ROLE_MODERATOR,
+    ROLE_USER,
+    generate_api_key,
+    get_user_role,
+    has_role,
+    verify_api_key,
+)
 from app.settings import settings
 
 
@@ -88,7 +96,11 @@ class TestRBAC:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -195,7 +207,11 @@ class TestAPIKeyEndpoints:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -220,7 +236,11 @@ class TestAPIKeyEndpoints:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -319,7 +339,11 @@ class TestAPIKeyEndpoints:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.execute(
             text(
@@ -402,7 +426,11 @@ class TestAPIKeyEndpoints:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user2_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user2_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.execute(
             text(
@@ -433,35 +461,88 @@ class TestAPIKeyEndpoints:
     def test_create_api_key_rolls_back_when_audit_write_fails(self, client: TestClient, test_engine, monkeypatch):
         user_id, session_token = uuid.uuid4(), secrets.token_urlsafe(32)
         with test_engine.begin() as connection:
-            connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"), {"id": str(user_id), "email": f"key-create-{user_id}@example.com"})
-            connection.execute(text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"), {"id": str(user_id), "hash": hashlib.sha256(session_token.encode()).hexdigest()})
-        monkeypatch.setattr("app.routes.api_keys.write_audit_from_request", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")))
+            connection.execute(
+                text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"),
+                {"id": str(user_id), "email": f"key-create-{user_id}@example.com"},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
+                {"id": str(user_id), "hash": hashlib.sha256(session_token.encode()).hexdigest()},
+            )
+        monkeypatch.setattr(
+            "app.routes.api_keys.write_audit_from_request",
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")),
+        )
         client._transport.raise_server_exceptions = False
 
-        response = client.post("/api-keys", json={"name": "will rollback"}, cookies={"tc_session": session_token}, headers=_csrf_headers(session_token))
+        response = client.post(
+            "/api-keys",
+            json={"name": "will rollback"},
+            cookies={"tc_session": session_token},
+            headers=_csrf_headers(session_token),
+        )
 
         assert response.status_code == 500
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT count(*) FROM api_keys WHERE user_id=:id"), {"id": str(user_id)}).scalar_one() == 0
-            assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND action=:action"), {"id": str(user_id), "action": ACTION_API_KEY_CREATED}).scalar_one() == 0
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM api_keys WHERE user_id=:id"), {"id": str(user_id)}
+                ).scalar_one()
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND action=:action"),
+                    {"id": str(user_id), "action": ACTION_API_KEY_CREATED},
+                ).scalar_one()
+                == 0
+            )
         with test_engine.begin() as connection:
             connection.execute(text("DELETE FROM users WHERE id=:id"), {"id": str(user_id)})
 
     def test_revoke_api_key_rolls_back_when_audit_write_fails(self, client: TestClient, test_engine, monkeypatch):
         user_id, key_id, session_token = uuid.uuid4(), uuid.uuid4(), secrets.token_urlsafe(32)
         with test_engine.begin() as connection:
-            connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"), {"id": str(user_id), "email": f"key-revoke-{user_id}@example.com"})
-            connection.execute(text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"), {"id": str(user_id), "hash": hashlib.sha256(session_token.encode()).hexdigest()})
-            connection.execute(text("INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix) VALUES (:key, :user, 'rollback', :hash, 'tc_test...')"), {"key": str(key_id), "user": str(user_id), "hash": hashlib.sha256(str(key_id).encode()).hexdigest()})
-        monkeypatch.setattr("app.routes.api_keys.write_audit_from_request", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")))
+            connection.execute(
+                text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"),
+                {"id": str(user_id), "email": f"key-revoke-{user_id}@example.com"},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
+                {"id": str(user_id), "hash": hashlib.sha256(session_token.encode()).hexdigest()},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix) VALUES (:key, :user, 'rollback', :hash, 'tc_test...')"
+                ),
+                {"key": str(key_id), "user": str(user_id), "hash": hashlib.sha256(str(key_id).encode()).hexdigest()},
+            )
+        monkeypatch.setattr(
+            "app.routes.api_keys.write_audit_from_request",
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")),
+        )
         client._transport.raise_server_exceptions = False
 
-        response = client.delete(f"/api-keys/{key_id}", cookies={"tc_session": session_token}, headers=_csrf_headers(session_token))
+        response = client.delete(
+            f"/api-keys/{key_id}", cookies={"tc_session": session_token}, headers=_csrf_headers(session_token)
+        )
 
         assert response.status_code == 500
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT revoked_at IS NULL FROM api_keys WHERE id=:id"), {"id": str(key_id)}).scalar_one()
-            assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND action=:action"), {"id": str(user_id), "action": ACTION_API_KEY_REVOKED}).scalar_one() == 0
+            assert connection.execute(
+                text("SELECT revoked_at IS NULL FROM api_keys WHERE id=:id"), {"id": str(key_id)}
+            ).scalar_one()
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM audit_logs WHERE user_id=:id AND action=:action"),
+                    {"id": str(user_id), "action": ACTION_API_KEY_REVOKED},
+                ).scalar_one()
+                == 0
+            )
         with test_engine.begin() as connection:
             connection.execute(text("DELETE FROM users WHERE id=:id"), {"id": str(user_id)})
 
@@ -499,7 +580,9 @@ class TestAdminRoleMutation:
         )
         if token:
             db_session.execute(
-                text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"),
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
                 {"id": str(user_id), "hash": hashlib.sha256(token.encode()).hexdigest()},
             )
         return user_id
@@ -511,16 +594,33 @@ class TestAdminRoleMutation:
         target_id = self._create_user(db_session, "user")
         db_session.commit()
 
-        response = client.put(f"/admin/users/{target_id}/role", json={"role": role}, cookies={"tc_session": token}, headers=_csrf_headers(token))
+        response = client.put(
+            f"/admin/users/{target_id}/role",
+            json={"role": role},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
 
         assert response.status_code == 200
         assert response.json() == {"user_id": str(target_id), "role": role}
-        assert db_session.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one() == role
-        audit = db_session.execute(text("SELECT user_id, resource_id, details FROM audit_logs WHERE action=:action AND resource_id=:id"), {"action": ACTION_ADMIN_ACTION, "id": str(target_id)}).mappings().one()
+        assert (
+            db_session.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one() == role
+        )
+        audit = (
+            db_session.execute(
+                text("SELECT user_id, resource_id, details FROM audit_logs WHERE action=:action AND resource_id=:id"),
+                {"action": ACTION_ADMIN_ACTION, "id": str(target_id)},
+            )
+            .mappings()
+            .one()
+        )
         assert str(audit["user_id"]) == str(admin_id)
         assert audit["resource_id"] == str(target_id)
         assert audit["details"] == {"target_user_id": str(target_id), "old_role": "user", "new_role": role}
-        db_session.execute(text("DELETE FROM users WHERE id IN (:admin_id, :target_id)"), {"admin_id": str(admin_id), "target_id": str(target_id)})
+        db_session.execute(
+            text("DELETE FROM users WHERE id IN (:admin_id, :target_id)"),
+            {"admin_id": str(admin_id), "target_id": str(target_id)},
+        )
         db_session.commit()
 
     @pytest.mark.parametrize("actor_role", ["user", "moderator"])
@@ -530,11 +630,22 @@ class TestAdminRoleMutation:
         target_id = self._create_user(db_session, "user")
         db_session.commit()
 
-        response = client.put(f"/admin/users/{target_id}/role", json={"role": "admin"}, cookies={"tc_session": token}, headers=_csrf_headers(token))
+        response = client.put(
+            f"/admin/users/{target_id}/role",
+            json={"role": "admin"},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
 
         assert response.status_code == 403
-        assert db_session.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one() == "user"
-        db_session.execute(text("DELETE FROM users WHERE id IN (:actor_id, :target_id)"), {"actor_id": str(actor_id), "target_id": str(target_id)})
+        assert (
+            db_session.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one()
+            == "user"
+        )
+        db_session.execute(
+            text("DELETE FROM users WHERE id IN (:actor_id, :target_id)"),
+            {"actor_id": str(actor_id), "target_id": str(target_id)},
+        )
         db_session.commit()
 
     def test_rejects_unknown_role_and_nonexistent_target(self, client: TestClient, db_session):
@@ -542,8 +653,18 @@ class TestAdminRoleMutation:
         admin_id = self._create_user(db_session, "admin", token)
         db_session.commit()
 
-        invalid = client.put(f"/admin/users/{uuid.uuid4()}/role", json={"role": "owner"}, cookies={"tc_session": token}, headers=_csrf_headers(token))
-        missing = client.put(f"/admin/users/{uuid.uuid4()}/role", json={"role": "user"}, cookies={"tc_session": token}, headers=_csrf_headers(token))
+        invalid = client.put(
+            f"/admin/users/{uuid.uuid4()}/role",
+            json={"role": "owner"},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
+        missing = client.put(
+            f"/admin/users/{uuid.uuid4()}/role",
+            json={"role": "user"},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
 
         assert invalid.status_code == 422
         assert missing.status_code == 404
@@ -554,16 +675,38 @@ class TestAdminRoleMutation:
         token = secrets.token_urlsafe(32)
         admin_id = uuid.uuid4()
         with test_engine.begin() as connection:
-            connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'admin')"), {"id": str(admin_id), "email": f"final-admin-{admin_id}@example.com"})
-            connection.execute(text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"), {"id": str(admin_id), "hash": hashlib.sha256(token.encode()).hexdigest()})
+            connection.execute(
+                text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'admin')"),
+                {"id": str(admin_id), "email": f"final-admin-{admin_id}@example.com"},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
+                {"id": str(admin_id), "hash": hashlib.sha256(token.encode()).hexdigest()},
+            )
 
-        response = client.put(f"/admin/users/{admin_id}/role", json={"role": "user"}, cookies={"tc_session": token}, headers=_csrf_headers(token))
+        response = client.put(
+            f"/admin/users/{admin_id}/role",
+            json={"role": "user"},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
 
         assert response.status_code == 409
         assert response.json()["error"] == "final_admin"
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(admin_id)}).scalar_one() == "admin"
-            assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE action=:action AND resource_id=:id"), {"action": ACTION_ADMIN_ACTION, "id": str(admin_id)}).scalar_one() == 0
+            assert (
+                connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(admin_id)}).scalar_one()
+                == "admin"
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM audit_logs WHERE action=:action AND resource_id=:id"),
+                    {"action": ACTION_ADMIN_ACTION, "id": str(admin_id)},
+                ).scalar_one()
+                == 0
+            )
         with test_engine.begin() as connection:
             connection.execute(text("DELETE FROM users WHERE id=:id"), {"id": str(admin_id)})
 
@@ -572,30 +715,69 @@ class TestAdminRoleMutation:
         admin_id, target_id = uuid.uuid4(), uuid.uuid4()
         with test_engine.begin() as connection:
             for user_id, role in ((admin_id, "admin"), (target_id, "user")):
-                connection.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, :role)"), {"id": str(user_id), "email": f"audit-role-{user_id}@example.com", "role": role})
-            connection.execute(text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"), {"id": str(admin_id), "hash": hashlib.sha256(token.encode()).hexdigest()})
-        monkeypatch.setattr("app.routes.admin.write_audit_from_request", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")))
+                connection.execute(
+                    text("INSERT INTO users (id, email, role) VALUES (:id, :email, :role)"),
+                    {"id": str(user_id), "email": f"audit-role-{user_id}@example.com", "role": role},
+                )
+            connection.execute(
+                text(
+                    "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :hash, now() + interval '1 day')"
+                ),
+                {"id": str(admin_id), "hash": hashlib.sha256(token.encode()).hexdigest()},
+            )
+        monkeypatch.setattr(
+            "app.routes.admin.write_audit_from_request",
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("audit failure")),
+        )
         client._transport.raise_server_exceptions = False
 
-        response = client.put(f"/admin/users/{target_id}/role", json={"role": "moderator"}, cookies={"tc_session": token}, headers=_csrf_headers(token))
+        response = client.put(
+            f"/admin/users/{target_id}/role",
+            json={"role": "moderator"},
+            cookies={"tc_session": token},
+            headers=_csrf_headers(token),
+        )
 
         assert response.status_code == 500
         with test_engine.connect() as connection:
-            assert connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one() == "user"
-            assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE action=:action AND resource_id=:id"), {"action": ACTION_ADMIN_ACTION, "id": str(target_id)}).scalar_one() == 0
+            assert (
+                connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(target_id)}).scalar_one()
+                == "user"
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM audit_logs WHERE action=:action AND resource_id=:id"),
+                    {"action": ACTION_ADMIN_ACTION, "id": str(target_id)},
+                ).scalar_one()
+                == 0
+            )
         with test_engine.begin() as connection:
-            connection.execute(text("DELETE FROM users WHERE id IN (:admin_id, :target_id)"), {"admin_id": str(admin_id), "target_id": str(target_id)})
+            connection.execute(
+                text("DELETE FROM users WHERE id IN (:admin_id, :target_id)"),
+                {"admin_id": str(admin_id), "target_id": str(target_id)},
+            )
 
 
 def test_new_job_write_keeps_column_and_json_owner_authoritative(db_session):
     from app.routes.jobs import JobCreate, create_job
 
     user_id = uuid.uuid4()
-    db_session.execute(text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"), {"id": str(user_id), "email": f"job-owner-{user_id}@example.com"})
+    db_session.execute(
+        text("INSERT INTO users (id, email, role) VALUES (:id, :email, 'user')"),
+        {"id": str(user_id), "email": f"job-owner-{user_id}@example.com"},
+    )
 
-    job = create_job(JobCreate(url=f"https://youtube.com/watch?v=owner{uuid.uuid4().hex}"), db=db_session, user={"id": str(user_id), "role": "user"})
+    job = create_job(
+        JobCreate(url=f"https://youtube.com/watch?v=owner{uuid.uuid4().hex}"),
+        db=db_session,
+        user={"id": str(user_id), "role": "user"},
+    )
 
-    row = db_session.execute(text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job.id)}).mappings().one()
+    row = (
+        db_session.execute(text("SELECT owner_user_id, meta FROM jobs WHERE id=:id"), {"id": str(job.id)})
+        .mappings()
+        .one()
+    )
     assert str(row["owner_user_id"]) == str(user_id)
     assert row["meta"].get("owner_user_id") == str(user_id)
 

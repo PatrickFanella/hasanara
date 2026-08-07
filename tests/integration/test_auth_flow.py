@@ -117,7 +117,11 @@ class TestAuthorizationFlow:
         )
         integration_db.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         integration_db.commit()
 
@@ -167,7 +171,11 @@ class TestAuthorizationFlow:
         )
         integration_db.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(admin_id), "token_hash": sha256(admin_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(admin_id),
+                "token_hash": sha256(admin_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         integration_db.commit()
 
@@ -191,7 +199,10 @@ class TestAuthorizationFlow:
             "created_at",
             "updated_at",
         }
-        integration_db.execute(text("DELETE FROM users WHERE id IN (:admin_id, :other_id)"), {"admin_id": str(admin_id), "other_id": str(other_admin_id)})
+        integration_db.execute(
+            text("DELETE FROM users WHERE id IN (:admin_id, :other_id)"),
+            {"admin_id": str(admin_id), "other_id": str(other_admin_id)},
+        )
         integration_db.commit()
 
     @pytest.mark.timeout(60)
@@ -212,7 +223,15 @@ class TestAuthorizationFlow:
                     )
                 assert connection.execute(text("SELECT count(*) FROM users WHERE role='admin'")).scalar_one() == 2
 
-            request = Request({"type": "http", "method": "PUT", "path": "/admin/users/role", "headers": [], "client": ("127.0.0.1", 0)})
+            request = Request(
+                {
+                    "type": "http",
+                    "method": "PUT",
+                    "path": "/admin/users/role",
+                    "headers": [],
+                    "client": ("127.0.0.1", 0),
+                }
+            )
             sessions = sessionmaker(bind=integration_engine, expire_on_commit=False)
             start_gate = Barrier(2)
 
@@ -241,12 +260,22 @@ class TestAuthorizationFlow:
             assert sorted(outcomes) == ["final_admin", "success"]
             with integration_engine.connect() as connection:
                 assert connection.execute(text("SELECT count(*) FROM users WHERE role='admin'")).scalar_one() == 1
-                assert connection.execute(text("SELECT count(*) FROM audit_logs WHERE action='admin_action' AND resource_id IN (:one, :two)"), {"one": str(actor_one), "two": str(actor_two)}).scalar_one() == 1
+                assert (
+                    connection.execute(
+                        text(
+                            "SELECT count(*) FROM audit_logs WHERE action='admin_action' AND resource_id IN (:one, :two)"
+                        ),
+                        {"one": str(actor_one), "two": str(actor_two)},
+                    ).scalar_one()
+                    == 1
+                )
         finally:
             _cleanup_concurrency_role_test_data(integration_engine, email_prefix)
 
     @pytest.mark.timeout(60)
-    def test_queued_self_promotion_revalidates_demoted_session_actor(self, integration_engine, clean_test_data, monkeypatch):
+    def test_queued_self_promotion_revalidates_demoted_session_actor(
+        self, integration_engine, clean_test_data, monkeypatch
+    ):
         """A request authorized before waiting must not restore its demoted actor."""
         from app.accounts import ADMIN_ROLE_MUTATION_LOCK, lock_admin_role_mutation
         from app.common.session import get_user_from_session
@@ -270,13 +299,27 @@ class TestAuthorizationFlow:
                         {"id": str(user_id), "email": f"{email_prefix}{user_id}@example.com"},
                     )
                 connection.execute(
-                    text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :token_hash, :expires_at)"),
-                    {"id": str(actor_id), "token_hash": sha256(session_token.encode()).hexdigest(), "expires_at": datetime.utcnow() + timedelta(hours=1)},
+                    text(
+                        "INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:id, :token_hash, :expires_at)"
+                    ),
+                    {
+                        "id": str(actor_id),
+                        "token_hash": sha256(session_token.encode()).hexdigest(),
+                        "expires_at": datetime.utcnow() + timedelta(hours=1),
+                    },
                 )
 
             sessions = sessionmaker(bind=integration_engine, expire_on_commit=False)
 
-            request = Request({"type": "http", "method": "PUT", "path": f"/admin/users/{actor_id}/role", "headers": [], "client": ("127.0.0.1", 0)})
+            request = Request(
+                {
+                    "type": "http",
+                    "method": "PUT",
+                    "path": f"/admin/users/{actor_id}/role",
+                    "headers": [],
+                    "client": ("127.0.0.1", 0),
+                }
+            )
 
             real_lock_admin_role_mutation = admin_routes.lock_admin_role_mutation
 
@@ -328,10 +371,13 @@ class TestAuthorizationFlow:
                 # its own advisory-lock attempt but cannot finish, proving it
                 # is blocked there rather than on the actor row.
                 with sessions() as verifier:
-                    assert verifier.execute(
-                        text("SELECT pg_try_advisory_xact_lock(hashtextextended(:lock_key, 0))"),
-                        {"lock_key": ADMIN_ROLE_MUTATION_LOCK},
-                    ).scalar_one() is False
+                    assert (
+                        verifier.execute(
+                            text("SELECT pg_try_advisory_xact_lock(hashtextextended(:lock_key, 0))"),
+                            {"lock_key": ADMIN_ROLE_MUTATION_LOCK},
+                        ).scalar_one()
+                        is False
+                    )
                     verifier.rollback()
                 assert not self_promotion_finished.is_set()
 
@@ -347,11 +393,17 @@ class TestAuthorizationFlow:
             assert error.error_code == "insufficient_permissions"
             assert error.message == "Admin access required"
             with integration_engine.connect() as connection:
-                assert connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(actor_id)}).scalar_one() == "user"
-                assert connection.execute(
-                    text("SELECT count(*) FROM audit_logs WHERE action='admin_action' AND resource_id=:id"),
-                    {"id": str(actor_id)},
-                ).scalar_one() == 0
+                assert (
+                    connection.execute(text("SELECT role FROM users WHERE id=:id"), {"id": str(actor_id)}).scalar_one()
+                    == "user"
+                )
+                assert (
+                    connection.execute(
+                        text("SELECT count(*) FROM audit_logs WHERE action='admin_action' AND resource_id=:id"),
+                        {"id": str(actor_id)},
+                    ).scalar_one()
+                    == 0
+                )
         finally:
             allow_demotion_commit.set()
             _cleanup_concurrency_role_test_data(integration_engine, email_prefix)

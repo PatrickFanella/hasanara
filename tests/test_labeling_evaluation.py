@@ -10,10 +10,38 @@ def test_calculate_label_quality_metrics_counts_statuses_evidence_and_rates():
         {"id": "label-3", "slug": "empty", "label": "Empty", "status": "review", "aliases": []},
     ]
     assignments = [
-        {"label_id": "label-1", "video_id": "video-1", "unit_type": "window", "status": "auto_published", "publish_tier": "gold", "evidence_count": 2},
-        {"label_id": "label-1", "video_id": "video-2", "unit_type": "chapter", "status": "admin_approved", "publish_tier": "silver", "evidence_count": 1},
-        {"label_id": "label-2", "video_id": "video-2", "unit_type": "window", "status": "rejected", "publish_tier": "shadow", "evidence_count": 0},
-        {"label_id": "label-2", "video_id": "video-3", "unit_type": "window", "status": "shadow", "publish_tier": "shadow", "evidence_count": 0},
+        {
+            "label_id": "label-1",
+            "video_id": "video-1",
+            "unit_type": "window",
+            "status": "auto_published",
+            "publish_tier": "gold",
+            "evidence_count": 2,
+        },
+        {
+            "label_id": "label-1",
+            "video_id": "video-2",
+            "unit_type": "chapter",
+            "status": "admin_approved",
+            "publish_tier": "silver",
+            "evidence_count": 1,
+        },
+        {
+            "label_id": "label-2",
+            "video_id": "video-2",
+            "unit_type": "window",
+            "status": "rejected",
+            "publish_tier": "shadow",
+            "evidence_count": 0,
+        },
+        {
+            "label_id": "label-2",
+            "video_id": "video-3",
+            "unit_type": "window",
+            "status": "shadow",
+            "publish_tier": "shadow",
+            "evidence_count": 0,
+        },
     ]
 
     metrics = calculate_label_quality_metrics(labels, assignments)
@@ -35,9 +63,21 @@ def test_calculate_label_quality_metrics_counts_statuses_evidence_and_rates():
 
 def test_calculate_label_quality_metrics_ignores_suppressed_labels_without_evidence():
     labels = [
-        {"id": "published-empty", "slug": "published-empty", "label": "Published Empty", "status": "published", "aliases": []},
+        {
+            "id": "published-empty",
+            "slug": "published-empty",
+            "label": "Published Empty",
+            "status": "published",
+            "aliases": [],
+        },
         {"id": "hidden-empty", "slug": "hidden-empty", "label": "Hidden Empty", "status": "hidden", "aliases": []},
-        {"id": "rejected-empty", "slug": "rejected-empty", "label": "Rejected Empty", "status": "rejected", "aliases": []},
+        {
+            "id": "rejected-empty",
+            "slug": "rejected-empty",
+            "label": "Rejected Empty",
+            "status": "rejected",
+            "aliases": [],
+        },
         {"id": "merged-empty", "slug": "merged-empty", "label": "Merged Empty", "status": "merged", "aliases": []},
     ]
 

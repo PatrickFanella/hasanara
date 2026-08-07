@@ -93,7 +93,10 @@ def test_source_has_exact_token_recovery_and_no_legacy_lock_protocol() -> None:
     assert "[[ $worker_status == 0 ]]" in source
     assert "label=hasanara.canary-token=$canary_token" in source
     assert "SET speaker_label=NULL" in source
-    assert "canary-finalizing:' || :'token" in source.split("fence_canary_failure", 1)[1].split("finalize_canary_success", 1)[0]
+    assert (
+        "canary-finalizing:' || :'token"
+        in source.split("fence_canary_failure", 1)[1].split("finalize_canary_success", 1)[0]
+    )
 
 
 def test_sourceable_helper_does_not_capture_locals_in_traps() -> None:

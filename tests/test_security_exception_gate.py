@@ -71,17 +71,11 @@ def _allowed_audit() -> dict[str, object]:
     for name, via in NPM_ALLOWED_HIGH_CRITICAL_GRAPH.items():
         resolved_via: list[object] = list(via)
         if name == "brace-expansion":
-            resolved_via = [
-                _advisory(int(source), ghsa)
-                for source, ghsa in NPM_ALLOWED_LEAVES.items()
-            ]
+            resolved_via = [_advisory(int(source), ghsa) for source, ghsa in NPM_ALLOWED_LEAVES.items()]
         vulnerabilities[name] = {"severity": "high", "via": resolved_via, "nodes": [f"node_modules/{name}"]}
     vulnerabilities["brace-expansion"] = {
         "severity": "high",
-        "via": [
-            _advisory(int(source), ghsa)
-            for source, ghsa in NPM_ALLOWED_LEAVES.items()
-        ],
+        "via": [_advisory(int(source), ghsa) for source, ghsa in NPM_ALLOWED_LEAVES.items()],
         "nodes": [
             "node_modules/brace-expansion",
             "node_modules/@redocly/openapi-core/node_modules/brace-expansion",

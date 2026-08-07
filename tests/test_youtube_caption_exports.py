@@ -19,7 +19,11 @@ def _setup_youtube_export(db_session, *, plan: str = "pro"):
     )
     db_session.execute(
         text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-        {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+        {
+            "uid": str(user_id),
+            "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+            "exp": datetime.utcnow() + timedelta(days=1),
+        },
     )
     job_id = uuid.uuid4()
     video_id = uuid.uuid4()

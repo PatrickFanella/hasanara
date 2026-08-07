@@ -42,10 +42,12 @@ class _FakeDb:
 
 def test_create_and_finish_run_use_text_clause_and_json_metrics():
     metrics = {"labels": 3, "windows": 7}
-    db = _FakeDb([
-        (lambda sql, params: "INSERT INTO archive_extraction_runs" in sql, _FakeResult(first={"id": "run-1"})),
-        (lambda sql, params: "UPDATE archive_extraction_runs" in sql, _FakeResult()),
-    ])
+    db = _FakeDb(
+        [
+            (lambda sql, params: "INSERT INTO archive_extraction_runs" in sql, _FakeResult(first={"id": "run-1"})),
+            (lambda sql, params: "UPDATE archive_extraction_runs" in sql, _FakeResult()),
+        ]
+    )
 
     run_id = create_extraction_run(db, "video", "cheap", video_id="video-1", model_name="whisper")
     finish_extraction_run(db, run_id, "completed", metrics, error=None)
@@ -64,11 +66,13 @@ def test_create_and_finish_run_use_text_clause_and_json_metrics():
 
 
 def test_upsert_label_preserves_rejected_and_inserts_normalized_aliases():
-    db = _FakeDb([
-        (lambda sql, params: "pg_advisory_xact_lock" in sql, _FakeResult()),
-        (lambda sql, params: "INSERT INTO archive_labels" in sql, _FakeResult(first=("label-1",))),
-        (lambda sql, params: "INSERT INTO archive_label_aliases" in sql, _FakeResult()),
-    ])
+    db = _FakeDb(
+        [
+            (lambda sql, params: "pg_advisory_xact_lock" in sql, _FakeResult()),
+            (lambda sql, params: "INSERT INTO archive_labels" in sql, _FakeResult(first=("label-1",))),
+            (lambda sql, params: "INSERT INTO archive_label_aliases" in sql, _FakeResult()),
+        ]
+    )
 
     label_id = upsert_label_candidate(
         db,
@@ -109,9 +113,11 @@ def test_assignment_key_is_deterministic_and_sensitive_to_dimensions():
 
 
 def test_insert_assignment_validates_source_and_serializes_json_payloads():
-    db = _FakeDb([
-        (lambda sql, params: "INSERT INTO archive_label_assignments" in sql, _FakeResult()),
-    ])
+    db = _FakeDb(
+        [
+            (lambda sql, params: "INSERT INTO archive_label_assignments" in sql, _FakeResult()),
+        ]
+    )
 
     key = insert_assignment(
         db,

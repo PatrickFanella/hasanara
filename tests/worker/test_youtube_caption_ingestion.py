@@ -10,8 +10,8 @@ Tests cover:
 """
 
 import json
-from unittest.mock import MagicMock, patch
 from http.client import HTTPMessage
+from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
 import pytest
@@ -42,9 +42,9 @@ class TestCaptionTrackSelection:
                 ],
             }
         }
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is not None
         assert track.language == "en"
         assert track.ext == "json3"
@@ -60,9 +60,9 @@ class TestCaptionTrackSelection:
                 ]
             }
         }
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is not None
         assert track.ext == "json3"
 
@@ -78,9 +78,9 @@ class TestCaptionTrackSelection:
                 ],
             }
         }
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is not None
         assert track.language == "en-US"
 
@@ -93,9 +93,9 @@ class TestCaptionTrackSelection:
                 ]
             }
         }
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is not None
         assert track.language == "ja"
         assert track.ext == "json3"
@@ -103,9 +103,9 @@ class TestCaptionTrackSelection:
     def test_returns_none_when_no_captions(self):
         """Test returns None when no automatic captions available."""
         data = {"automatic_captions": {}}
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is None
 
     def test_returns_none_when_no_supported_formats(self):
@@ -131,9 +131,9 @@ class TestCaptionTrackSelection:
                 ]
             }
         }
-        
+
         track = _pick_auto_caption(data)
-        
+
         assert track is not None
         assert track.ext == "vtt"
 
@@ -141,8 +141,8 @@ class TestCaptionTrackSelection:
 class TestJSON3Parsing:
     """Tests for JSON3 caption format parsing."""
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_parses_json3_events(self, mock_urlopen, mock_yt_dlp):
         """Test parsing of json3 events into segments."""
         # Mock yt-dlp metadata
@@ -153,7 +153,7 @@ class TestJSON3Parsing:
                 ]
             }
         }
-        
+
         # Mock json3 response
         json3_data = {
             "events": [
@@ -163,44 +163,44 @@ class TestJSON3Parsing:
                     "segs": [
                         {"utf8": "Hello "},
                         {"utf8": "world"},
-                    ]
+                    ],
                 },
                 {
                     "tStartMs": 2500,
                     "dDurationMs": 1500,
                     "segs": [
                         {"utf8": "How are you"},
-                    ]
+                    ],
                 },
             ]
         }
-        
+
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps(json3_data).encode()
         mock_response.__enter__.return_value = mock_response
         mock_response.__exit__.return_value = False
         mock_urlopen.return_value = mock_response
-        
+
         result = fetch_youtube_auto_captions("test_video_id")
-        
+
         assert result is not None
         track, segments = result
-        
+
         assert track.ext == "json3"
         assert len(segments) == 2
-        
+
         # First segment
         assert segments[0].start == 0.0
         assert segments[0].end == 2.0
         assert segments[0].text == "Hello world"
-        
+
         # Second segment
         assert segments[1].start == 2.5
         assert segments[1].end == 4.0
         assert segments[1].text == "How are you"
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_skips_empty_events(self, mock_urlopen, mock_yt_dlp):
         """Test that empty events are skipped."""
         mock_yt_dlp.return_value = {
@@ -210,44 +210,32 @@ class TestJSON3Parsing:
                 ]
             }
         }
-        
+
         json3_data = {
             "events": [
-                {
-                    "tStartMs": 0,
-                    "dDurationMs": 2000,
-                    "segs": []  # Empty
-                },
-                {
-                    "tStartMs": None,  # Missing start time
-                    "dDurationMs": 1000,
-                    "segs": [{"utf8": "Text"}]
-                },
-                {
-                    "tStartMs": 2000,
-                    "dDurationMs": 1000,
-                    "segs": [{"utf8": "Valid"}]
-                },
+                {"tStartMs": 0, "dDurationMs": 2000, "segs": []},  # Empty
+                {"tStartMs": None, "dDurationMs": 1000, "segs": [{"utf8": "Text"}]},  # Missing start time
+                {"tStartMs": 2000, "dDurationMs": 1000, "segs": [{"utf8": "Valid"}]},
             ]
         }
-        
+
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps(json3_data).encode()
         mock_response.__enter__.return_value = mock_response
         mock_response.__exit__.return_value = False
         mock_urlopen.return_value = mock_response
-        
+
         result = fetch_youtube_auto_captions("test_video_id")
-        
+
         assert result is not None
         _, segments = result
-        
+
         # Only valid segment should be included
         assert len(segments) == 1
         assert segments[0].text == "Valid"
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_handles_malformed_json3(self, mock_urlopen, mock_yt_dlp):
         """Test handling of malformed json3 data."""
         mock_yt_dlp.return_value = {
@@ -257,14 +245,14 @@ class TestJSON3Parsing:
                 ]
             }
         }
-        
+
         # Invalid JSON
         mock_response = MagicMock()
         mock_response.read.return_value = b"invalid json {"
         mock_response.__enter__.return_value = mock_response
         mock_response.__exit__.return_value = False
         mock_urlopen.return_value = mock_response
-        
+
         with pytest.raises(YouTubeCaptionFetchError):
             fetch_youtube_auto_captions("test_video_id")
 
@@ -285,9 +273,9 @@ Hello world
 How are you
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         assert len(segments) == 2
         assert segments[0].start == 0.0
         assert segments[0].end == 2.0
@@ -307,9 +295,9 @@ First segment
 Second segment
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         assert len(segments) == 2
         assert segments[0].text == "First segment"
         assert segments[1].text == "Second segment"
@@ -324,9 +312,9 @@ multiline cue
 with three lines
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         assert len(segments) == 1
         # Lines should be joined with spaces
         assert segments[0].text == "This is a multiline cue with three lines"
@@ -339,9 +327,9 @@ with three lines
 Text with minutes only
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         assert len(segments) == 1
         assert segments[0].start == 30.0
         assert segments[0].end == 75.5
@@ -357,9 +345,9 @@ Text with minutes only
 Valid text
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         assert len(segments) == 1
         assert segments[0].text == "Valid text"
 
@@ -374,15 +362,15 @@ Some text here
 Valid segment
 
 """
-        
+
         segments = _parse_vtt_to_segments(vtt_content)
-        
+
         # Should skip malformed segment and parse valid one
         assert len(segments) == 1
         assert segments[0].text == "Valid segment"
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_integration_vtt_parsing(self, mock_urlopen, mock_yt_dlp):
         """Test full integration of VTT caption fetching and parsing."""
         mock_yt_dlp.return_value = {
@@ -392,7 +380,7 @@ Valid segment
                 ]
             }
         }
-        
+
         vtt_content = b"""WEBVTT
 
 00:00:00.000 --> 00:00:02.000
@@ -402,18 +390,18 @@ First line
 Second line
 
 """
-        
+
         mock_response = MagicMock()
         mock_response.read.return_value = vtt_content
         mock_response.__enter__.return_value = mock_response
         mock_response.__exit__.return_value = False
         mock_urlopen.return_value = mock_response
-        
+
         result = fetch_youtube_auto_captions("test_video_id")
-        
+
         assert result is not None
         track, segments = result
-        
+
         assert track.ext == "vtt"
         assert len(segments) == 2
         assert segments[0].text == "First line"
@@ -422,19 +410,17 @@ Second line
 class TestErrorHandling:
     """Tests for error handling in caption fetching."""
 
-    @patch('worker.youtube_captions._yt_dlp_json')
+    @patch("worker.youtube_captions._yt_dlp_json")
     def test_returns_none_when_no_auto_captions(self, mock_yt_dlp):
         """Test returns None when video has no automatic captions."""
-        mock_yt_dlp.return_value = {
-            "automatic_captions": None
-        }
-        
+        mock_yt_dlp.return_value = {"automatic_captions": None}
+
         result = fetch_youtube_auto_captions("test_video_id")
-        
+
         assert result is None
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_handles_network_errors(self, mock_urlopen, mock_yt_dlp):
         """Test handling of network errors when downloading captions."""
         mock_yt_dlp.return_value = {
@@ -444,15 +430,15 @@ class TestErrorHandling:
                 ]
             }
         }
-        
+
         # Simulate network error
         mock_urlopen.side_effect = URLError("Network unreachable")
-        
+
         with pytest.raises(YouTubeCaptionFetchError):
             fetch_youtube_auto_captions("test_video_id")
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_handles_http_errors(self, mock_urlopen, mock_yt_dlp):
         """Test handling of HTTP errors (404, 403, etc.)."""
         mock_yt_dlp.return_value = {
@@ -462,21 +448,17 @@ class TestErrorHandling:
                 ]
             }
         }
-        
+
         # Simulate 404
         mock_urlopen.side_effect = HTTPError(
-            "https://example.com/captions.json3", 
-            404, 
-            "Not Found", 
-            HTTPMessage(),
-            None
+            "https://example.com/captions.json3", 404, "Not Found", HTTPMessage(), None
         )
-        
+
         with pytest.raises(YouTubeCaptionFetchError):
             fetch_youtube_auto_captions("test_video_id")
 
-    @patch('worker.youtube_captions._yt_dlp_json')
-    @patch('worker.youtube_captions.urlopen')
+    @patch("worker.youtube_captions._yt_dlp_json")
+    @patch("worker.youtube_captions.urlopen")
     def test_handles_timeout(self, mock_urlopen, mock_yt_dlp):
         """Test handling of request timeout."""
         mock_yt_dlp.return_value = {
@@ -486,11 +468,12 @@ class TestErrorHandling:
                 ]
             }
         }
-        
+
         # Simulate timeout
         import socket
+
         mock_urlopen.side_effect = socket.timeout("Request timed out")
-        
+
         with pytest.raises(YouTubeCaptionFetchError):
             fetch_youtube_auto_captions("test_video_id")
 
@@ -501,20 +484,15 @@ class TestDataclasses:
     def test_yt_segment_creation(self):
         """Test YTSegment dataclass creation."""
         segment = YTSegment(start=1.5, end=3.5, text="Test text")
-        
+
         assert segment.start == 1.5
         assert segment.end == 3.5
         assert segment.text == "Test text"
 
     def test_yt_caption_track_creation(self):
         """Test YTCaptionTrack dataclass creation."""
-        track = YTCaptionTrack(
-            url="https://example.com/test.json3",
-            language="en",
-            kind="auto",
-            ext="json3"
-        )
-        
+        track = YTCaptionTrack(url="https://example.com/test.json3", language="en", kind="auto", ext="json3")
+
         assert track.url == "https://example.com/test.json3"
         assert track.language == "en"
         assert track.kind == "auto"

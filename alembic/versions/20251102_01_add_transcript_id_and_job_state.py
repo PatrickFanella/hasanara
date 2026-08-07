@@ -5,6 +5,7 @@ Revision ID: 20251102_01
 Revises:
 Create Date: 2025-11-02
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -30,8 +31,7 @@ def upgrade():
     )
 
     # 2) Create trigger to backfill video_id when transcript_id is provided on insert
-    op.execute(
-        """
+    op.execute("""
         CREATE OR REPLACE FUNCTION segments_set_video_from_transcript() RETURNS trigger AS $$
         BEGIN
             IF NEW.transcript_id IS NOT NULL AND NEW.video_id IS NULL THEN
@@ -40,10 +40,8 @@ def upgrade():
             RETURN NEW;
         END
         $$ LANGUAGE plpgsql;
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         DO $$ BEGIN
             BEGIN
                 CREATE TRIGGER segments_set_video_from_transcript_tr
@@ -52,12 +50,10 @@ def upgrade():
             EXCEPTION WHEN duplicate_object THEN NULL;
             END;
         END $$;
-        """
-    )
+        """)
 
     # 3) Add 'expanded' to job_state enum if missing
-    op.execute(
-        """
+    op.execute("""
         DO $$
         BEGIN
             IF NOT EXISTS (
@@ -69,14 +65,12 @@ def upgrade():
             END IF;
         END
         $$;
-        """
-    )
+        """)
 
 
 def downgrade():
     # Best-effort downgrade: drop trigger and function, keep column/enum additions as they are not safely removable
-    op.execute(
-        """
+    op.execute("""
         DO $$ BEGIN
             IF EXISTS (
                 SELECT 1 FROM pg_trigger WHERE tgname = 'segments_set_video_from_transcript_tr'
@@ -84,13 +78,10 @@ def downgrade():
                 DROP TRIGGER segments_set_video_from_transcript_tr ON segments;
             END IF;
         END $$;
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         DROP FUNCTION IF EXISTS segments_set_video_from_transcript();
-        """
-    )
+        """)
     try:
         op.drop_constraint("segments_transcript_id_fkey", table_name="segments", type_="foreignkey")
     except Exception:

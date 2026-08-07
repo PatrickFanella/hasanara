@@ -4,9 +4,8 @@ import sys
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from unittest.mock import Mock, patch
-
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock, patch
 
 mock_ctx = Mock()
 mock_ctx.__enter__ = Mock(return_value=mock_ctx)
@@ -16,59 +15,60 @@ mock_sdpa_kernel = Mock(return_value=mock_ctx)
 mock_attention = SimpleNamespace(sdpa_kernel=mock_sdpa_kernel, SDPBackend=Mock())
 
 mock_pydantic_settings = ModuleType("pydantic_settings")
-setattr(mock_pydantic_settings, "BaseSettings", object)
-setattr(mock_pydantic_settings, "SettingsConfigDict", dict)
+mock_pydantic_settings.BaseSettings = object
+mock_pydantic_settings.SettingsConfigDict = dict
 sys.modules.setdefault("pydantic_settings", mock_pydantic_settings)
 
 mock_torch = ModuleType("torch")
-setattr(mock_torch, "cuda", SimpleNamespace(is_available=lambda: False))
-setattr(mock_torch, "device", lambda *args, **kwargs: None)
-setattr(mock_torch, "nn", SimpleNamespace(attention=mock_attention))
-setattr(mock_torch, "backends", SimpleNamespace(cuda=SimpleNamespace(sdp_kernel=lambda *args, **kwargs: mock_ctx)))
+mock_torch.cuda = SimpleNamespace(is_available=lambda: False)
+mock_torch.device = lambda *args, **kwargs: None
+mock_torch.nn = SimpleNamespace(attention=mock_attention)
+mock_torch.backends = SimpleNamespace(cuda=SimpleNamespace(sdp_kernel=lambda *args, **kwargs: mock_ctx))
 sys.modules.setdefault("torch", mock_torch)
 
 mock_torch_nn = ModuleType("torch.nn")
-setattr(mock_torch_nn, "attention", mock_attention)
+mock_torch_nn.attention = mock_attention
 sys.modules.setdefault("torch.nn", mock_torch_nn)
 
 mock_torch_nn_attention = ModuleType("torch.nn.attention")
-setattr(mock_torch_nn_attention, "sdpa_kernel", mock_sdpa_kernel)
-setattr(mock_torch_nn_attention, "SDPBackend", mock_attention.SDPBackend)
+mock_torch_nn_attention.sdpa_kernel = mock_sdpa_kernel
+mock_torch_nn_attention.SDPBackend = mock_attention.SDPBackend
 sys.modules.setdefault("torch.nn.attention", mock_torch_nn_attention)
 
 mock_torch_backends = ModuleType("torch.backends")
-setattr(mock_torch_backends, "cuda", SimpleNamespace(sdp_kernel=lambda *args, **kwargs: mock_ctx))
+mock_torch_backends.cuda = SimpleNamespace(sdp_kernel=lambda *args, **kwargs: mock_ctx)
 sys.modules.setdefault("torch.backends", mock_torch_backends)
 
 mock_torch_backends_cuda = ModuleType("torch.backends.cuda")
-setattr(mock_torch_backends_cuda, "sdp_kernel", lambda *args, **kwargs: mock_ctx)
+mock_torch_backends_cuda.sdp_kernel = lambda *args, **kwargs: mock_ctx
 sys.modules.setdefault("torch.backends.cuda", mock_torch_backends_cuda)
 
 mock_faster_whisper = ModuleType("faster_whisper")
-setattr(mock_faster_whisper, "WhisperModel", Mock())
+mock_faster_whisper.WhisperModel = Mock()
 sys.modules.setdefault("faster_whisper", mock_faster_whisper)
 
 mock_whisper = ModuleType("whisper")
-setattr(mock_whisper, "load_model", Mock())
+mock_whisper.load_model = Mock()
 sys.modules.setdefault("whisper", mock_whisper)
 
 mock_sqlalchemy = ModuleType("sqlalchemy")
-setattr(mock_sqlalchemy, "text", lambda value: value)
-setattr(mock_sqlalchemy, "bindparam", lambda *args, **kwargs: None)
+mock_sqlalchemy.text = lambda value: value
+mock_sqlalchemy.bindparam = lambda *args, **kwargs: None
 sys.modules.setdefault("sqlalchemy", mock_sqlalchemy)
 
 mock_sqlalchemy_exc = ModuleType("sqlalchemy.exc")
+
 
 class _SqlAlchemyError(Exception):
     pass
 
 
-setattr(mock_sqlalchemy_exc, "OperationalError", _SqlAlchemyError)
-setattr(mock_sqlalchemy_exc, "ProgrammingError", _SqlAlchemyError)
+mock_sqlalchemy_exc.OperationalError = _SqlAlchemyError
+mock_sqlalchemy_exc.ProgrammingError = _SqlAlchemyError
 sys.modules.setdefault("sqlalchemy.exc", mock_sqlalchemy_exc)
 
 mock_sqlalchemy_engine = ModuleType("sqlalchemy.engine")
-setattr(mock_sqlalchemy_engine, "Engine", object)
+mock_sqlalchemy_engine.Engine = object
 sys.modules.setdefault("sqlalchemy.engine", mock_sqlalchemy_engine)
 
 
@@ -144,7 +144,9 @@ def test_download_and_transcode_stage_updates_video_state(tmp_path: Path):
     video_id = uuid.uuid4()
     job_id = uuid.uuid4()
     engine, conn = _mock_engine_with_video({"id": video_id, "youtube_id": "abc123", "job_id": job_id})
-    ctx = VideoPipelineContext(engine=engine, video={"id": video_id, "youtube_id": "abc123", "job_id": job_id}, work_dir=tmp_path)
+    ctx = VideoPipelineContext(
+        engine=engine, video={"id": video_id, "youtube_id": "abc123", "job_id": job_id}, work_dir=tmp_path
+    )
 
     raw_path = tmp_path / "raw.m4a"
     wav_path = tmp_path / "audio_16k.wav"
@@ -175,18 +177,32 @@ def test_transcribe_stage_offsets_segments_and_detects_language(tmp_path: Path):
         video={"id": video_id, "youtube_id": "abc123", "job_id": uuid.uuid4()},
         work_dir=tmp_path,
         wav_path=tmp_path / "audio_16k.wav",
-        quality_settings={"language": "en", "beam_size": 7, "temperature": 0.2, "word_timestamps": False, "vad_filter": True},
+        quality_settings={
+            "language": "en",
+            "beam_size": 7,
+            "temperature": 0.2,
+            "word_timestamps": False,
+            "vad_filter": True,
+        },
     )
     transcribe_chunk_mock = Mock(
         side_effect=[
-            ([{"start": 0.0, "end": 1.0, "text": "first", "words": [{"start": 0.0, "end": 0.5}]}], {"language": "en", "language_probability": 0.99}),
+            (
+                [{"start": 0.0, "end": 1.0, "text": "first", "words": [{"start": 0.0, "end": 0.5}]}],
+                {"language": "en", "language_probability": 0.99},
+            ),
             ([{"start": 0.0, "end": 1.0, "text": "second"}], {"language": "en", "language_probability": 0.99}),
         ]
     )
     deps = NativePipelineDependencies(
         settings=_Settings(),
         logger=Mock(),
-        chunk_audio=Mock(return_value=[Chunk(path=tmp_path / "chunk_0000.wav", offset=0.0), Chunk(path=tmp_path / "chunk_0001.wav", offset=900.0)]),
+        chunk_audio=Mock(
+            return_value=[
+                Chunk(path=tmp_path / "chunk_0000.wav", offset=0.0),
+                Chunk(path=tmp_path / "chunk_0001.wav", offset=900.0),
+            ]
+        ),
         transcribe_chunk=transcribe_chunk_mock,
     )
 
@@ -221,6 +237,7 @@ def test_persist_stage_finalizes_video_and_refreshes_job(tmp_path: Path):
         replace_transcript_blocks=replace_transcript_blocks,
         refresh_job_state=refresh_job_state,
     )
+
     def execute(statement, *args, **kwargs):
         result = Mock()
         result.mappings.return_value.first.return_value = {"id": video_id}

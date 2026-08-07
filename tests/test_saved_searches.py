@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+
 from app.csrf import csrf_token
 from app.settings import settings
 
@@ -26,16 +27,18 @@ def _create_session_user(db_session):
     )
     db_session.execute(
         text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-        {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+        {
+            "uid": str(user_id),
+            "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+            "exp": datetime.utcnow() + timedelta(days=1),
+        },
     )
     db_session.commit()
     return user_id, session_token
 
 
 def _ensure_saved_searches_table(db_session):
-    db_session.execute(
-        text(
-            """
+    db_session.execute(text("""
             CREATE TABLE IF NOT EXISTS saved_searches (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -44,9 +47,7 @@ def _ensure_saved_searches_table(db_session):
                 created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                 CONSTRAINT saved_searches_user_query_key UNIQUE (user_id, query)
             )
-            """
-        )
-    )
+            """))
     db_session.execute(
         text("CREATE INDEX IF NOT EXISTS saved_searches_user_id_created_at_idx ON saved_searches (user_id, created_at)")
     )
@@ -80,7 +81,9 @@ class TestSavedSearchesRoutes:
         assert len(items) == 1
         assert items[0]["query"] == "creator archive"
 
-        delete_response = client.delete(f"/users/me/saved-searches/{created['id']}", cookies=cookies, headers=_csrf_headers(session_token))
+        delete_response = client.delete(
+            f"/users/me/saved-searches/{created['id']}", cookies=cookies, headers=_csrf_headers(session_token)
+        )
         assert delete_response.status_code == 200
         assert delete_response.json()["ok"] is True
 
@@ -88,5 +91,7 @@ class TestSavedSearchesRoutes:
         assert final_response.status_code == 200
         assert final_response.json()["items"] == []
 
-        row_count = db_session.execute(text("SELECT COUNT(*) FROM saved_searches WHERE user_id = :uid"), {"uid": str(user_id)}).scalar_one()
+        row_count = db_session.execute(
+            text("SELECT COUNT(*) FROM saved_searches WHERE user_id = :uid"), {"uid": str(user_id)}
+        ).scalar_one()
         assert row_count == 0

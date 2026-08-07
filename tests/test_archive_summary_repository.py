@@ -10,25 +10,25 @@ from types import MappingProxyType
 from sqlalchemy.exc import ProgrammingError
 
 from app import crud
-from app.archive.repository import ArchiveRepository, archive_repository
 from app.archive.intelligence_repository import (
-    SEED_TOPICS,
     RETIRED_NAMED_PERIOD_SLUGS,
+    SEED_TOPICS,
     _month_bounds,
     _period_intelligence_from_row,
-    _safe_video_metadata_map,
     _safe_mappings,
+    _safe_video_metadata_map,
     _week_bounds,
     alias_matches_text,
     autopublish_search_topics,
     merge_label_topic_cards,
-    seed_archive_topics,
-    seed_named_periods,
     refresh_named_period_stats,
     refresh_topic_mentions,
     refresh_topic_period_stats,
+    seed_archive_topics,
+    seed_named_periods,
     slugify_topic,
 )
+from app.archive.repository import ArchiveRepository, archive_repository
 from app.schemas import ArchiveTopicCard
 
 
@@ -321,8 +321,14 @@ def test_seed_named_periods_corrects_current_curated_windows(monkeypatch):
 
     by_slug = {row["slug"]: row for row in db.inserted_periods}
     kind_counts = Counter(row["kind"] for row in by_slug.values())
-    retired_update_slugs = {params["slug"] for sql, params in db.calls if "UPDATE archive_named_periods" in sql and "slug = :slug" in sql}
-    retired_update_patterns = {params["pattern"] for sql, params in db.calls if "UPDATE archive_named_periods" in sql and "slug ~ :pattern" in sql}
+    retired_update_slugs = {
+        params["slug"] for sql, params in db.calls if "UPDATE archive_named_periods" in sql and "slug = :slug" in sql
+    }
+    retired_update_patterns = {
+        params["pattern"]
+        for sql, params in db.calls
+        if "UPDATE archive_named_periods" in sql and "slug ~ :pattern" in sql
+    }
 
     assert retired_update_slugs == set(RETIRED_NAMED_PERIOD_SLUGS)
     assert r"^[0-9]{4}-august-21$" in retired_update_patterns
@@ -437,7 +443,10 @@ def test_refresh_named_period_stats_includes_metadata_in_public_payloads():
                         }
                     ]
                 )
-            if "FROM archive_topic_mentions m" in sql_text and "COALESCE(m.occurred_at, v.uploaded_at, v.created_at) >= :start_dt" in sql_text:
+            if (
+                "FROM archive_topic_mentions m" in sql_text
+                and "COALESCE(m.occurred_at, v.uploaded_at, v.created_at) >= :start_dt" in sql_text
+            ):
                 return _FakeResult(
                     rows=[
                         {
@@ -556,7 +565,10 @@ def test_refresh_named_period_stats_uses_recurring_month_day_filter():
             if "FROM videos v" in sql_text and "EXTRACT(MONTH FROM v.uploaded_at)" in sql_text:
                 assert params == {"recurring_month": 8, "recurring_day": 21}
                 return _FakeResult(rows=[])
-            if "FROM archive_topic_mentions m" in sql_text and "EXTRACT(MONTH FROM COALESCE(m.occurred_at, v.uploaded_at, v.created_at))" in sql_text:
+            if (
+                "FROM archive_topic_mentions m" in sql_text
+                and "EXTRACT(MONTH FROM COALESCE(m.occurred_at, v.uploaded_at, v.created_at))" in sql_text
+            ):
                 assert params == {"recurring_month": 8, "recurring_day": 21}
                 return _FakeResult(rows=[])
             if "INSERT INTO archive_named_period_stats" in sql_text:
@@ -676,7 +688,9 @@ def test_refresh_topic_mentions_reconciles_stage_without_rewriting_unchanged_row
     assert any("CREATE TEMP TABLE archive_topic_mentions_stage" in sql and "ON COMMIT DROP" in sql for sql in sql_calls)
     assert any("ANALYZE archive_topic_mentions_stage" in sql for sql in sql_calls)
 
-    delete_sql, delete_params = next((sql, params) for sql, params in db.calls if "DELETE FROM archive_topic_mentions m" in sql)
+    delete_sql, delete_params = next(
+        (sql, params) for sql, params in db.calls if "DELETE FROM archive_topic_mentions m" in sql
+    )
     assert "NOT EXISTS" in delete_sql
     assert delete_params == {"topic_id_0": topic_id}
     assert unselected_topic_id not in delete_params.values()
@@ -745,7 +759,10 @@ def test_refresh_topic_period_stats_uses_created_at_when_uploaded_at_missing():
                 )
             if "DELETE FROM archive_topic_period_stats" in sql_text:
                 return _FakeResult()
-            if "FROM archive_topic_mentions m" in sql_text and "COALESCE(m.occurred_at, v.uploaded_at, v.created_at) AS when_at" in sql_text:
+            if (
+                "FROM archive_topic_mentions m" in sql_text
+                and "COALESCE(m.occurred_at, v.uploaded_at, v.created_at) AS when_at" in sql_text
+            ):
                 return _FakeResult(
                     rows=[
                         {
@@ -796,7 +813,11 @@ def test_autopublish_search_topics_skips_existing_slugs():
     stats = autopublish_search_topics(db, limit=20)
 
     assert stats["topics"] == 1
-    assert any("'automatic'" in sql and "new topic" in str(params) for sql, params in db.calls if "INSERT INTO archive_topics" in sql)
+    assert any(
+        "'automatic'" in sql and "new topic" in str(params)
+        for sql, params in db.calls
+        if "INSERT INTO archive_topics" in sql
+    )
 
 
 def test_merge_topic_cards_excludes_untrusted_automatic_and_junk_cards():

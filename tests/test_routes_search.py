@@ -496,7 +496,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -517,7 +521,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -544,7 +552,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -573,7 +585,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
 
         # Create a search with 0 results
@@ -607,7 +623,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 
@@ -629,7 +649,11 @@ class TestSearchAnalytics:
         )
         db_session.execute(
             text("INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (:uid, :token_hash, :exp)"),
-            {"uid": str(user_id), "token_hash": hashlib.sha256(session_token.encode()).hexdigest(), "exp": datetime.utcnow() + timedelta(days=1)},
+            {
+                "uid": str(user_id),
+                "token_hash": hashlib.sha256(session_token.encode()).hexdigest(),
+                "exp": datetime.utcnow() + timedelta(days=1),
+            },
         )
         db_session.commit()
 

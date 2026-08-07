@@ -1,6 +1,5 @@
 """Tests for admin analytics dashboard endpoints."""
 
-
 from fastapi.testclient import TestClient
 
 

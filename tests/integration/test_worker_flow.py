@@ -17,39 +17,31 @@ class TestWorkerVideoProcessing:
         video_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'expanded', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
 
         # Simulate worker picking video with SKIP LOCKED
-        result = integration_db.execute(
-            text(
-                """
+        result = integration_db.execute(text("""
                 SELECT id, youtube_id, state
                 FROM videos
                 WHERE state = 'pending'
                 ORDER BY created_at
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
-            """
-            )
-        )
+            """))
         video = result.mappings().first()
 
         assert video is not None
@@ -65,21 +57,17 @@ class TestWorkerVideoProcessing:
 
         with integration_engine.begin() as setup_conn:
             setup_conn.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO jobs (id, kind, state, input_url)
                     VALUES (:job_id, 'single', 'expanded', 'https://youtube.com/watch?v=test')
-                    """
-                ),
+                    """),
                 {"job_id": job_id},
             )
             setup_conn.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                     VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-                    """
-                ),
+                    """),
                 {"video_id": video_id, "job_id": job_id},
             )
 
@@ -87,16 +75,12 @@ class TestWorkerVideoProcessing:
         conn1 = integration_engine.connect()
         trans1 = conn1.begin()
 
-        result1 = conn1.execute(
-            text(
-                """
+        result1 = conn1.execute(text("""
                 SELECT id FROM videos
                 WHERE state = 'pending'
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
-            """
-            )
-        )
+            """))
         video1 = result1.first()
         assert video1 is not None
 
@@ -104,16 +88,12 @@ class TestWorkerVideoProcessing:
         conn2 = integration_engine.connect()
         trans2 = conn2.begin()
 
-        result2 = conn2.execute(
-            text(
-                """
+        result2 = conn2.execute(text("""
                 SELECT id FROM videos
                 WHERE state = 'pending'
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
-            """
-            )
-        )
+            """))
         video2 = result2.first()
 
         # Second worker should not get the video
@@ -132,22 +112,18 @@ class TestWorkerVideoProcessing:
         video_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'expanded', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
@@ -176,12 +152,10 @@ class TestWorkerJobExpansion:
         job_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=test123')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
         integration_db.commit()
@@ -189,12 +163,10 @@ class TestWorkerJobExpansion:
         # Simulate job expansion by inserting video
         video_id = uuid.uuid4()
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Expanded Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
@@ -219,12 +191,10 @@ class TestWorkerJobExpansion:
         job_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'channel', 'pending', 'https://youtube.com/channel/UCtest')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
         integration_db.commit()
@@ -233,12 +203,10 @@ class TestWorkerJobExpansion:
         video_ids = [uuid.uuid4() for _ in range(5)]
         for idx, video_id in enumerate(video_ids):
             integration_db.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                     VALUES (:video_id, :job_id, :youtube_id, :idx, :title, 180, 'pending')
-                """
-                ),
+                """),
                 {
                     "video_id": str(video_id),
                     "job_id": str(job_id),
@@ -269,22 +237,18 @@ class TestWorkerErrorHandling:
         video_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'expanded', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'pending')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
         integration_db.commit()
@@ -309,12 +273,10 @@ class TestWorkerErrorHandling:
         job_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'pending', 'https://youtube.com/watch?v=invalid')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
         integration_db.commit()
@@ -343,12 +305,10 @@ class TestWorkerPerformance:
         job_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'channel', 'pending', 'https://youtube.com/channel/UCtest')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
         integration_db.commit()
@@ -361,12 +321,10 @@ class TestWorkerPerformance:
         for idx in range(100):
             video_id = uuid.uuid4()
             integration_db.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                     VALUES (:video_id, :job_id, :youtube_id, :idx, :title, 180, 'pending')
-                """
-                ),
+                """),
                 {
                     "video_id": str(video_id),
                     "job_id": str(job_id),

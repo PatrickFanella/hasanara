@@ -19,34 +19,28 @@ class TestTranscriptModes:
 
         # Insert job
         integration_db.execute(
-            sql_text(
-                """
+            sql_text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         # Insert video
         integration_db.execute(
-            sql_text(
-                """
+            sql_text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         # Insert transcript
         integration_db.execute(
-            sql_text(
-                """
+            sql_text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 
@@ -63,12 +57,10 @@ class TestTranscriptModes:
             start_ms = seg_idx * 5000
             end_ms = start_ms + 4000
             integration_db.execute(
-                sql_text(
-                    """
+                sql_text("""
                     INSERT INTO segments (transcript_id, idx, start_ms, end_ms, text, speaker_label)
                     VALUES (:transcript_id, :idx, :start_ms, :end_ms, :text, :speaker_label)
-                """
-                ),
+                """),
                 {
                     "transcript_id": str(transcript_id),
                     "idx": idx,

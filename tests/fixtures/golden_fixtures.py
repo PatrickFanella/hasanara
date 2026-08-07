@@ -93,7 +93,7 @@ def golden_youtube_captions():
                 "segs": [
                     {"utf8": "Welcome to "},
                     {"utf8": "this tutorial"},
-                ]
+                ],
             },
             {
                 "tStartMs": 3000,
@@ -101,14 +101,14 @@ def golden_youtube_captions():
                 "segs": [
                     {"utf8": "Today we will "},
                     {"utf8": "learn about Python"},
-                ]
+                ],
             },
             {
                 "tStartMs": 5500,
                 "dDurationMs": 2000,
                 "segs": [
                     {"utf8": "Let's get started"},
-                ]
+                ],
             },
         ]
     }
@@ -391,7 +391,7 @@ class TestGoldenFixtures:
     def test_whisper_to_formatted_regression(self, golden_whisper_output, golden_formatted_output):
         """Test that formatting produces expected output (regression test)."""
         from worker.formatter import format_transcript
-        
+
         config = {
             "enabled": True,
             "normalize_whitespace": True,
@@ -404,11 +404,11 @@ class TestGoldenFixtures:
             "segment_by_sentences": False,
             "merge_short_segments": False,
         }
-        
+
         result = format_transcript(golden_whisper_output, config=config)
-        
+
         assert len(result) == len(golden_formatted_output)
-        
+
         for i, (actual, expected) in enumerate(zip(result, golden_formatted_output, strict=True)):
             assert actual["text"] == expected["text"], f"Text mismatch at segment {i}"
             assert actual["start"] == expected["start"], f"Start time mismatch at segment {i}"
@@ -418,33 +418,29 @@ class TestGoldenFixtures:
         """Test that YouTube caption parsing produces expected output."""
         import json
         from unittest.mock import MagicMock, patch
-        
-        with patch('worker.youtube_captions._yt_dlp_json') as mock_yt_dlp:
+
+        with patch("worker.youtube_captions._yt_dlp_json") as mock_yt_dlp:
             mock_yt_dlp.return_value = {
-                "automatic_captions": {
-                    "en": [
-                        {"ext": "json3", "url": "https://example.com/captions.json3"}
-                    ]
-                }
+                "automatic_captions": {"en": [{"ext": "json3", "url": "https://example.com/captions.json3"}]}
             }
-            
-            with patch('worker.youtube_captions.urlopen') as mock_urlopen:
+
+            with patch("worker.youtube_captions.urlopen") as mock_urlopen:
                 mock_response = MagicMock()
                 mock_response.read.return_value = json.dumps(golden_youtube_captions).encode()
                 mock_response.__enter__.return_value = mock_response
                 mock_response.__exit__.return_value = False
                 mock_urlopen.return_value = mock_response
-                
+
                 from worker.youtube_captions import fetch_youtube_auto_captions
-                
+
                 result = fetch_youtube_auto_captions("test_video")
-                
+
                 assert result is not None
                 track, segments = result
-                
+
                 assert len(segments) == len(golden_youtube_captions_parsed)
-                
-                for i, (actual, expected) in enumerate(zip(segments, golden_youtube_captions_parsed, strict=True)):
+
+                for _i, (actual, expected) in enumerate(zip(segments, golden_youtube_captions_parsed, strict=True)):
                     assert actual.text == expected["text"]
                     assert actual.start == expected["start"]
                     assert actual.end == expected["end"]
@@ -452,17 +448,17 @@ class TestGoldenFixtures:
     def test_speaker_formatting_regression(self, golden_speaker_diarization, golden_formatted_speakers):
         """Test that speaker formatting produces expected output."""
         from worker.formatter import format_transcript
-        
+
         config = {
             "enabled": True,
             "add_sentence_punctuation": True,
             "speaker_format": "structured",
         }
-        
+
         result = format_transcript(golden_speaker_diarization, config=config)
-        
+
         assert len(result) == len(golden_formatted_speakers)
-        
+
         # First occurrence of each speaker should have label
         for i, (actual, expected) in enumerate(zip(result, golden_formatted_speakers, strict=True)):
             assert actual["text"] == expected["text"], f"Text mismatch at segment {i}"
@@ -471,13 +467,13 @@ class TestGoldenFixtures:
     def test_edge_cases_handled(self, golden_edge_cases):
         """Test that edge cases are handled without errors."""
         from worker.formatter import format_transcript
-        
+
         config = {
             "enabled": True,
             "normalize_whitespace": True,
             "detect_hallucinations": True,
         }
-        
+
         for case_name, segment in golden_edge_cases.items():
             # Should not raise exception
             try:
@@ -490,17 +486,17 @@ class TestGoldenFixtures:
     def test_multilingual_preservation(self, golden_multilingual_segments):
         """Test that multilingual text is preserved correctly."""
         from worker.formatter import format_transcript
-        
+
         config = {
             "enabled": True,
             "normalize_unicode": True,
             "add_sentence_punctuation": True,
         }
-        
+
         result = format_transcript(golden_multilingual_segments, config=config)
-        
+
         assert len(result) == len(golden_multilingual_segments)
-        
+
         # Verify each language's text is preserved
         for i, (actual, expected) in enumerate(zip(result, golden_multilingual_segments, strict=True)):
             # Remove punctuation for comparison

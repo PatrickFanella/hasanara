@@ -78,8 +78,7 @@ class VocabularyDatabase:
         if "DELETE FROM user_vocabularies" in sql:
             row = self.rows.get(str(params["id"]))
             allowed = row and (
-                params.get("is_admin")
-                or (not row["is_global"] and str(row["user_id"]) == str(params.get("user_id")))
+                params.get("is_admin") or (not row["is_global"] and str(row["user_id"]) == str(params.get("user_id")))
             )
             if allowed:
                 del self.rows[str(params["id"])]
@@ -90,11 +89,7 @@ class VocabularyDatabase:
         if "WHERE id = :id" in sql:
             rows = [row for row in rows if str(row["id"]) == str(params["id"])]
         if "is_global = true OR user_id = :user_id" in sql:
-            rows = [
-                row
-                for row in rows
-                if row["is_global"] or str(row["user_id"]) == str(params["user_id"])
-            ]
+            rows = [row for row in rows if row["is_global"] or str(row["user_id"]) == str(params["user_id"])]
         return FakeResult(rows)
 
 

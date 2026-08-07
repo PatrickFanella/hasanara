@@ -5,9 +5,9 @@ import logging
 from io import StringIO
 
 from app.logging_config import (
+    AccessLogRedactionFilter,
     JSONFormatter,
     SensitiveDataFilter,
-    AccessLogRedactionFilter,
     configure_logging,
     get_logger,
     job_id_ctx,
@@ -172,7 +172,10 @@ class TestJSONFormatter:
 def test_uvicorn_access_log_filter_removes_callback_query_values():
     code, state = "CODE-SENTINEL", "STATE-SENTINEL"
     record = logging.LogRecord(
-        name="uvicorn.access", level=logging.INFO, pathname="", lineno=0,
+        name="uvicorn.access",
+        level=logging.INFO,
+        pathname="",
+        lineno=0,
         msg='%s - "%s %s HTTP/%s" %s',
         args=("127.0.0.1", "GET", f"/auth/callback/google?code={code}&state={state}", "1.1", 307),
         exc_info=None,

@@ -35,44 +35,36 @@ class TestExportSRT:
         transcript_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 
         # Insert segments
         for i, seg in enumerate(sample_transcript_segments):
             integration_db.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO segments (transcript_id, idx, start_ms, end_ms, text, speaker_label)
                     VALUES (:transcript_id, :idx, :start_ms, :end_ms, :text, :speaker_label)
-                """
-                ),
+                """),
                 {
                     "transcript_id": str(transcript_id),
                     "idx": i,
@@ -113,42 +105,34 @@ class TestExportSRT:
         transcript_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO segments (transcript_id, idx, start_ms, end_ms, text)
                 VALUES (:transcript_id, 0, 0, 1500, 'Test text')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id)},
         )
 
@@ -187,44 +171,36 @@ class TestExportPDF:
         transcript_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 
         # Insert segments
         for i, seg in enumerate(sample_transcript_segments):
             integration_db.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO segments (transcript_id, idx, start_ms, end_ms, text, speaker_label)
                     VALUES (:transcript_id, :idx, :start_ms, :end_ms, :text, :speaker_label)
-                """
-                ),
+                """),
                 {
                     "transcript_id": str(transcript_id),
                     "idx": i,
@@ -271,32 +247,26 @@ class TestExportFormats:
         transcript_id = uuid.uuid4()
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO jobs (id, kind, state, input_url)
                 VALUES (:job_id, 'single', 'completed', 'https://youtube.com/watch?v=test')
-            """
-            ),
+            """),
             {"job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO videos (id, job_id, youtube_id, idx, title, duration_seconds, state)
                 VALUES (:video_id, :job_id, 'test123', 0, 'Test Video', 180, 'completed')
-            """
-            ),
+            """),
             {"video_id": str(video_id), "job_id": str(job_id)},
         )
 
         integration_db.execute(
-            text(
-                """
+            text("""
                 INSERT INTO transcripts (id, video_id, model, language)
                 VALUES (:transcript_id, :video_id, 'test-model', 'en')
-            """
-            ),
+            """),
             {"transcript_id": str(transcript_id), "video_id": str(video_id)},
         )
 

@@ -1,6 +1,5 @@
 """Tests for path matching utilities."""
 
-
 from app.path_utils import (
     CommonMatchers,
     MultiPathMatcher,

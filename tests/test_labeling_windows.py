@@ -3,7 +3,12 @@ import json
 import pytest
 from sqlalchemy.sql.elements import TextClause
 
-from app.archive.labeling.windows import _hash_window, build_windows_from_segments, load_source_segments, persist_windows
+from app.archive.labeling.windows import (
+    _hash_window,
+    build_windows_from_segments,
+    load_source_segments,
+    persist_windows,
+)
 
 
 class FakeResult:
