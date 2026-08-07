@@ -1,4 +1,5 @@
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +22,30 @@ configure_logging(
 )
 logger = get_logger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Validate runtime dependencies and publish process metadata."""
+    from app.metrics import setup_app_info
+    from app.version import get_version
+
+    validate_production_settings(settings)
+    validate_js_runtime_or_exit()
+    version = get_version()
+    logger.info(
+        "API service started",
+        extra={
+            "version": version,
+            "log_level": settings.LOG_LEVEL,
+            "log_format": settings.LOG_FORMAT,
+            "database_host": settings.DATABASE_URL.split("@")[-1].split("/")[0],
+        },
+    )
+    setup_app_info()
+    yield
+    logger.info("API service stopped")
+
+
 app = FastAPI(
     title="Transcript Create API",
     description="""
@@ -42,6 +67,7 @@ Most endpoints require authentication via session cookies set after OAuth login.
 Admin endpoints require additional authorization.
     """,
     version="0.1.0",
+    lifespan=lifespan,
     contact={
         "name": "onnwee",
         "url": "https://github.com/onnwee",
@@ -111,33 +137,6 @@ if settings.SENTRY_DSN:
         logger.warning("Sentry SDK not installed. Set SENTRY_DSN to enable error tracking.")
     except Exception as e:
         logger.error("Failed to initialize Sentry", extra={"error": str(e)})
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Log application startup and initialize metrics."""
-    from app.metrics import setup_app_info
-    from app.version import get_version
-
-    validate_production_settings(settings)
-
-    # Validate JavaScript runtime for yt-dlp before starting
-    validate_js_runtime_or_exit()
-
-    version = get_version()
-
-    logger.info(
-        "API service started",
-        extra={
-            "version": version,
-            "log_level": settings.LOG_LEVEL,
-            "log_format": settings.LOG_FORMAT,
-            "database_url": settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "[hidden]",
-        },
-    )
-
-    # Initialize application info metric
-    setup_app_info()
 
 
 # Exception handlers
@@ -282,14 +281,10 @@ async def metrics_middleware(request: Request, call_next):
 
     from app.metrics import http_request_duration_seconds, http_requests_in_flight, http_requests_total
 
-    # FastAPI resolves the concrete route during ``call_next``. Until then,
-    # keep the in-flight series bounded under one label rather than using the
-    # raw resource path.
-    endpoint = "pending"
     method = request.method
 
     # Track in-flight requests
-    http_requests_in_flight.labels(method=method, endpoint=endpoint).inc()
+    http_requests_in_flight.labels(method=method).inc()
 
     # Track request duration
     start_time = time.time()
@@ -297,7 +292,7 @@ async def metrics_middleware(request: Request, call_next):
         response = await call_next(request)
         status_code = response.status_code
         route = request.scope.get("route")
-        endpoint = getattr(route, "path", "unmatched")
+        endpoint = getattr(route, "path", None) or "unmatched"
 
         # Record metrics
         duration = time.time() - start_time
@@ -307,7 +302,7 @@ async def metrics_middleware(request: Request, call_next):
         return response
     except Exception:
         route = request.scope.get("route")
-        endpoint = getattr(route, "path", "unmatched")
+        endpoint = getattr(route, "path", None) or "unmatched"
         # Record error metrics
         duration = time.time() - start_time
         http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
@@ -315,7 +310,7 @@ async def metrics_middleware(request: Request, call_next):
         raise
     finally:
         # Decrement in-flight counter
-        http_requests_in_flight.labels(method=method, endpoint="pending").dec()
+        http_requests_in_flight.labels(method=method).dec()
 
 
 # Cache policy must wrap every other application middleware so rate-limit,

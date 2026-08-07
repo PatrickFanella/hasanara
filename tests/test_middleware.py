@@ -3,6 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.settings import settings
+
 
 class TestSecurityHeaders:
     """Tests for security header middleware."""
@@ -82,7 +84,7 @@ class TestRateLimiting:
         response = client.options(
             "/auth/me",
             headers={
-                "Origin": "http://localhost:5173",
+                "Origin": settings.FRONTEND_ORIGIN,
                 "Access-Control-Request-Method": "GET",
             },
         )
@@ -124,7 +126,7 @@ class TestCORSConfiguration:
 
     def test_cors_allowed_origin(self, client: TestClient):
         """Test that configured origins are allowed."""
-        response = client.get("/auth/me", headers={"Origin": "http://localhost:5173"})
+        response = client.get("/auth/me", headers={"Origin": settings.FRONTEND_ORIGIN})
 
         # Should allow the request
         assert response.status_code in [200, 401]  # Auth may fail but CORS should pass
@@ -145,7 +147,7 @@ class TestCORSConfiguration:
         response = client.options(
             "/auth/me",
             headers={
-                "Origin": "http://localhost:5173",
+                "Origin": settings.FRONTEND_ORIGIN,
                 "Access-Control-Request-Method": "TRACE",
             },
         )

@@ -14,6 +14,8 @@ def _isolated_settings(**overrides):
     from app.settings import Settings
 
     overrides.setdefault("ANALYTICS_HMAC_SECRET", ANALYTICS_SECRET)
+    overrides.setdefault("REDIS_URL", "redis://redis:6379/0")
+    overrides.setdefault("FORWARDED_ALLOW_IPS", "172.20.0.250")
     return Settings(_env_file=None, **overrides)
 
 

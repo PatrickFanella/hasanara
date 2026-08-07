@@ -1,5 +1,7 @@
 """Tests for Prometheus metrics collection."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 
@@ -87,7 +89,7 @@ def test_metrics_not_recursive(client):
     assert response.status_code == 200
 
 
-def test_job_creation_increments_metric(client, db_session):
+def test_job_creation_increments_metric():
     """Test that creating a job increments the jobs_created_total metric."""
     from app import crud
     from app.metrics import jobs_created_total
@@ -96,14 +98,15 @@ def test_job_creation_increments_metric(client, db_session):
     before = jobs_created_total.labels(kind="single")._value.get()
 
     # Create a job
-    crud.create_job(db_session, kind="single", url="https://www.youtube.com/watch?v=test")
+    db = MagicMock()
+    crud.create_job(db, kind="single", url="https://www.youtube.com/watch?v=test")
 
     # Check metric increased
     after = jobs_created_total.labels(kind="single")._value.get()
     assert after > before
 
 
-def test_search_increments_metric(client, db_session):
+def test_search_increments_metric():
     """Test that search queries increment the search_queries_total metric."""
     from app import crud
     from app.metrics import search_queries_total
@@ -111,12 +114,9 @@ def test_search_increments_metric(client, db_session):
     # Get current value
     before = search_queries_total.labels(backend="postgres")._value.get()
 
-    # Perform a search (even if no results)
-    try:
-        crud.search_segments(db_session, q="test query", limit=10)
-    except Exception:
-        # Search may fail if tables don't exist, that's ok for this test
-        pass
+    db = MagicMock()
+    db.execute.return_value.mappings.return_value.all.return_value = []
+    crud.search_segments(db, q="test query", limit=10)
 
     # Check metric increased
     after = search_queries_total.labels(backend="postgres")._value.get()

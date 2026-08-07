@@ -11,6 +11,7 @@ from sqlalchemy import text as _text
 
 from app import crud
 from app.exceptions import ExternalServiceError, ValidationError
+from app.opensearch import opensearch_request_kwargs
 from app.schemas import (
     GroupedSearchResponse,
     HighlightRange,
@@ -141,15 +142,11 @@ class SearchOrchestrator:
             elif sort_by == "duration_asc":
                 query["sort"] = [{"duration_seconds": {"order": "asc", "missing": "_last"}}, "_score"]
             try:
-                auth = None
-                if settings.OPENSEARCH_USER and settings.OPENSEARCH_PASSWORD:
-                    auth = (settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
                 r = requests.post(
                     f"{settings.OPENSEARCH_URL.rstrip('/')}/{index}/_search",
-                    auth=auth,
                     json=query,
                     timeout=10,
-                    verify=settings.OPENSEARCH_VERIFY_SSL,
+                    **opensearch_request_kwargs(),
                 )
                 r.raise_for_status()
                 data = r.json()

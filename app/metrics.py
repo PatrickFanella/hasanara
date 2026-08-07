@@ -38,7 +38,12 @@ http_request_duration_seconds = Histogram(
 http_requests_in_flight = Gauge(
     "http_requests_in_flight",
     "Number of HTTP requests currently being processed",
-    ["method", "endpoint"],
+    ["method"],
+)
+
+rate_limit_backend_failures_total = Counter(
+    "rate_limit_backend_failures_total",
+    "Rate limiter requests allowed because the Redis backend was unavailable",
 )
 
 # Business Metrics - Jobs

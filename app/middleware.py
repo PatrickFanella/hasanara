@@ -2,6 +2,7 @@
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
+from redis.asyncio import Redis
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -12,6 +13,13 @@ from .logging_config import get_logger
 from .settings import settings
 
 logger = get_logger(__name__)
+_rate_limit_backend_healthy = True
+
+
+def rate_limit_backend_health() -> dict[str, str]:
+    """Return the process-local status observed by the rate limiter."""
+    return {"status": "healthy" if _rate_limit_backend_healthy else "degraded"}
+
 
 PRIVATE_NO_STORE = "private, no-store"
 PUBLIC_CACHE_POLICIES = {
@@ -68,28 +76,33 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Simple in-memory rate limiting middleware.
+    """Atomic, process-shared fixed-window rate limiting backed by Redis."""
 
-    For production, consider using Redis-backed rate limiting with slowapi.
-    This is a basic implementation for demonstration.
+    _INCREMENT_SCRIPT = """
+    local count = redis.call('INCR', KEYS[1])
+    if count == 1 then
+      redis.call('EXPIRE', KEYS[1], ARGV[1])
+    end
+    return {count, redis.call('TTL', KEYS[1])}
     """
 
-    def __init__(self, app):
+    def __init__(self, app, redis_client=None, requests_limit=None, window_seconds=None):
         super().__init__(app)
-        self._request_counts = {}  # Simple in-memory store
-        self._last_cleanup = None
+        self.redis = redis_client or (Redis.from_url(settings.REDIS_URL) if settings.REDIS_URL else None)
+        self.requests_limit = requests_limit or settings.RATE_LIMIT_REQUESTS
+        self.window_seconds = window_seconds or settings.RATE_LIMIT_WINDOW_SECONDS
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks
-        if request.url.path in ["/health", "/metrics"]:
+        if request.url.path in ["/health", "/live", "/ready", "/metrics"]:
             return await call_next(request)
 
         # Get client identifier (IP or user ID)
         client_id = self._get_client_id(request)
 
         # Check rate limit
-        if self._is_rate_limited(client_id, request):
+        limited, retry_after = await self._is_rate_limited(client_id)
+        if limited:
             logger.warning(
                 "Rate limit exceeded",
                 extra={
@@ -104,11 +117,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "error": "rate_limit_exceeded",
                     "message": "Too many requests. Please try again later.",
                 },
-                headers={"Retry-After": "60"},
+                headers={"Retry-After": str(retry_after)},
             )
-
-        # Record request
-        self._record_request(client_id)
 
         return await call_next(request)
 
@@ -120,55 +130,29 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return request.client.host
         return "unknown"
 
-    def _is_rate_limited(self, client_id: str, request: Request) -> bool:
-        """Check if client has exceeded rate limit."""
-        # Simple implementation: allow 100 requests per minute
-        # In production, use Redis with sliding window
+    async def _is_rate_limited(self, client_id: str) -> tuple[bool, int]:
+        if self.redis is None:
+            self._record_backend_failure("REDIS_URL is not configured")
+            return False, self.window_seconds
 
-        import time
+        key = f"rate-limit:{client_id}"
+        try:
+            count, ttl = await self.redis.eval(self._INCREMENT_SCRIPT, 1, key, self.window_seconds)
+            global _rate_limit_backend_healthy
+            _rate_limit_backend_healthy = True
+            return int(count) > self.requests_limit, max(int(ttl), 1)
+        except Exception as exc:
+            self._record_backend_failure(str(exc))
+            return False, self.window_seconds
 
-        current_minute = int(time.time() / 60)
-        key = f"{client_id}:{current_minute}"
+    @staticmethod
+    def _record_backend_failure(error: str) -> None:
+        from app.metrics import rate_limit_backend_failures_total
 
-        count = self._request_counts.get(key, 0)
-        return count >= 100
-
-    def _record_request(self, client_id: str):
-        """Record a request for rate limiting."""
-        import time
-
-        current_minute = int(time.time() / 60)
-        key = f"{client_id}:{current_minute}"
-
-        self._request_counts[key] = self._request_counts.get(key, 0) + 1
-
-        # Cleanup old entries periodically
-        self._cleanup_old_entries()
-
-    def _cleanup_old_entries(self):
-        """Remove old rate limit entries to prevent memory leak."""
-        import time
-
-        current_minute = int(time.time() / 60)
-
-        # Only cleanup once per minute
-        if self._last_cleanup == current_minute:
-            return
-
-        self._last_cleanup = current_minute
-
-        # Remove entries older than 2 minutes
-        keys_to_delete = []
-        for key in self._request_counts:
-            try:
-                key_minute = int(key.split(":")[-1])
-                if current_minute - key_minute > 2:
-                    keys_to_delete.append(key)
-            except (ValueError, IndexError):
-                keys_to_delete.append(key)
-
-        for key in keys_to_delete:
-            del self._request_counts[key]
+        global _rate_limit_backend_healthy
+        _rate_limit_backend_healthy = False
+        rate_limit_backend_failures_total.inc()
+        logger.error("Rate limiter Redis backend unavailable; failing open", extra={"error": error})
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):

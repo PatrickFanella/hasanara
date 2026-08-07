@@ -12,7 +12,6 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.pool import NullPool
 
 from app.db import SessionLocal, get_db
-from app.middleware import RateLimitMiddleware
 from worker.youtube_resilience import reset_circuit_breakers_for_tests
 
 # Mock JS runtime validation before importing the app
@@ -29,13 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def _clear_rate_limit_state() -> None:
-    """Keep the process-wide FastAPI app isolated between tests."""
-    middleware = getattr(app, "middleware_stack", None) if app is not None else None
-    while middleware is not None:
-        if isinstance(middleware, RateLimitMiddleware):
-            middleware._request_counts.clear()
-            middleware._last_cleanup = None
-        middleware = getattr(middleware, "app", None)
+    """The Redis limiter has no process-local request counters to reset."""
 
 
 @pytest.fixture(autouse=True)

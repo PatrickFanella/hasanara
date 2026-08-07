@@ -6,6 +6,16 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
+from app.main import app
+from app.routes.health import admin_required
+
+
+@pytest.fixture
+def admin_health_access():
+    app.dependency_overrides[admin_required] = lambda: {"id": "admin-1"}
+    yield
+    app.dependency_overrides.pop(admin_required, None)
+
 
 class TestHealthEndpoints:
     """Tests for health check endpoints."""
@@ -37,7 +47,7 @@ class TestHealthEndpoints:
         assert "timestamp" in data
         assert "checks" in data
 
-    def test_detailed_health_check(self, client: TestClient):
+    def test_detailed_health_check(self, client: TestClient, admin_health_access):
         """Test detailed health check returns comprehensive status."""
         response = client.get("/health/detailed")
         # May return 200 or 503 depending on system state
@@ -351,7 +361,10 @@ class TestHealthCheckStatusCodes:
         # Should return either 200 (ready) or 503 (not ready)
         assert response.status_code in [200, 503]
 
-    def test_detailed_health_returns_200_or_503(self, client: TestClient):
+    def test_detailed_health_requires_admin(self, client: TestClient):
+        assert client.get("/health/detailed").status_code == 401
+
+    def test_detailed_health_returns_200_or_503(self, client: TestClient, admin_health_access):
         """Test /health/detailed returns 200 or 503 based on component health."""
         response = client.get("/health/detailed")
         # Should return either 200 (healthy/degraded) or 503 (unhealthy)

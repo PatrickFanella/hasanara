@@ -15,7 +15,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 # Prometheus metrics imports at top-level
@@ -26,6 +26,9 @@ from worker.state_model import VideoState, pending_video_eligibility_sql
 
 from ..db import engine
 from ..logging_config import get_logger
+from ..middleware import rate_limit_backend_health
+from ..opensearch import opensearch_request_kwargs
+from ..security import ROLE_ADMIN, require_role
 from ..settings import settings
 
 # Version information imports must be at top-level for linting
@@ -34,6 +37,7 @@ from ..version import get_build_date, get_git_commit, get_version
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="", tags=["Health"])
+admin_required = require_role(ROLE_ADMIN)
 
 VERSION = get_version()
 GIT_COMMIT = get_git_commit()
@@ -124,18 +128,12 @@ async def check_opensearch() -> Dict[str, Any]:
     try:
         import requests
 
-        # Build auth if credentials are provided
-        auth = None
-        if settings.OPENSEARCH_USER and settings.OPENSEARCH_PASSWORD:
-            auth = (settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
-
         # Check cluster health
         url = f"{settings.OPENSEARCH_URL}/_cluster/health"
         response = requests.get(
             url,
-            auth=auth,
             timeout=settings.HEALTH_CHECK_TIMEOUT,
-            verify=settings.OPENSEARCH_VERIFY_SSL,
+            **opensearch_request_kwargs(),
         )
         response.raise_for_status()
 
@@ -331,6 +329,22 @@ async def check_worker() -> Dict[str, Any]:
         }
 
 
+def _redact_health_details(check: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep operational signals while removing errors and infrastructure identifiers."""
+    allowed = {
+        "status",
+        "latency_ms",
+        "free_gb",
+        "total_gb",
+        "used_gb",
+        "can_write",
+        "jobs_pending",
+        "jobs_stuck",
+        "seconds_since_heartbeat",
+    }
+    return {key: value for key, value in check.items() if key in allowed}
+
+
 @router.get(
     "/health",
     summary="Basic health check",
@@ -452,7 +466,7 @@ async def readiness_probe():
     result = {
         "status": "ready" if is_ready else "not_ready",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "checks": checks,
+        "checks": {name: {"status": check.get("status", "unknown")} for name, check in checks.items()},
     }
 
     if is_ready:
@@ -499,7 +513,7 @@ async def readiness_probe():
         },
     },
 )
-async def detailed_health_check():
+async def detailed_health_check(_user=Depends(admin_required)):
     """
     Detailed health check endpoint.
 
@@ -519,10 +533,11 @@ async def detailed_health_check():
     worker_check = await worker_check_task
 
     checks = {
-        "database": db_check,
-        "opensearch": os_check,
-        "storage": storage_check,
-        "worker": worker_check,
+        "database": _redact_health_details(db_check),
+        "opensearch": _redact_health_details(os_check),
+        "storage": _redact_health_details(storage_check),
+        "worker": _redact_health_details(worker_check),
+        "rate_limiter": rate_limit_backend_health(),
     }
 
     # Determine overall status

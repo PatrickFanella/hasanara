@@ -113,6 +113,8 @@ class Settings(BaseSettings):
     OPENSEARCH_USER: str = ""
     OPENSEARCH_PASSWORD: str = ""
     OPENSEARCH_VERIFY_SSL: bool = True
+    OPENSEARCH_TLS_VERIFY: bool = True
+    OPENSEARCH_CA_BUNDLE: str = ""
 
     # Redis caching configuration
     REDIS_URL: str = ""  # e.g., "redis://localhost:6379/0" or empty to disable caching
@@ -163,6 +165,9 @@ class Settings(BaseSettings):
     # Security configuration
     ENVIRONMENT: str = "development"  # development, staging, production
     ENABLE_RATE_LIMITING: bool = True  # Enable rate limiting middleware
+    RATE_LIMIT_REQUESTS: int = 100
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    FORWARDED_ALLOW_IPS: str = "127.0.0.1"
     SESSION_EXPIRE_HOURS: int = 24  # Session expiration in hours
     SESSION_REFRESH_THRESHOLD_HOURS: int = 12  # Refresh session if older than this
     API_KEY_EXPIRE_DAYS: int = 365  # Default API key expiration in days
@@ -392,8 +397,12 @@ def validate_worker_production_settings(config: Settings | None = None) -> None:
 
     errors: list[str] = []
 
-    if urlparse(cfg.OPENSEARCH_URL).scheme == "https" and not cfg.OPENSEARCH_VERIFY_SSL:
-        errors.append("OPENSEARCH_VERIFY_SSL must remain enabled for production HTTPS endpoints.")
+    if urlparse(cfg.OPENSEARCH_URL).scheme == "https" and (
+        not cfg.OPENSEARCH_VERIFY_SSL or not cfg.OPENSEARCH_TLS_VERIFY
+    ):
+        errors.append(
+            "OPENSEARCH_VERIFY_SSL and OPENSEARCH_TLS_VERIFY must remain enabled for production HTTPS endpoints."
+        )
 
     db_password = _parse_db_password(cfg.DATABASE_URL)
     if not db_password or db_password in {"postgres", "change-me", "change-me-in-production"}:
@@ -436,8 +445,17 @@ def validate_production_settings(config: Settings | None = None) -> None:
     ):
         errors.append("ANALYTICS_HMAC_SECRET must differ from SESSION_SECRET in production.")
 
-    if urlparse(cfg.OPENSEARCH_URL).scheme == "https" and not cfg.OPENSEARCH_VERIFY_SSL:
-        errors.append("OPENSEARCH_VERIFY_SSL must remain enabled for production HTTPS endpoints.")
+    if urlparse(cfg.OPENSEARCH_URL).scheme == "https" and (
+        not cfg.OPENSEARCH_VERIFY_SSL or not cfg.OPENSEARCH_TLS_VERIFY
+    ):
+        errors.append(
+            "OPENSEARCH_VERIFY_SSL and OPENSEARCH_TLS_VERIFY must remain enabled for production HTTPS endpoints."
+        )
+
+    if cfg.ENABLE_RATE_LIMITING and not _has_value(cfg.REDIS_URL):
+        errors.append("REDIS_URL must be set when production rate limiting is enabled.")
+    if not _has_value(cfg.FORWARDED_ALLOW_IPS) or cfg.FORWARDED_ALLOW_IPS.strip() == "*":
+        errors.append("FORWARDED_ALLOW_IPS must restrict forwarded headers to trusted production proxies.")
 
     db_password = _parse_db_password(cfg.DATABASE_URL)
     if not db_password or db_password in {"postgres", "change-me", "change-me-in-production"}:
