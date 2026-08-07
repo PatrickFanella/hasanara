@@ -55,7 +55,7 @@
     "vitest": "4.1.10"
   },
   "overrides": {
-    "js-yaml": "4.3.0",
+    "js-yaml": "4.3.1",
     "postcss": "8.5.23",
     "tar": "7.5.21"
   }
