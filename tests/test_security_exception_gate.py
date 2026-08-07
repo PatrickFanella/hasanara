@@ -8,7 +8,6 @@ import pytest
 from scripts.check_security_exceptions import (
     NPM_ALLOWED_HIGH_CRITICAL_GRAPH,
     NPM_ALLOWED_LEAVES,
-    NPM_ROUTER_SOURCE,
     reachable_calls,
     run_npm_audit,
     validate,
@@ -45,10 +44,10 @@ def _npm_package(tmp_path: Path) -> Path:
     (package_dir / "src" / "main.tsx").write_text(
         'import { Link } from "react-router-dom";\nvoid Link;\n', encoding="utf-8"
     )
-    (package_dir / "package.json").write_text('{"dependencies":{"react-router-dom":"7.18.1"}}', encoding="utf-8")
+    (package_dir / "package.json").write_text('{"dependencies":{"react-router-dom":"7.18.2"}}', encoding="utf-8")
     packages = {
-        "node_modules/react-router": {"version": "7.18.1"},
-        "node_modules/react-router-dom": {"version": "7.18.1"},
+        "node_modules/react-router": {"version": "7.18.2"},
+        "node_modules/react-router-dom": {"version": "7.18.2"},
         "node_modules/brace-expansion": {"version": "1.1.16", "dev": True},
         "node_modules/@redocly/openapi-core/node_modules/brace-expansion": {
             "version": "2.1.2",
@@ -75,33 +74,19 @@ def _allowed_audit() -> dict[str, object]:
             resolved_via = [
                 _advisory(int(source), ghsa)
                 for source, ghsa in NPM_ALLOWED_LEAVES.items()
-                if source != NPM_ROUTER_SOURCE
             ]
-        elif name == "react-router":
-            resolved_via = [_advisory(1124282, "GHSA-qwww-vcr4-c8h2")]
         vulnerabilities[name] = {"severity": "high", "via": resolved_via, "nodes": [f"node_modules/{name}"]}
     vulnerabilities["brace-expansion"] = {
         "severity": "high",
         "via": [
             _advisory(int(source), ghsa)
             for source, ghsa in NPM_ALLOWED_LEAVES.items()
-            if source != NPM_ROUTER_SOURCE
         ],
         "nodes": [
             "node_modules/brace-expansion",
             "node_modules/@redocly/openapi-core/node_modules/brace-expansion",
             "node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion",
         ],
-    }
-    vulnerabilities["react-router"] = {
-        "severity": "high",
-        "via": [_advisory(1124282, "GHSA-qwww-vcr4-c8h2")],
-        "nodes": ["node_modules/react-router"],
-    }
-    vulnerabilities["react-router-dom"] = {
-        "severity": "high",
-        "via": ["react-router"],
-        "nodes": ["node_modules/react-router-dom"],
     }
     return {"vulnerabilities": vulnerabilities}
 
@@ -188,45 +173,17 @@ def test_npm_exception_rejects_unresolved_and_cyclic_via(tmp_path: Path, via: li
         validate_npm_audit(today=date(2026, 8, 7), package_dir=_npm_package(tmp_path), audit=audit)
 
 
-def test_npm_exception_rejects_forbidden_router_usage(tmp_path: Path) -> None:
-    package_dir = _npm_package(tmp_path)
-    (package_dir / "src" / "main.tsx").write_text('import "react-router-dom/server";\n', encoding="utf-8")
-    with pytest.raises(SystemExit, match="forbidden React Router"):
-        validate_npm_audit(today=date(2026, 8, 7), package_dir=package_dir, audit=_allowed_audit())
-
-
-@pytest.mark.parametrize(
-    "filename, source",
-    [
-        ("multiline.tsx", 'import {\n  unstable_createCallServer\n} from "react-router-dom";\n'),
-        ("namespace.ts", 'import * as router from "react-router-dom";\n'),
-        ("direct.mts", 'import "react-router";\n'),
-        ("subpath.cts", 'import "react-router-dom/server";\n'),
-        ("dynamic.js", 'import("react-router-dom");\n'),
-        ("require.cjs", 'require("react-router-dom");\n'),
-        ("side-effect.ts", 'import "react-router-dom";\n'),
-        ("default.ts", 'import Router from "react-router-dom";\n'),
-        ("export-star.ts", 'export * from "react-router-dom";\n'),
-    ],
-)
-def test_npm_exception_ast_checker_rejects_router_imports_and_apis(tmp_path: Path, filename: str, source: str) -> None:
-    package_dir = _npm_package(tmp_path)
-    (package_dir / "src" / filename).write_text(source, encoding="utf-8")
-    with pytest.raises(SystemExit, match="forbidden React Router"):
-        validate_npm_audit(today=date(2026, 8, 7), package_dir=package_dir, audit=_allowed_audit())
-
-
 def test_npm_exception_rejects_unknown_severity(tmp_path: Path) -> None:
     audit = _allowed_audit()
-    audit["vulnerabilities"]["react-router"]["severity"] = "urgent"  # type: ignore[index]
+    audit["vulnerabilities"]["brace-expansion"]["severity"] = "urgent"  # type: ignore[index]
     with pytest.raises(SystemExit, match="unknown vulnerability severity"):
         validate_npm_audit(today=date(2026, 8, 7), package_dir=_npm_package(tmp_path), audit=audit)
 
 
 def test_npm_exception_rejects_critical_vulnerability(tmp_path: Path) -> None:
     audit = _allowed_audit()
-    audit["vulnerabilities"]["react-router"]["severity"] = "critical"  # type: ignore[index]
-    with pytest.raises(SystemExit, match="critical vulnerability present: react-router"):
+    audit["vulnerabilities"]["brace-expansion"]["severity"] = "critical"  # type: ignore[index]
+    with pytest.raises(SystemExit, match="critical vulnerability present: brace-expansion"):
         validate_npm_audit(today=date(2026, 8, 7), package_dir=_npm_package(tmp_path), audit=audit)
 
 
@@ -237,10 +194,9 @@ def test_npm_exception_rejects_extra_cascade_to_allowed_source(tmp_path: Path) -
         validate_npm_audit(today=date(2026, 8, 7), package_dir=_npm_package(tmp_path), audit=audit)
 
 
-@pytest.mark.parametrize("removed", ["react-router", "brace-expansion"])
-def test_npm_exception_rejects_audit_missing_expected_source(tmp_path: Path, removed: str) -> None:
+def test_npm_exception_rejects_audit_missing_expected_source(tmp_path: Path) -> None:
     audit = _allowed_audit()
-    audit["vulnerabilities"].pop(removed)  # type: ignore[index]
+    audit["vulnerabilities"].pop("brace-expansion")  # type: ignore[index]
     with pytest.raises(SystemExit, match="missing expected advisory sources"):
         validate_npm_audit(today=date(2026, 8, 7), package_dir=_npm_package(tmp_path), audit=audit)
 
@@ -269,16 +225,6 @@ def test_npm_audit_command_includes_dev_and_rejects_fatal_return(
     environment = captured["kwargs"]["env"]  # type: ignore[index]
     assert environment["NPM_CONFIG_OMIT"] == ""  # type: ignore[index]
     assert environment["NPM_CONFIG_PRODUCTION"] == "false"  # type: ignore[index]
-
-
-def test_npm_exception_rejects_router_lockfile_drift(tmp_path: Path) -> None:
-    package_dir = _npm_package(tmp_path)
-
-    lock = json.loads((package_dir / "package-lock.json").read_text(encoding="utf-8"))
-    lock["packages"]["node_modules/react-router"]["version"] = "7.18.2"
-    (package_dir / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
-    with pytest.raises(SystemExit, match="react-router.*7.18.1"):
-        validate_npm_audit(today=date(2026, 8, 7), package_dir=package_dir, audit=_allowed_audit())
 
 
 @pytest.mark.parametrize("change", ["non-dev", "path-drift"])

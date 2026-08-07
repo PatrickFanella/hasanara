@@ -24,7 +24,7 @@
     "ky": "^1.11.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "7.18.1",
+    "react-router-dom": "7.18.2",
     "tailwindcss": "^4.1.14"
   },
   "devDependencies": {

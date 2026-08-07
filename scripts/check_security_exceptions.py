@@ -34,16 +34,11 @@ EXCEPTIONS = (
 )
 
 NPM_EXCEPTION_EXPIRY = date(2026, 8, 8)
-NPM_ROUTER_SOURCE = "1124282"
 NPM_BRACE_SOURCES = {
     "1130588": "GHSA-mh99-v99m-4gvg",
     "1130589": "GHSA-mh99-v99m-4gvg",
     "1130736": "GHSA-rgw5-rvv9-x895",
     "1130737": "GHSA-rgw5-rvv9-x895",
-}
-NPM_ALLOWED_ROUTER_NODES = {
-    "node_modules/react-router": "7.18.1",
-    "node_modules/react-router-dom": "7.18.1",
 }
 NPM_ALLOWED_BRACE_NODES = {
     "node_modules/@redocly/openapi-core/node_modules/brace-expansion": "2.1.2",
@@ -51,18 +46,14 @@ NPM_ALLOWED_BRACE_NODES = {
     "node_modules/brace-expansion": "1.1.16",
 }
 NPM_ALLOWED_LEAVES = {
-    NPM_ROUTER_SOURCE: "GHSA-qwww-vcr4-c8h2",
     **NPM_BRACE_SOURCES,
 }
 NPM_LEAF_AUDIT_NODES = {
-    NPM_ROUTER_SOURCE: {"node_modules/react-router"},
     **{source: set(NPM_ALLOWED_BRACE_NODES) for source in NPM_BRACE_SOURCES},
 }
 NPM_SEVERITIES = {"info", "low", "moderate", "high", "critical"}
 NPM_ALLOWED_HIGH_CRITICAL_GRAPH = {
     "brace-expansion": tuple(NPM_BRACE_SOURCES),
-    "react-router": (NPM_ROUTER_SOURCE,),
-    "react-router-dom": ("react-router",),
 }
 
 
@@ -218,13 +209,7 @@ def validate_npm_audit(*, today: date, package_dir: Path, audit: dict[str, objec
     packages = lock.get("packages")
     if not isinstance(packages, dict):
         _security_error("lockfile is missing packages")
-    manifest = _load_json(package_dir / "package.json")
-    dependencies = manifest.get("dependencies")
-    if not isinstance(dependencies, dict) or dependencies.get("react-router-dom") != "7.18.1":
-        _security_error("react-router-dom must be exactly 7.18.1")
-    _validate_lock_nodes(packages, NPM_ALLOWED_ROUTER_NODES, dev_only=False)
     _validate_lock_nodes(packages, NPM_ALLOWED_BRACE_NODES, dev_only=True)
-    _validate_router_usage(package_dir)
 
     high_critical: set[str] = set()
     for name, record in vulnerabilities.items():
@@ -257,7 +242,7 @@ def validate_npm_audit(*, today: date, package_dir: Path, audit: dict[str, objec
         for source in leaves:
             if source in validated_sources:
                 continue
-            leaf_record = vulnerabilities.get("react-router" if source == NPM_ROUTER_SOURCE else "brace-expansion")
+            leaf_record = vulnerabilities.get("brace-expansion")
             if not isinstance(leaf_record, dict):
                 _security_error(f"missing direct audit record for advisory {source}")
             nodes = leaf_record.get("nodes")

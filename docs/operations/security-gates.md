@@ -70,24 +70,6 @@ through either qualified or imported-alias syntax.
 - Required action: reassess upstream fixes and remove the exact ignore as
   soon as a compatible patched wheel is published
 
-`1124282` / `GHSA-qwww-vcr4-c8h2` affects the exact
-`react-router-dom` and `react-router` 7.18.1 lockfile nodes. The frontend is a
-client-side SPA: it uses only base `react-router-dom` declarative/data imports,
-not React Router RSC, server, unstable, or subpath APIs. The npm wrapper uses
-the installed TypeScript compiler API to inspect TypeScript/JavaScript imports,
-exports, dynamic imports, and namespace API access (including `.mts` and
-`.cts`). It runs `npm audit --package-lock-only --include=dev` with inherited
-production/omit configuration neutralized, then checks exact manifest and
-lockfile versions, both required advisory sources, every severity, the complete
-allowed high/critical audit-record graph, and exact leaf audit paths before
-allowing this temporary exception.
-
-- Owner: frontend maintainers
-- Approved: 2026-07-24
-- Expires: 2026-08-08 UTC
-- Required action: upgrade React Router to a compatible patched version and
-  remove this exception and its compensating source/lock checks
-
 `1130588` and `1130589` / `GHSA-mh99-v99m-4gvg`, plus `1130736` and
 `1130737` / `GHSA-rgw5-rvv9-x895`, affect only the exact dev-only
 `brace-expansion` lockfile nodes: 1.1.16 at `node_modules/brace-expansion` and
