@@ -57,8 +57,8 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 120
-extend_skip = ["frontend", "scripts"]
-src_paths = ["app", "worker"]
+extend_skip = ["frontend"]
+src_paths = ["app", "worker", "scripts", "tests", "alembic"]
 known_first_party = ["app", "worker", "tests", "scripts", "alembic"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
@@ -72,7 +72,6 @@ exclude = [
     "frontend/",
     ".venv/",
     "venv/",
-    "scripts/",
 ]
 
 [tool.bandit]

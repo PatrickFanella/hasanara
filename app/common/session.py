@@ -91,7 +91,7 @@ def should_refresh_session(db, token: Optional[str]) -> bool:
         created_at = created_at.replace(tzinfo=timezone.utc)
     age = datetime.now(timezone.utc) - created_at
 
-    return age > threshold
+    return bool(age > threshold)
 
 
 def refresh_session(db, token: str):

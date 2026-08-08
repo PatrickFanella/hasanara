@@ -125,7 +125,7 @@ class HTTPTokenProvider:
                 data = response.json()
                 token = data.get("token")
 
-                if token:
+                if isinstance(token, str) and token:
                     logger.info(
                         "Token received from HTTP provider",
                         extra={"token_type": token_type.value, "status_code": response.status_code},

@@ -401,7 +401,7 @@ def get_archive_timeline(
         bucket.total_duration_seconds += int(video.duration_seconds or 0)
         bucket.videos.append(video)
 
-    return ArchiveTimelineResponse(buckets=list(buckets.values()))
+    return ArchiveTimelineResponse(buckets=list(buckets.values()), query_time_ms=None)
 
 
 def _search_rows_for_grouping(db, q, source, video_id, limit, offset, sort_by, filters):
@@ -477,7 +477,11 @@ def get_grouped_search(
                 end_ms=int(row["end_ms"]),
                 snippet=row["snippet"] or "",
                 highlights=row.get("highlights") or [],
-                source=row["source"] if "source" in row else ("whisper" if source == "native" else source),
+                source=(
+                    row["source"]
+                    if row.get("source") in {"whisper", "youtube", "merged"}
+                    else ("whisper" if source == "native" else "youtube")
+                ),
                 video_title=video.title,
                 channel_name=video.channel_name,
                 uploaded_at=video.uploaded_at,

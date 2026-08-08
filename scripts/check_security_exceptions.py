@@ -10,7 +10,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Never, cast
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,7 @@ def validate(*, today: date, roots: Iterable[Path]) -> None:
         raise SystemExit("temporary security exception became reachable:\n" + "\n".join(findings))
 
 
-def _security_error(message: str) -> None:
+def _security_error(message: str) -> Never:
     raise SystemExit(f"npm security exception gate failed: {message}")
 
 
@@ -122,7 +122,7 @@ def _load_json(path: Path) -> dict[str, object]:
         _security_error(f"cannot parse {path}: {error}")
     if not isinstance(value, dict):
         _security_error(f"{path} must contain a JSON object")
-    return value
+    return cast(dict[str, object], value)
 
 
 def _validate_lock_nodes(packages: dict[str, object], expected: dict[str, str], *, dev_only: bool) -> None:
@@ -205,16 +205,19 @@ def validate_npm_audit(*, today: date, package_dir: Path, audit: dict[str, objec
     vulnerabilities = audit.get("vulnerabilities")
     if not isinstance(vulnerabilities, dict):
         _security_error("audit JSON is missing vulnerabilities")
+    vulnerabilities = cast(dict[str, object], vulnerabilities)
     lock = _load_json(package_dir / "package-lock.json")
     packages = lock.get("packages")
     if not isinstance(packages, dict):
         _security_error("lockfile is missing packages")
+    packages = cast(dict[str, object], packages)
     _validate_lock_nodes(packages, NPM_ALLOWED_BRACE_NODES, dev_only=True)
 
     high_critical: set[str] = set()
     for name, record in vulnerabilities.items():
         if not isinstance(name, str) or not isinstance(record, dict):
             _security_error("malformed vulnerability record")
+        record = cast(dict[str, object], record)
         severity = record.get("severity")
         if not isinstance(severity, str) or severity not in NPM_SEVERITIES:
             _security_error(f"malformed or unknown vulnerability severity for {name}")
@@ -233,6 +236,9 @@ def validate_npm_audit(*, today: date, package_dir: Path, audit: dict[str, objec
         _security_error(f"missing expected advisory sources: {sorted(set(NPM_ALLOWED_LEAVES) - declared_sources)}")
     validated_sources: set[str] = set()
     for name, record in vulnerabilities.items():
+        if not isinstance(name, str) or not isinstance(record, dict):
+            _security_error("malformed vulnerability record")
+        record = cast(dict[str, object], record)
         severity = record.get("severity")
         if severity not in {"high", "critical"}:
             continue
@@ -258,7 +264,7 @@ def validate_npm_audit(*, today: date, package_dir: Path, audit: dict[str, objec
     for name, expected_via in NPM_ALLOWED_HIGH_CRITICAL_GRAPH.items():
         record = vulnerabilities[name]
         assert isinstance(record, dict)
-        if _via_graph(record, name) != expected_via:
+        if _via_graph(cast(dict[str, object], record), name) != expected_via:
             _security_error(f"high/critical audit graph edge drift for {name}")
 
 

@@ -19,7 +19,8 @@ def get_version() -> str:
     try:
         with open(pyproject_path, "rb") as f:
             pyproject_data = tomllib.load(f)
-            return pyproject_data.get("project", {}).get("version", "unknown")
+            value = pyproject_data.get("project", {}).get("version", "unknown")
+            return value if isinstance(value, str) else "unknown"
     except (FileNotFoundError, OSError, KeyError):
         return "unknown"
     except Exception:

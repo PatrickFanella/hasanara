@@ -26,7 +26,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -44,9 +44,12 @@ def load_segments_from_file(filepath: str) -> List[Dict[str, Any]]:
 
     # Handle both list of segments and wrapped format
     if isinstance(data, list):
-        return data
+        return cast(List[Dict[str, Any]], data)
     elif isinstance(data, dict) and "segments" in data:
-        return data["segments"]
+        segments = data["segments"]
+        if isinstance(segments, list):
+            return cast(List[Dict[str, Any]], segments)
+        raise ValueError("Invalid segments value. Expected a list.")
     else:
         raise ValueError("Invalid JSON format. Expected list of segments or dict with 'segments' key.")
 
@@ -124,14 +127,17 @@ def save_segments(segments: List[Dict[str, Any]], output_path: Optional[str] = N
         print(output)
 
 
-def build_config_from_args(args) -> Dict[str, Any]:
+def build_config_from_args(args) -> Optional[Dict[str, Any]]:
     """Build configuration dict from command line arguments."""
     config = {}
 
     # Load base config from file if provided
     if args.config:
         with open(args.config, "r") as f:
-            config = json.load(f)
+            loaded_config = json.load(f)
+            if not isinstance(loaded_config, dict):
+                raise ValueError("Config file must contain a JSON object")
+            config = cast(Dict[str, Any], loaded_config)
 
     # Override with command line flags
     if args.no_normalization:

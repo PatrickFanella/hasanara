@@ -388,8 +388,8 @@ def get_search_analytics(
 
     # Zero result searches
     zero_results = 0
-    avg_results = 0
-    avg_time = 0
+    avg_results: float = 0.0
+    avg_time: float = 0.0
     try:
         zero_results = (
             db.execute(

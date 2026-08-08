@@ -112,7 +112,8 @@ def _person_is_present(evidence: Any) -> bool:
 
 
 def _extract_existing_row(db, sql: str, params: dict[str, Any]) -> dict[str, Any] | None:
-    return db.execute(text(sql), params).mappings().first()
+    row = db.execute(text(sql), params).mappings().first()
+    return dict(row) if row is not None else None
 
 
 def _upsert_row(db, sql: str, params: dict[str, Any], duplicate_message: str):

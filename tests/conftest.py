@@ -11,6 +11,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.pool import NullPool
 
+# Tests must not inherit a developer or deployment search backend from .env.
+os.environ["SEARCH_BACKEND"] = "postgres"
+
 from app.db import SessionLocal, get_db
 from worker.youtube_resilience import reset_circuit_breakers_for_tests
 

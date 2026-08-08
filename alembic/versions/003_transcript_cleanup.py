@@ -109,7 +109,7 @@ def upgrade() -> None:
     # Optional: Create a view for commonly accessed cleaned transcripts
     op.execute("""
         CREATE OR REPLACE VIEW cleaned_segments_view AS
-        SELECT 
+        SELECT
             s.id,
             s.video_id,
             s.transcript_id,
@@ -130,17 +130,17 @@ def upgrade() -> None:
 
     # Add comment to explain the cleanup columns
     op.execute("""
-        COMMENT ON COLUMN segments.text_cleaned IS 
+        COMMENT ON COLUMN segments.text_cleaned IS
         'Cleaned version of text with normalization, punctuation, and filler removal applied. NULL if cleanup not yet performed.';
     """)
 
     op.execute("""
-        COMMENT ON COLUMN segments.likely_hallucination IS 
+        COMMENT ON COLUMN segments.likely_hallucination IS
         'True if this segment was detected as a potential Whisper hallucination (e.g., repetitive text at end).';
     """)
 
     op.execute("""
-        COMMENT ON COLUMN segments.sentence_boundary IS 
+        COMMENT ON COLUMN segments.sentence_boundary IS
         'True if this segment ends a complete sentence.';
     """)
 

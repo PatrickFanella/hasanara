@@ -149,17 +149,17 @@ def bulk_post(actions: List[dict], retries: int = 5, base_sleep: float = 0.5):
             if j.get("errors"):
                 failures = []
                 for item in j.get("items", []):
-                    result = next(iter(item.values()), {})
-                    status = int(result.get("status", 500))
-                    if status not in {200, 201, 404, 409}:
+                    result: dict = next(iter(item.values()), {})
+                    item_status = int(result.get("status", 500))
+                    if item_status not in {200, 201, 404, 409}:
                         failures.append(result)
                 if failures:
                     raise requests.HTTPError(f"OpenSearch bulk item failures: {failures[:3]}", response=r)
             return j
         except requests.HTTPError as e:
             last_exc = e
-            status = getattr(e.response, "status_code", None)
-            if status in (429, 503) and attempt < retries:
+            response_status = getattr(e.response, "status_code", None)
+            if response_status in (429, 503) and attempt < retries:
                 sleep_s = base_sleep * (2**attempt)
                 time.sleep(sleep_s)
                 continue

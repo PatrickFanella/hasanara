@@ -4,7 +4,7 @@ import signal
 import socket
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
-from threading import Event, Lock, Thread
+from threading import Thread
 
 from prometheus_client import start_http_server
 from sqlalchemy import create_engine, text
@@ -15,8 +15,11 @@ from app.source_deletion import reconcile_pending_source_deletions
 from app.ytdlp_validation import validate_js_runtime_or_exit
 from worker.caption_ingest import ingest_available_captions
 from worker.job_lifecycle import claim_job_attempt, finish_job_attempt, maintain_job_lease
+from worker.maintenance import requeue_for_model_upgrade, rescue_stuck_videos
 from worker.metrics import setup_worker_info, try_collect_gpu_metrics
 from worker.pipeline import expand_channel_if_needed
+from worker.queue import pending_video_claim_sql
+from worker.runtime import WorkerLifecycle
 from worker.state_model import (
     IN_PROGRESS_VIDEO_STATES,
     OPEN_CAPTION_INGEST_STATES,
@@ -46,50 +49,6 @@ video_processing_pipeline = default_video_processing_pipeline(engine)
 
 # Generate a unique worker ID based on hostname and PID
 WORKER_ID = f"{socket.gethostname()}-{os.getpid()}"
-
-
-class WorkerLifecycle:
-    """Coordinate signal-driven draining across claim and execution lanes."""
-
-    def __init__(self) -> None:
-        self.shutdown_requested = Event()
-        self._lock = Lock()
-        self._active_video_ids: set[str] = set()
-
-    def request_shutdown(self) -> None:
-        self.shutdown_requested.set()
-
-    def set_active_video(self, video_id) -> None:
-        """Compatibility helper for single-work callers and lifecycle tests."""
-        with self._lock:
-            self._active_video_ids = {str(video_id)} if video_id is not None else set()
-
-    def begin_video(self, video_id) -> None:
-        with self._lock:
-            self._active_video_ids.add(str(video_id))
-
-    def end_video(self, video_id) -> None:
-        with self._lock:
-            self._active_video_ids.discard(str(video_id))
-
-    @property
-    def active_video_id(self) -> str | None:
-        with self._lock:
-            return next(iter(self._active_video_ids), None)
-
-    @property
-    def active_count(self) -> int:
-        with self._lock:
-            return len(self._active_video_ids)
-
-    @property
-    def state(self) -> str:
-        if self.shutdown_requested.is_set():
-            return "draining" if self.active_count else "stopping"
-        return "running"
-
-    def wait(self, seconds: float) -> bool:
-        return self.shutdown_requested.wait(seconds)
 
 
 worker_lifecycle = WorkerLifecycle()
@@ -196,30 +155,6 @@ def source_cleanup_reconciler():
         except Exception as exc:
             logger.warning("Source deletion reconciliation failed", extra={"error_type": type(exc).__name__})
         worker_lifecycle.wait(SOURCE_CLEANUP_INTERVAL)
-
-
-def pending_video_claim_sql() -> str:
-    """SQL for claiming native transcription work.
-
-    Staged batches run in rolling captions-first mode: each individual video is
-    eligible for native Whisper as soon as its caption ingest state is terminal.
-    Caption failures are terminal by design here: after the staged caption pass
-    has exhausted a video, native Whisper may proceed as the fallback while the
-    rest of the batch continues caption ingestion.
-    """
-    return f"""
-                SELECT v.id, j.id AS job_id
-                {pending_video_eligibility_sql()}
-                ORDER BY
-                  CASE
-                    WHEN EXISTS (SELECT 1 FROM youtube_transcripts yt WHERE yt.video_id = v.id) THEN 1
-                    ELSE 0
-                  END ASC,
-                  v.idx ASC NULLS LAST,
-                  v.created_at DESC
-                FOR UPDATE SKIP LOCKED
-                LIMIT 1
-            """
 
 
 def process_claimed_video(video_id, lease) -> None:
@@ -388,70 +323,23 @@ def run():
                 rescue_seconds = int(getattr(settings, "RESCUE_STUCK_AFTER_SECONDS", 0) or 0)
                 if rescue_seconds > 0:
                     logger.debug("Rescue check: requeue videos stuck", extra={"threshold_seconds": rescue_seconds})
-                    conn.execute(
-                        text("""
-                        UPDATE videos
-                        SET state = 'pending', updated_at = now()
-                        WHERE state IN ('downloading','transcoding','transcribing')
-                          AND (diarization_error IS NULL OR diarization_error NOT LIKE 'canary-%')
-                          AND now() - updated_at > make_interval(secs => :secs)
-                        RETURNING id
-                        """),
-                        {"secs": rescue_seconds},
-                    )
+                    rescue_stuck_videos(conn, after_seconds=rescue_seconds)
             except Exception as e:
                 logger.warning("Rescue check failed", extra={"error": str(e)})
 
             # Model upgrade requeue: reprocess completed videos if current model is larger/better
             try:
                 current_model = settings.WHISPER_MODEL
-                model_hierarchy = {
-                    "tiny": 1,
-                    "base": 2,
-                    "small": 3,
-                    "medium": 4,
-                    "large": 5,
-                    "large-v2": 6,
-                    "large-v3": 7,
-                }
-                current_rank = model_hierarchy.get(current_model, 0)
-                if current_rank > 0:
-                    requeue_result = conn.execute(
-                        text("""
-                        UPDATE videos v
-                        SET state = 'pending', updated_at = now()
-                        FROM transcripts t
-                        WHERE v.id = t.video_id
-                          AND v.state = :completed_state
-                          AND (v.diarization_error IS NULL OR v.diarization_error NOT LIKE 'canary-%')
-                          AND t.model IS NOT NULL
-                          AND (
-                            -- Requeue if transcript model rank is lower than current
-                            CASE
-                              WHEN t.model = 'tiny' THEN 1
-                              WHEN t.model = 'base' THEN 2
-                              WHEN t.model = 'small' THEN 3
-                              WHEN t.model = 'medium' THEN 4
-                              WHEN t.model = 'large' THEN 5
-                              WHEN t.model = 'large-v2' THEN 6
-                              WHEN t.model = 'large-v3' THEN 7
-                              ELSE 0
-                            END
-                          ) < :current_rank
-                        RETURNING v.id, t.model
-                    """),
-                        {"current_rank": current_rank, "completed_state": VideoState.COMPLETED.value},
+                requeued = requeue_for_model_upgrade(conn, current_model=current_model)
+                if requeued:
+                    logger.info(
+                        "Model upgrade requeue",
+                        extra={
+                            "count": len(requeued),
+                            "from_models": ", ".join(set(r[1] for r in requeued)),
+                            "to_model": current_model,
+                        },
                     )
-                    requeued = requeue_result.fetchall()
-                    if requeued:
-                        logger.info(
-                            "Model upgrade requeue",
-                            extra={
-                                "count": len(requeued),
-                                "from_models": ", ".join(set(r[1] for r in requeued)),
-                                "to_model": current_model,
-                            },
-                        )
             except Exception as e:
                 logger.warning("Model upgrade requeue failed", extra={"error": str(e)})
 

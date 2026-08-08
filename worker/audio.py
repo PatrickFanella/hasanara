@@ -4,14 +4,19 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from app.logging_config import get_logger
 from app.settings import settings
 from worker.po_token_manager import TokenType, get_token_manager
 from worker.token_utils import redact_tokens_from_command
+from worker.youtube_resilience import classify_error
 
 logger = get_logger(__name__)
+ytdlp_operation_attempts_total: Any
+ytdlp_operation_duration_seconds: Any
+ytdlp_operation_errors_total: Any
+ytdlp_token_usage_total: Any
 
 # Import metrics at module level, but handle gracefully if not available
 try:
@@ -21,7 +26,6 @@ try:
         ytdlp_operation_errors_total,
         ytdlp_token_usage_total,
     )
-    from worker.youtube_resilience import classify_error
 
     _METRICS_AVAILABLE = True
 except ImportError:
@@ -42,12 +46,6 @@ except ImportError:
     ytdlp_operation_duration_seconds = _DummyMetric()
     ytdlp_operation_errors_total = _DummyMetric()
     ytdlp_token_usage_total = _DummyMetric()
-
-    # Define classify_error as a no-op if not available
-    def classify_error(*args, **kwargs):
-        from worker.youtube_resilience import ErrorClass
-
-        return ErrorClass.UNKNOWN
 
 
 @dataclass

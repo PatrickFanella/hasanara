@@ -216,6 +216,7 @@ def configure_logging(
     # Create console handler
     handler = logging.StreamHandler()
 
+    formatter: logging.Formatter
     if json_format:
         formatter = JSONFormatter(service=service)
     else:

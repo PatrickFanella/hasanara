@@ -106,6 +106,7 @@ class ArchiveRepository:
             popular_rows = []
 
         return ArchiveSummary(
+            creator_name="HasanAra",
             video_count=int(stats["video_count"] or 0),
             total_duration_seconds=int(stats["total_duration_seconds"] or 0),
             transcript_word_count=int(stats["transcript_word_count"] or 0),

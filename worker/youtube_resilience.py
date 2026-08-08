@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from app.logging_config import get_logger
 from app.settings import settings
@@ -21,9 +21,14 @@ from worker.youtube.errors import YouTubeErrorKind, classify_youtube_error
 logger = get_logger(__name__)
 
 # Import metrics at module level, but handle gracefully if not available
+youtube_circuit_breaker_state: Any
+youtube_circuit_breaker_transitions_total: Any
 try:
-    from worker.metrics import youtube_circuit_breaker_state, youtube_circuit_breaker_transitions_total
+    from worker.metrics import youtube_circuit_breaker_state as _youtube_circuit_breaker_state
+    from worker.metrics import youtube_circuit_breaker_transitions_total as _youtube_circuit_breaker_transitions_total
 
+    youtube_circuit_breaker_state = _youtube_circuit_breaker_state
+    youtube_circuit_breaker_transitions_total = _youtube_circuit_breaker_transitions_total
     _METRICS_AVAILABLE = True
 except ImportError:
     _METRICS_AVAILABLE = False
@@ -176,7 +181,7 @@ def exponential_backoff(
         else:
             delay = random.uniform(0, delay)
 
-    return delay
+    return float(delay)
 
 
 @dataclass

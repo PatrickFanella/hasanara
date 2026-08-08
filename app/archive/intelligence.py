@@ -219,7 +219,10 @@ def _seed_topic_card(
     return ArchiveTopicCard(
         slug=seed.slug,
         label=seed.label,
+        kind="topic",
         source="hybrid",
+        status="published",
+        is_editable=True,
         aliases=list(seed.aliases),
         total_moments=total_moments,
         total_videos=total_videos,
@@ -243,7 +246,10 @@ def _automatic_topic_cards(
             ArchiveTopicCard(
                 slug=slug,
                 label=item.term,
+                kind="topic",
                 source="automatic",
+                status="published",
+                is_editable=True,
                 aliases=[item.term],
                 total_moments=len(evidence),
                 total_videos=len({moment.video.id for moment in evidence}),

@@ -102,7 +102,7 @@ def _proposal_for_row(row: dict[str, Any]) -> dict[str, Any]:
         distinct_videos=int(row.get("distinct_videos") or 0),
         existing_canonical=False,
     )
-    action = assessment.action
+    action: str = assessment.action
     proposal_type = "deterministic"
     if assessment.canonical_hint and action != "mark_noise":
         action = "alias_to_canonical"

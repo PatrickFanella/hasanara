@@ -194,6 +194,8 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
 
         route = request.scope.get("route")
         route_template = getattr(route, "path", None)
+        if not isinstance(route_template, str):
+            route_template = ""
         public_policy = PUBLIC_CACHE_POLICIES.get((request.method, route_template))
         if public_policy is None:
             response.headers["Cache-Control"] = PRIVATE_NO_STORE

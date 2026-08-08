@@ -129,7 +129,7 @@ def build_merged_transcript(
         reasons = [meta[3] for meta in block_meta if meta[3]]
         merge_reason = "mixed_source_block" if primary_source == "merged" else (reasons[0] if reasons else None)
         similarities = [meta[4] for meta in block_meta if meta[4] is not None]
-        similarity = sum(similarities) / len(similarities) if similarities else None
+        block_similarity = sum(similarities) / len(similarities) if similarities else None
         blocks.append(
             MergedBlock(
                 block_index=block.block_index,
@@ -143,7 +143,7 @@ def build_merged_transcript(
                 supporting_sources=supporting_sources,
                 needs_review=needs_review,
                 merge_reason=merge_reason,
-                similarity=similarity,
+                similarity=block_similarity,
             )
         )
 

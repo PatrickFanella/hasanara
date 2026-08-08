@@ -163,7 +163,7 @@ def test_opensearch_uses_private_sentinels_and_returns_plain_ranges(monkeypatch)
     query = post.call_args.kwargs["json"]
     assert query["highlight"]["pre_tags"] == [HIGHLIGHT_START]
     assert query["highlight"]["post_tags"] == [HIGHLIGHT_END]
-    assert post.call_args.kwargs["auth"] is None
+    assert "auth" not in post.call_args.kwargs
     assert post.call_args.kwargs["verify"] is True
     assert result.hits[0].snippet == "🚀 rent"
     assert [item.model_dump() for item in result.hits[0].highlights] == [{"start": 2, "end": 6}]

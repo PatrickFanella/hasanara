@@ -80,8 +80,8 @@ async def check_database() -> Dict[str, Any]:
             conn.execute(text("SELECT COUNT(*) FROM jobs LIMIT 1"))
 
             # Check connection pool status
-            pool_size = engine.pool.size()
-            checked_in = engine.pool.checkedin()
+            pool_size = getattr(engine.pool, "size", lambda: 0)()
+            checked_in = getattr(engine.pool, "checkedin", lambda: 0)()
 
             latency_ms = (time.time() - start_time) * 1000
 

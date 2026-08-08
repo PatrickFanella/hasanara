@@ -64,7 +64,7 @@ class VideoPipelineContext:
 
     @property
     def youtube_id(self) -> str:
-        return self.video["youtube_id"]
+        return str(self.video["youtube_id"])
 
 
 def _parse_job_meta(job_meta: Any) -> dict[str, Any] | None:

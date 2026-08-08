@@ -182,7 +182,7 @@ def get_user_optional(request: Request, db=Depends(get_db)) -> Optional[dict]:
     token = get_session_token(request)
     user = get_user_from_session(db, token)
     if user:
-        return user
+        return dict(user)
 
     # Try API key authentication
     auth_header = request.headers.get("Authorization", "")
@@ -216,7 +216,7 @@ def get_user_optional(request: Request, db=Depends(get_db)) -> Optional[dict]:
                 resource_id=str(user["api_key_id"]),
                 details={"scope": required_scope, "path": request.url.path, "method": request.method},
             )
-            return user
+            return dict(user)
 
     return None
 

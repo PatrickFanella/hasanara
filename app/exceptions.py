@@ -29,7 +29,7 @@ class AppError(Exception):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert exception to dictionary for JSON response."""
-        result = {
+        result: Dict[str, Any] = {
             "error": self.error_code,
             "message": self.message,
         }

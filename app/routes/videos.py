@@ -22,6 +22,7 @@ from ..schemas import (
     Segment,
     TranscriptBlockResponse,
     TranscriptResponse,
+    VideoChapterResponse,
     VideoChaptersResponse,
     VideoInfo,
     YouTubeTranscriptResponse,
@@ -197,6 +198,7 @@ def _youtube_segments_for_merge(db, video_id: uuid.UUID) -> tuple[dict | None, l
 )
 def get_transcript(
     video_id: uuid.UUID,
+    response: Response,
     mode: Literal["raw", "cleaned", "formatted"] = Query(
         "raw",
         description="Transcript mode: raw (default), cleaned (with cleanup), or formatted (with paragraphs)",
@@ -206,7 +208,6 @@ def get_transcript(
         description="Transcript source policy: whisper (default), youtube, merged, or best (merged if both sources exist)",
     ),
     db=Depends(get_db),
-    response: Response = None,
 ):
     """Get the Whisper-generated transcript for a video."""
     # Check if video exists
@@ -312,6 +313,9 @@ def get_transcript(
                     kind=r["kind"],
                     formatter_version=r["formatter_version"],
                     primary_source="whisper",
+                    needs_review=False,
+                    merge_reason=None,
+                    similarity=None,
                 )
                 for r in persisted_blocks
             ]
@@ -427,14 +431,22 @@ def get_video_chapters(video_id: uuid.UUID, db=Depends(get_db)):
             chapter["confidence_score"] = float(chapter.get("confidence_score") or 0)
             chapter["evidence"] = evidence
             chapters.append(chapter)
-        return VideoChaptersResponse(video_id=video_id, chapters=chapters, source="persisted")
+        return VideoChaptersResponse(
+            video_id=video_id,
+            chapters=[VideoChapterResponse.model_validate(chapter) for chapter in chapters],
+            source="persisted",
+        )
 
     duration_seconds = dict(video).get("duration_seconds")
     chapters = build_grounded_chapters(
         blocks,
         duration_ms=int(duration_seconds * 1000) if duration_seconds else None,
     )
-    return VideoChaptersResponse(video_id=video_id, chapters=chapters, source="transcript")
+    return VideoChaptersResponse(
+        video_id=video_id,
+        chapters=[VideoChapterResponse.model_validate(chapter) for chapter in chapters],
+        source="transcript",
+    )
 
 
 @router.get(
@@ -579,6 +591,10 @@ def get_youtube_transcript(
                 segment_ids=b.segment_ids,
                 kind=b.kind,
                 formatter_version=b.formatter_version,
+                primary_source="youtube",
+                needs_review=False,
+                merge_reason=None,
+                similarity=None,
             )
             for b in caption_blocks
         ]
@@ -590,4 +606,6 @@ def get_youtube_transcript(
         full_text=full_text,
         segments=segments,
         blocks=blocks,
+        source="youtube",
+        source_label="YouTube captions",
     )

@@ -80,6 +80,7 @@ def _try_load_torch(model_name: str, force_gpu: bool):
     # Suppress weights_only FutureWarning for trusted OpenAI models
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning, message=".*torch.load.*weights_only.*")
+        assert _torch_whisper is not None
         return _torch_whisper.load_model(model_name, device=str(device))
 
 

@@ -778,7 +778,9 @@ def test_head_and_fresh_schema_share_hash_only_sessions_contract(alembic_config,
 def test_diarization_role_speaker_updates_do_not_enqueue_search_outbox(alembic_config, clean_db, test_db_url):
     """The least-privilege diarization update bypasses the native outbox trigger."""
     command.upgrade(alembic_config, "head")
-    role = "hasanara_diarization"
+    # Never mutate the deployment role: PostgreSQL roles are cluster-wide and
+    # it may own grants in another database on a shared development cluster.
+    role = "hasanara_diarization_test"
     with get_engine(test_db_url) as engine:
         try:
             with engine.begin() as conn:

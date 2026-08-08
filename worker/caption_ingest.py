@@ -77,7 +77,9 @@ def _ingest_available_captions_impl(
             return None
         if isinstance(result, YouTubeCaptionResult):
             return result.track, result.segments
-        return result
+        if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], list):
+            return result[0], result[1]
+        raise TypeError("caption fetcher returned an unsupported result")
 
     for vid, yid in rows:
         attempted += 1
@@ -112,6 +114,8 @@ def _ingest_available_captions_impl(
             """),
                 {"v": str(vid), "lang": track.language, "kind": track.kind, "url": track.url, "full": yt_full_text},
             ).first()
+            if row is None:
+                raise RuntimeError("caption transcript insert returned no identifier")
             yt_tr_id = row[0]
             for s in segs:
                 db.execute(

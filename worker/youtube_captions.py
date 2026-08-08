@@ -20,6 +20,10 @@ from worker.youtube.types import YouTubeCaptionFetchError, YouTubeCaptionRateLim
 from worker.youtube.yt_dlp_executor import YtDlpError, YtDlpExecutor
 
 logger = get_logger(__name__)
+ytdlp_operation_attempts_total: Any
+ytdlp_operation_duration_seconds: Any
+ytdlp_operation_errors_total: Any
+ytdlp_token_usage_total: Any
 
 # Import metrics at module level, but handle gracefully if not available
 try:
@@ -120,7 +124,7 @@ def _yt_dlp_json(url: str) -> Dict[str, Any]:
     if settings.YTDLP_CIRCUIT_BREAKER_ENABLED:
         circuit_breaker = get_circuit_breaker("youtube_metadata")
 
-    last_error = None
+    last_error: Exception | None = None
 
     for client_name, extractor_args in strategies:
         # Use factory functions to capture loop variables correctly for retry closures
@@ -283,6 +287,8 @@ def _yt_dlp_json(url: str) -> Dict[str, Any]:
                 classify_func=classify_metadata_error,
             )
             youtube_requests_total.labels(operation="metadata", result="success").inc()
+            if not isinstance(result, dict):
+                raise TypeError("caption metadata response must be an object")
             return result
 
         except subprocess.CalledProcessError as e:

@@ -79,6 +79,7 @@ class AnalyticsIdentityMiddleware(BaseHTTPMiddleware):
         if must_set_cookie:
             cookie_value = generate_analytics_cookie()
 
+        assert cookie_value is not None
         request.state.analytics_subject_id = derive_analytics_subject_id(cookie_value, self.config)
         response = await call_next(request)
 

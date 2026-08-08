@@ -322,7 +322,7 @@ def get_videos_to_process(
     # Note: All filter values are parameterized to prevent SQL injection
     # The where_clause is constructed from safe literals only
     where_clauses = ["v.state = 'completed'"]
-    params = {"limit": batch_size}
+    params: dict[str, object] = {"limit": batch_size}
 
     if video_ids:
         placeholders = ",".join([f":vid{i}" for i in range(len(video_ids))])

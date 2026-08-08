@@ -69,9 +69,10 @@ def _string_list(value: object) -> list[str]:
         return []
     if isinstance(value, str):
         try:
-            value = json.loads(value)
+            parsed = json.loads(value)
         except json.JSONDecodeError:
             return [value]
+        value = parsed
     if not isinstance(value, (list, tuple)):
         return []
     return [str(item) for item in value if item is not None and str(item)]
@@ -117,6 +118,7 @@ def _topic_catalog_facets(db, slugs: list[str]) -> tuple[list[ArchivePerson], li
             aliases=_string_list(row.get("aliases")),
             description=row.get("description"),
             default_role=row.get("default_role"),
+            role=None,
             sort_order=int(row.get("sort_order") or 0),
         )
         for row in people_rows
@@ -145,19 +147,19 @@ def attach_archive_facets(response: ArchiveIntelligenceResponse, db=None) -> Arc
         for person in video.people:
             if not person.slug:
                 continue
-            entry = people_by_slug.setdefault(
+            person_entry = people_by_slug.setdefault(
                 person.slug,
                 _PersonFacet(person=person.model_copy(update={"role": None})),
             )
-            entry.count += 1
+            person_entry.count += 1
             if person.role:
-                entry.roles.add(person.role)
+                person_entry.roles.add(person.role)
 
         for tag in video.tags:
             if not tag.slug:
                 continue
-            entry = tags_by_slug.setdefault(tag.slug, _TagFacet(tag=tag))
-            entry.count += 1
+            tag_entry = tags_by_slug.setdefault(tag.slug, _TagFacet(tag=tag))
+            tag_entry.count += 1
 
     topic_slugs = list(dict.fromkeys(topic.slug for topic in response.topic_cards if topic.slug))
     catalog_people, catalog_tags = _topic_catalog_facets(db, topic_slugs)

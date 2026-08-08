@@ -1,7 +1,7 @@
 """Audit logging for security events and user actions."""
 
 import json
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import Request
@@ -198,7 +198,7 @@ def get_audit_logs(
         FROM audit_logs
         WHERE 1=1
     """
-    params = {}
+    params: dict[str, Any] = {}
 
     if user_id:
         query += " AND user_id = :user_id"

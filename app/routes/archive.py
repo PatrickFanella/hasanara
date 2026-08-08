@@ -648,7 +648,12 @@ def admin_list_archive_people(
     db=Depends(get_db),
     user=Depends(require_role(ROLE_ADMIN)),
 ):
-    return ArchivePersonAdminListResponse(items=list_people_admin(db, q=q, status=status, limit=limit, offset=offset))
+    return ArchivePersonAdminListResponse(
+        items=[
+            ArchivePersonAdmin.model_validate(item)
+            for item in list_people_admin(db, q=q, status=status, limit=limit, offset=offset)
+        ]
+    )
 
 
 @router.post(
@@ -700,7 +705,10 @@ def admin_list_archive_tags(
     user=Depends(require_role(ROLE_ADMIN)),
 ):
     return ArchiveVideoTagAdminListResponse(
-        items=list_tags_admin(db, q=q, status=status, kind=kind, limit=limit, offset=offset)
+        items=[
+            ArchiveVideoTagAdmin.model_validate(item)
+            for item in list_tags_admin(db, q=q, status=status, kind=kind, limit=limit, offset=offset)
+        ]
     )
 
 

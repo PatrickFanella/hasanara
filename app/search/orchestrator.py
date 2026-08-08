@@ -35,6 +35,16 @@ from app.search.types import SearchRequest
 from app.settings import settings
 
 
+def _response_highlights(items: Iterable[Any]) -> list[HighlightRange]:
+    return [
+        HighlightRange(
+            start=int(item["start"] if isinstance(item, dict) else item.start),
+            end=int(item["end"] if isinstance(item, dict) else item.end),
+        )
+        for item in items
+    ]
+
+
 def _schema_highlights(values: Iterable[search_highlights.HighlightRange]) -> list[HighlightRange]:
     return [HighlightRange(start=value["start"], end=value["end"]) for value in values]
 
@@ -185,8 +195,12 @@ class SearchOrchestrator:
                         start_ms=int(src.get("start_ms", 0)),
                         end_ms=int(src.get("end_ms", 0)),
                         snippet=snippet,
-                        highlights=highlights,
+                        highlights=_response_highlights(highlights),
                         source="whisper" if effective_source == "native" else "youtube",
+                        video_title=None,
+                        channel_name=None,
+                        uploaded_at=None,
+                        duration_seconds=None,
                     )
                 )
             total = (
@@ -232,7 +246,9 @@ class SearchOrchestrator:
                     start_ms=r["start_ms"],
                     end_ms=r["end_ms"],
                     snippet=r["snippet"] or "",
-                    highlights=normalize_highlight_ranges(str(r["snippet"] or ""), r.get("highlights") or []),
+                    highlights=_response_highlights(
+                        normalize_highlight_ranges(str(r["snippet"] or ""), r.get("highlights") or [])
+                    ),
                     source=r["source"],
                     video_title=r.get("video_title"),
                     channel_name=r.get("channel_name"),
@@ -261,8 +277,12 @@ class SearchOrchestrator:
                     start_ms=r.start_ms,
                     end_ms=r.end_ms,
                     snippet=r.snippet,
-                    highlights=list(r.highlights),
+                    highlights=_response_highlights(r.highlights),
                     source="whisper",
+                    video_title=None,
+                    channel_name=None,
+                    uploaded_at=None,
+                    duration_seconds=None,
                 )
                 for r in native_results
             ]
@@ -283,7 +303,9 @@ class SearchOrchestrator:
                     start_ms=r["start_ms"],
                     end_ms=r["end_ms"],
                     snippet=r["snippet"] or "",
-                    highlights=normalize_highlight_ranges(str(r["snippet"] or ""), r.get("highlights") or []),
+                    highlights=_response_highlights(
+                        normalize_highlight_ranges(str(r["snippet"] or ""), r.get("highlights") or [])
+                    ),
                     source="youtube",
                     video_title=r.get("video_title"),
                     channel_name=r.get("channel_name"),
@@ -305,6 +327,7 @@ class SearchOrchestrator:
             )
         freshness = search_freshness(db)
         return SearchResponse(
+            total=None,
             hits=hits,
             query_time_ms=query_time_ms,
             backend="postgres",
@@ -475,7 +498,7 @@ class SearchOrchestrator:
                 result.total_moments,
                 result.query_time_ms or 0,
             )
-        return result
+        return GroupedSearchResponse.model_validate(result)
 
     def mention_map(
         self,
@@ -522,7 +545,7 @@ class SearchOrchestrator:
                 result.total_moments,
                 result.query_time_ms or 0,
             )
-        return result
+        return MentionMap.model_validate(result)
 
     def prepare_export_rows(
         self,

@@ -68,7 +68,10 @@ def _fetch_ytdlp_metadata(url: str, *, flat_playlist: bool = False) -> dict[str,
                 check=True,
                 timeout=settings.YTDLP_REQUEST_TIMEOUT,
             )
-            return json.loads(result.stdout)
+            payload = json.loads(result.stdout)
+            if not isinstance(payload, dict):
+                raise ValueError("yt-dlp metadata response must be an object")
+            return payload
         except subprocess.CalledProcessError as exc:
             last_error = exc
             logger.warning(
