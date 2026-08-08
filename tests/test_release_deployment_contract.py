@@ -158,6 +158,11 @@ def test_patched_runtime_dependency_pins_match_all_release_inputs() -> None:
         assert required <= pins, f"{dependency_file} is missing a patched runtime pin"
 
 
+def test_ingest_image_applies_available_base_security_updates() -> None:
+    dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
+    assert "apt-get update && apt-get upgrade -y --no-install-recommends" in dockerfile
+
+
 def test_release_overlay_is_last_and_requires_immutable_images() -> None:
     helper = (ROOT / "scripts" / "compose_prod.sh").read_text(encoding="utf-8")
     assert helper.rfind("docker-compose.release.yml") > helper.rfind("docker-compose.pitr.yml")
