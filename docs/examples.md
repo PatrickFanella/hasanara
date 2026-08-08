@@ -10,7 +10,6 @@ This guide provides practical code examples for common use cases with the Transc
 - [Search Examples](#search-examples)
 - [Export Examples](#export-examples)
 - [Favorites Management](#favorites-management)
-- [Subscription Management](#subscription-management)
 
 ## Authentication Examples
 

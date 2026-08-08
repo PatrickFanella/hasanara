@@ -86,11 +86,7 @@ class VocabularyDatabase:
             deleting_global = "is_global=true" in sql
             allowed = row and (
                 (deleting_global and row["is_global"])
-                or (
-                    not deleting_global
-                    and not row["is_global"]
-                    and str(row["user_id"]) == str(params.get("user_id"))
-                )
+                or (not deleting_global and not row["is_global"] and str(row["user_id"]) == str(params.get("user_id")))
             )
             if allowed:
                 del self.rows[str(params["id"])]

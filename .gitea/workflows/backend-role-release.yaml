@@ -1,0 +1,193 @@
+name: Selective backend release artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      role:
+        description: Backend role to rebuild
+        required: true
+        type: choice
+        options:
+          - api
+          - ingest-cuda
+      base_manifest_json:
+        description: Verified release-images.json whose unchanged digests will be reused
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  backend-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authorize selective backend release
+        env:
+          ACTOR: ${{ gitea.actor }}
+          RELEASE_OPERATOR: ${{ vars.RELEASE_OPERATOR }}
+          REF: ${{ gitea.ref }}
+          ROLE: ${{ inputs.role }}
+        run: |
+          set -euo pipefail
+          [[ -n "$RELEASE_OPERATOR" && "$ACTOR" == "$RELEASE_OPERATOR" ]]
+          [[ "$REF" =~ ^refs/heads/(release/v|codex/) ]]
+          [[ "$ROLE" == api || "$ROLE" == ingest-cuda ]]
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ gitea.sha }}
+      - name: Select immutable build target
+        id: target
+        env:
+          ROLE: ${{ inputs.role }}
+        run: |
+          set -euo pipefail
+          case "$ROLE" in
+            api)
+              printf '%s\n' 'dockerfile=Dockerfile.api' 'image=git.subcult.tv/subculture-collective/hasanara-api' >> "$GITHUB_OUTPUT"
+              ;;
+            ingest-cuda)
+              printf '%s\n' 'dockerfile=Dockerfile.ingest.cuda' 'image=git.subcult.tv/subculture-collective/hasanara-ingest-cuda' >> "$GITHUB_OUTPUT"
+              ;;
+            *) exit 1 ;;
+          esac
+          printf 'tag=backend-%s-%s\n' "$ROLE" "$(printf '%s' '${{ gitea.sha }}' | cut -c1-12)" >> "$GITHUB_OUTPUT"
+      - name: Validate base manifest
+        env:
+          BASE_MANIFEST_JSON: ${{ inputs.base_manifest_json }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          expected = {
+              "api": "git.subcult.tv/subculture-collective/hasanara-api",
+              "ingest-cuda": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda",
+              "ml-cuda": "git.subcult.tv/subculture-collective/hasanara-ml-cuda",
+              "frontend": "git.subcult.tv/subculture-collective/hasanara-frontend",
+              "postgres-walg": "git.subcult.tv/subculture-collective/hasanara-postgres-walg",
+          }
+          manifest = json.loads(os.environ["BASE_MANIFEST_JSON"])
+          images = manifest.get("images") if isinstance(manifest, dict) else None
+          ref = re.compile(r"^[^@\s]+@sha256:[0-9a-f]{64}$")
+          if manifest.get("schema_version") != 1 or not isinstance(images, dict):
+              raise SystemExit("invalid base manifest")
+          for role, repository in expected.items():
+              value = images.get(role)
+              if not isinstance(value, str) or not ref.fullmatch(value) or value.split("@", 1)[0] != repository:
+                  raise SystemExit(f"invalid base digest for {role}")
+          if not isinstance(images.get("redis"), str) or not ref.fullmatch(images["redis"]):
+              raise SystemExit("invalid base Redis digest")
+          Path("base-release-images.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+      - name: Log in to registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: git.subcult.tv
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PAT }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - name: Build selected backend role only
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ${{ steps.target.outputs.dockerfile }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}
+      - name: Block high and critical application vulnerabilities
+        env:
+          IMAGE_REF: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}
+        run: |
+          set -euo pipefail
+          trivy_image='docker.io/aquasec/trivy@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$trivy_image" image \
+            --timeout 15m --scanners vuln --severity CRITICAL,HIGH --pkg-types library --exit-code 1 "$IMAGE_REF"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$trivy_image" image \
+            --timeout 15m --format spdx-json --exit-code 0 "$IMAGE_REF" > selected.spdx.json
+      - name: Push selected image and resolve digest
+        id: publish
+        env:
+          IMAGE: ${{ steps.target.outputs.image }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:$TAG"
+          digest="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - name: Sign selected digest and verify reused artifacts
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PUBLIC_KEY_B64: ${{ vars.COSIGN_PUBLIC_KEY_B64 }}
+          IMAGE_REF: ${{ steps.target.outputs.image }}@${{ steps.publish.outputs.digest }}
+          ROLE: ${{ inputs.role }}
+          SOURCE_COMMIT: ${{ gitea.sha }}
+          DOCKERFILE: ${{ steps.target.outputs.dockerfile }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$COSIGN_PUBLIC_KEY_B64" | base64 -d > cosign.pub
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("selected.provenance.json").write_text(json.dumps({
+              "buildType": "https://hasanara.example/selective-release",
+              "invocation": {"parameters": {"role": os.environ["ROLE"], "dockerfile": os.environ["DOCKERFILE"]}},
+              "materials": [{"uri": "https://git.subcult.tv/${{ gitea.repository }}", "digest": {"sha1": os.environ["SOURCE_COMMIT"]}}],
+          }) + "\n", encoding="utf-8")
+          PY
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$IMAGE_REF"
+          cosign attest --yes --key env://COSIGN_PRIVATE_KEY --type slsaprovenance --predicate selected.provenance.json "$IMAGE_REF"
+          cosign attest --yes --key env://COSIGN_PRIVATE_KEY --type spdxjson --predicate selected.spdx.json "$IMAGE_REF"
+          cosign verify --key cosign.pub "$IMAGE_REF" > selected-signature.verify.json
+          cosign verify-attestation --key cosign.pub --type slsaprovenance "$IMAGE_REF" > selected-provenance.verify.json
+          cosign verify-attestation --key cosign.pub --type spdxjson "$IMAGE_REF" > selected-sbom.verify.json
+          python3 - <<'PY' > reused-images.txt
+          import json, os
+          images = json.load(open("base-release-images.json", encoding="utf-8"))["images"]
+          for role, image in sorted(images.items()):
+              if role not in {os.environ["ROLE"], "redis"}:
+                  print(image)
+          PY
+          while IFS= read -r image; do
+            cosign verify --key cosign.pub "$image" >/dev/null
+            cosign verify-attestation --key cosign.pub --type slsaprovenance "$image" >/dev/null
+            cosign verify-attestation --key cosign.pub --type spdxjson "$image" >/dev/null
+          done < reused-images.txt
+      - name: Compose selective immutable manifest
+        env:
+          IMAGE: ${{ steps.target.outputs.image }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+          ROLE: ${{ inputs.role }}
+          SOURCE_COMMIT: ${{ gitea.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = json.loads(Path("base-release-images.json").read_text(encoding="utf-8"))
+          manifest["source_commit"] = os.environ["SOURCE_COMMIT"]
+          manifest["images"][os.environ["ROLE"]] = f"{os.environ['IMAGE']}@{os.environ['DIGEST']}"
+          manifest["selective_release"] = {"rebuilt": [os.environ["ROLE"]], "reused_artifacts_reverified": True}
+          Path("release-images.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+      - name: Upload selective release evidence
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: selective-backend-release-${{ inputs.role }}
+          path: |
+            release-images.json
+            base-release-images.json
+            reused-images.txt
+            selected-signature.verify.json
+            selected-provenance.verify.json
+            selected-sbom.verify.json
+            selected.provenance.json
+            selected.spdx.json

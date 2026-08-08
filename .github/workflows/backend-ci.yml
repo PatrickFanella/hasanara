@@ -14,6 +14,7 @@ on:
       - 'constraints.txt'
       - 'Makefile'
       - 'docker-compose*.yml'
+      - 'Dockerfile*'
       - '.python-version'
       - 'tests/**'
       - 'scripts/**'
@@ -22,6 +23,7 @@ on:
       - 'mypy-baseline.json'
       - 'pyproject.toml'
       - '.github/workflows/backend-ci.yml'
+      - '.gitea/workflows/**'
   pull_request:
     paths:
       - 'app/**'
@@ -33,6 +35,7 @@ on:
       - 'constraints.txt'
       - 'Makefile'
       - 'docker-compose*.yml'
+      - 'Dockerfile*'
       - '.python-version'
       - 'tests/**'
       - 'scripts/**'
@@ -41,9 +44,37 @@ on:
       - 'mypy-baseline.json'
       - 'pyproject.toml'
       - '.github/workflows/backend-ci.yml'
+      - '.gitea/workflows/**'
   workflow_dispatch:
 
 jobs:
+  supported-python:
+    name: Python ${{ matrix.python-version }} import and unit smoke
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install supported runtime and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -c constraints.txt -r requirements.txt -r requirements-dev.txt
+      - name: Import API and worker packages
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
+          SESSION_SECRET: test-secret-key-for-ci-only
+        run: |
+          python -c "import app.main, worker.loop, worker.youtube.service"
+      - name: Run database-independent unit smoke
+        run: |
+          pytest -q tests/test_archive_intelligence_query_domains.py tests/worker/test_worker_lifecycle.py tests/worker/test_worker_module_boundaries.py
+
   lint-and-format:
     name: Lint & Format Check
     runs-on: ubuntu-latest
@@ -73,11 +104,11 @@ jobs:
 
       - name: Run isort check
         run: |
-          isort --check-only app/ worker/
+          isort --check-only app/ worker/ scripts/ tests/ alembic/
 
       - name: Run mypy type check
         run: |
-          python scripts/check_mypy_baseline.py
+          mypy app/ worker/ scripts/
 
   security-scan:
     name: Security Scan
@@ -129,7 +160,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: hasanara_test
         ports:
           - 5432:5432
         options: >-
@@ -156,18 +187,22 @@ jobs:
 
       - name: Apply database schema
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f sql/schema.sql
+          PGPASSWORD=postgres psql -h localhost -U postgres -d hasanara_test -f sql/schema.sql
 
       - name: Run pytest with coverage
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-          ANALYTICS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          ENVIRONMENT: test
+          ALLOW_DESTRUCTIVE_TEST_DB: "1"
+          ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION: "true"
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
+          HASANARA_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
+          ANALYTICS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
           SESSION_SECRET: test-secret-key-for-ci-only
           FRONTEND_ORIGIN: http://localhost:5173
         run: |
-          pytest tests/ --cov=app --cov-report=xml --cov-report=term --cov-report=html -v
+          pytest tests/ --cov=app --cov=worker --cov-report=xml --cov-report=term --cov-report=html -v
 
       - name: Generate coverage summary
         if: always()
@@ -190,6 +225,43 @@ jobs:
       - name: Check coverage threshold
         run: |
           coverage report --fail-under=70
+
+  migrations:
+    name: Migration head validation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hasanara_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install migration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -c constraints.txt -r requirements.txt -r requirements-dev.txt
+      - name: Upgrade and validate the single migration head
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hasanara_test
+          ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION: "true"
+        run: |
+          alembic upgrade head
+          test "$(alembic heads | wc -l)" -eq 1
+          test "$(alembic current | awk '{print $1}')" = "$(alembic heads | awk '{print $1}')"
 
   docker-build:
     name: Docker Build

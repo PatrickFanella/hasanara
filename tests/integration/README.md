@@ -58,14 +58,6 @@ Integration tests validate complete workflows from job creation to export, ensur
   - Protected endpoint access
   - Quota enforcement
 
-### Billing Flow
-
-- **test_billing_flow.py**: Tests for billing and payments
-  - Stripe checkout sessions (mocked)
-  - Webhook handling
-  - Plan upgrades/downgrades
-  - Payment method management
-
 ## Running Tests
 
 ### Prerequisites
@@ -260,7 +252,7 @@ class TestNewFeature:
 2. **Test one thing**: Each test should validate one behavior
 3. **Clean up**: Use fixtures for cleanup, don't rely on test order
 4. **Handle missing features**: Use `pytest.skip()` for unimplemented features
-5. **Mock external services**: Don't make real API calls to YouTube, Stripe, etc.
+5. **Mock external services**: Don't make real API calls to YouTube or OAuth providers.
 6. **Add timeouts**: All tests should have timeout decorators
 7. **Document edge cases**: Add tests for error conditions and edge cases
 
@@ -287,9 +279,8 @@ def test_new_feature(self, integration_client, integration_db, clean_test_data):
 
 1. **Worker tests**: Some worker tests require actual worker process running
 2. **Auth tests**: OAuth flows are mocked, not fully integrated
-3. **Billing tests**: Stripe webhooks are mocked
-4. **Search tests**: OpenSearch might not be running in all test environments
-5. **Media files**: No actual audio/video processing in tests (mocked)
+3. **Search tests**: OpenSearch might not be running in all test environments
+4. **Media files**: No actual audio/video processing in tests (mocked)
 
 ## Troubleshooting
 

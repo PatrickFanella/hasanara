@@ -260,8 +260,6 @@ secrets:
   # oauthTwitchClientSecret: ""
   # Add optional opensearch-user and opensearch-password keys to this secret
   # when the OpenSearch endpoint requires basic authentication.
-  # stripeApiKey: ""
-  # stripeWebhookSecret: ""
 
 # External services (if using managed services)
 externalServices:

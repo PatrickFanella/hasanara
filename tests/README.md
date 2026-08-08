@@ -15,7 +15,6 @@ This directory contains comprehensive unit tests for the FastAPI backend applica
 - `test_routes_videos.py` - Video and transcript endpoint tests
 - `test_routes_search.py` - Search functionality tests (Postgres FTS and OpenSearch)
 - `test_routes_auth.py` - Authentication and session management tests
-- `test_routes_billing.py` - Stripe billing integration tests (mocked)
 - `test_routes_exports.py` - Export functionality tests (SRT, VTT, JSON, PDF)
 - `test_schemas.py` - Pydantic model validation tests
 
@@ -86,7 +85,7 @@ export FRONTEND_ORIGIN="http://localhost:5173"
 
 - **Target**: 70%+ code coverage on `app/` directory
 - **Critical paths**: All happy paths and error cases covered
-- **Mocking**: External dependencies (OAuth, Stripe, OpenSearch) are properly mocked
+- **Mocking**: External dependencies (OAuth and OpenSearch) are properly mocked
 
 ## Writing New Tests
 
@@ -118,19 +117,6 @@ def test_with_database(self, client: TestClient, db_session):
     
     # Test endpoint
     response = client.get("/endpoint")
-    assert response.status_code == 200
-```
-
-### Mocking External Services
-
-```python
-from unittest.mock import patch, MagicMock
-
-@patch("stripe.checkout.Session.create")
-def test_stripe_integration(self, mock_stripe, client):
-    """Test Stripe integration with mocking."""
-    mock_stripe.return_value = MagicMock(id="cs_test", url="https://...")
-    response = client.post("/billing/checkout-session", json={})
     assert response.status_code == 200
 ```
 

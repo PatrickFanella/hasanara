@@ -39,3 +39,15 @@
 - [x] Generated OpenAPI, access/deployment matrices, status metadata, and privacy/lease/cache/search/backup/incident runbooks resolve documentation discrepancies.
 
 Production execution items—backup rehearsal, analytics scrub/session rotation, deployment, outbox backfill, and live metric checks—remain explicit release steps rather than repository findings.
+
+## 2026-08-07 backend remediation register
+
+| Finding group | Repository evidence | Verification | Deployment evidence |
+| --- | --- | --- | --- |
+| Vocabulary authorization, event-token removal, CSV safety, private caching, dependency patches | `3d2bff0` | Security regression suite and dependency audit pass | Pending API release digest and production checks |
+| Worker imports, rolling caption eligibility, dataclass defaults, and graceful drain | `ce5c99f` | Worker import, queue, lifecycle, and recovery suites pass | Pending ingest-cuda digest and drain/job smoke |
+| Redis limiting, bounded metrics, OpenSearch TLS, health authorization, lifespan, and GZip | `b5908ce` | Platform regression suite passes | Pending API platform digest and live telemetry checks |
+| Event session-token schema contraction | `9490ce0` | Isolated upgrade/downgrade/upgrade and single-head validation pass | Pending backup, fleet compatibility check, and production migration |
+| Formatting, typing, repository boundaries, worker module boundaries, CI, and billing retirement | `a869366`, `676617e` | Ruff, Black, isort, mypy, 1,532 tests, and 78% coverage pass | Pending release candidate workflow evidence |
+
+The register is intentionally not marked deployment-complete until immutable image digests, signature/provenance verification, rollout observations, and the post-migration Alembic head are recorded here.

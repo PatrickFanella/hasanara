@@ -69,16 +69,7 @@ This document summarizes the comprehensive end-to-end integration test implement
 - Quota enforcement
 - Admin endpoint protection
 
-### 7. Billing Flow (`test_billing_flow.py`) - 8 tests
-
-- Stripe checkout session creation (mocked)
-- Webhook event handling (subscriptions)
-- Plan upgrades (free → pro)
-- Plan downgrades (pro → free)
-- Payment method management
-- Invalid webhook signature rejection
-
-### 8. Infrastructure Smoke Tests (`test_smoke.py`) - 5 tests
+### 7. Infrastructure Smoke Tests (`test_smoke.py`) - 5 tests
 
 - Test module import verification
 - Test class existence checks
@@ -97,7 +88,7 @@ This document summarizes the comprehensive end-to-end integration test implement
 
 ### Mocking Strategy
 
-- **External Services**: OAuth providers, Stripe, yt-dlp
+- **External Services**: OAuth providers and yt-dlp
 - **Graceful Degradation**: Tests skip if services unavailable
 - **Realistic Data**: Sample metadata mirrors production formats
 
@@ -162,9 +153,8 @@ This document summarizes the comprehensive end-to-end integration test implement
 6. `test_search_flow.py` - Search feature tests
 7. `test_worker_flow.py` - Worker processing tests
 8. `test_auth_flow.py` - Authentication tests
-9. `test_billing_flow.py` - Billing and payment tests
-10. `test_smoke.py` - Infrastructure validation tests
-11. `README.md` - Comprehensive test documentation
+9. `test_smoke.py` - Infrastructure validation tests
+10. `README.md` - Comprehensive test documentation
 
 ### Fixture Data (tests/fixtures/)
 

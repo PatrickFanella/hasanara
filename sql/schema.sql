@@ -222,8 +222,6 @@ CREATE TABLE IF NOT EXISTS users (
     oauth_subject TEXT,
     plan TEXT NOT NULL DEFAULT 'free',
     role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
-    stripe_customer_id TEXT,
-    stripe_subscription_status TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (oauth_provider, oauth_subject)
