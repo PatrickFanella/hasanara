@@ -740,6 +740,22 @@ def test_drop_event_session_token_requires_explicit_opt_in(alembic_config, clean
 
 def test_drop_event_session_token_contract_and_downgrade(alembic_config, clean_db, test_db_url, monkeypatch):
     command.upgrade(alembic_config, "20260714_0300")
+    with get_engine(test_db_url) as engine:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                    CREATE FUNCTION null_legacy_event_session_token()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                        NEW.session_token := NULL;
+                        RETURN NEW;
+                    END;
+                    $$
+                """))
+            conn.execute(text("""
+                    CREATE TRIGGER events_null_legacy_session_token
+                    BEFORE INSERT OR UPDATE OF session_token ON events
+                    FOR EACH ROW EXECUTE FUNCTION null_legacy_event_session_token()
+                """))
     monkeypatch.setenv("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION", "true")
     command.upgrade(alembic_config, "20260807_event_token")
 
@@ -750,6 +766,12 @@ def test_drop_event_session_token_contract_and_downgrade(alembic_config, clean_d
                         SELECT 1 FROM information_schema.columns
                         WHERE table_schema='public' AND table_name='events'
                           AND column_name='session_token'
+                    )
+                """)).scalar_one()
+            assert not conn.execute(text("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM pg_proc
+                        WHERE proname = 'null_legacy_event_session_token'
                     )
                 """)).scalar_one()
 

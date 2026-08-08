@@ -27,6 +27,8 @@ def upgrade() -> None:
             "Set ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION=true only after all API instances omit the column "
             "and a database backup has completed."
         )
+    op.execute("DROP TRIGGER IF EXISTS events_null_legacy_session_token ON events")
+    op.execute("DROP FUNCTION IF EXISTS null_legacy_event_session_token()")
     op.drop_column("events", "session_token")
 
 
