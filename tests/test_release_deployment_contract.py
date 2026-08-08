@@ -76,6 +76,15 @@ def rendered_service(service: str, image: str) -> dict[str, Any]:
         environment["PGPASSWORD"] = "inert"
     if service in preflight.APPLICATION_SERVICES:
         environment.update({"ENVIRONMENT": "production", "LOG_LEVEL": "INFO"})
+    if service == "api":
+        environment.update(
+            {
+                "REDIS_URL": "redis://redis:6379/0",
+                "RATE_LIMIT_REQUESTS": "100",
+                "RATE_LIMIT_WINDOW_SECONDS": "60",
+                "OPENSEARCH_TLS_VERIFY": "true",
+            }
+        )
     rendered: dict[str, Any] = {"image": image, "environment": environment}
     if service == "diarization-worker":
         environment.update(
@@ -179,6 +188,10 @@ def test_overlay_forces_env_file_and_diarization_is_opt_in() -> None:
     assert "gpus: !reset null" in overlay
     host = (ROOT / "docker-compose.hasanara.yml").read_text(encoding="utf-8")
     assert "profiles: [diarization]" in host
+    assert "REDIS_URL: redis://redis:6379/0" in host
+    assert "RATE_LIMIT_REQUESTS: '100'" in host
+    assert "RATE_LIMIT_WINDOW_SECONDS: '60'" in host
+    assert "OPENSEARCH_TLS_VERIFY: 'true'" in host
 
 
 def test_example_documents_required_url_safe_production_database_password() -> None:
@@ -229,6 +242,24 @@ def test_service_mapping_and_profile_filtering() -> None:
     with pytest.raises(preflight.PreflightError, match="does not match"):
         preflight.validate_rendered_services(rendered, {"api"}, data)
     assert preflight.BASE_SERVICES == set(preflight.SERVICE_ROLES) - {"diarization-worker"}
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("REDIS_URL", ""),
+        ("RATE_LIMIT_REQUESTS", "101"),
+        ("RATE_LIMIT_WINDOW_SECONDS", "30"),
+        ("OPENSEARCH_TLS_VERIFY", "false"),
+    ],
+)
+def test_api_security_environment_is_fail_closed(name: str, value: str) -> None:
+    data = manifest()
+    api = rendered_service("api", data["images"]["api"])
+    api["environment"][name] = value
+    db = rendered_service("db", data["images"]["postgres-walg"])
+    with pytest.raises(preflight.PreflightError, match="API security environment"):
+        preflight.validate_rendered_services({"services": {"api": api, "db": db}}, {"api"}, data)
 
 
 @pytest.mark.parametrize(

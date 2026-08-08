@@ -37,6 +37,10 @@ services:
             OAUTH_TWITCH_REDIRECT_URI: ${OAUTH_TWITCH_REDIRECT_URI:?OAUTH_TWITCH_REDIRECT_URI is required}
             BOOTSTRAP_ADMIN_IDENTITIES: ${BOOTSTRAP_ADMIN_IDENTITIES:-}
             FORWARDED_ALLOW_IPS: 172.20.0.250
+            RATE_LIMIT_REQUESTS: '100'
+            RATE_LIMIT_WINDOW_SECONDS: '60'
+            REDIS_URL: redis://redis:6379/0
+            OPENSEARCH_TLS_VERIFY: 'true'
         restart: unless-stopped
 
     worker:

@@ -253,6 +253,13 @@ def validate_rendered_services(rendered: dict[str, Any], services: set[str], man
             environment.get("ENVIRONMENT") != "production" or environment.get("LOG_LEVEL") != "INFO"
         ):
             fail("Compose application environment contract is invalid")
+        if service == "api" and (
+            environment.get("REDIS_URL") != "redis://redis:6379/0"
+            or environment.get("RATE_LIMIT_REQUESTS") != "100"
+            or environment.get("RATE_LIMIT_WINDOW_SECONDS") != "60"
+            or environment.get("OPENSEARCH_TLS_VERIFY") != "true"
+        ):
+            fail("Compose API security environment contract is invalid")
 
 
 def diarization_env_path_from_operator_file() -> Path:
