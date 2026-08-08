@@ -48,6 +48,6 @@ Production execution items—backup rehearsal, analytics scrub/session rotation,
 | Worker imports, rolling caption eligibility, dataclass defaults, and graceful drain | `ce5c99f` | Worker import, queue, lifecycle, and recovery suites pass | Pending ingest-cuda digest and drain/job smoke |
 | Redis limiting, bounded metrics, OpenSearch TLS, health authorization, lifespan, and GZip | `b5908ce` | Platform regression suite passes | Pending API platform digest and live telemetry checks |
 | Event session-token schema contraction | `9490ce0` | Isolated upgrade/downgrade/upgrade and single-head validation pass | Pending backup, fleet compatibility check, and production migration |
-| Formatting, typing, repository boundaries, worker module boundaries, CI, and billing retirement | `a869366`, `676617e` | Ruff, Black, isort, mypy, 1,532 tests, and 78% coverage pass | Pending release candidate workflow evidence |
+| Formatting, typing, repository boundaries, worker module boundaries, CI, and billing retirement | `a869366`, `676617e`, `7a4024d`, `b221e65` | Ruff, Black, isort, mypy, 1,534 tests, and 78% coverage pass | Pending release candidate workflow evidence |
 
 The register is intentionally not marked deployment-complete until immutable image digests, signature/provenance verification, rollout observations, and the post-migration Alembic head are recorded here.
