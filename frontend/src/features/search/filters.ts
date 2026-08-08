@@ -18,6 +18,7 @@ function readSort(value: string | null): ArchiveSearchFilters['sort_by'] {
 export function readFilters(params: URLSearchParams): SearchFilters {
   return {
     q: params.get('q') ?? '',
+    match_mode: (params.get('match_mode') as ArchiveSearchFilters['match_mode']) ?? 'topic',
     source: (params.get('source') as ArchiveSearchFilters['source']) ?? undefined,
     category: params.get('category') ?? undefined,
     date_from: params.get('date_from') ?? undefined,
@@ -34,6 +35,8 @@ export function readFilters(params: URLSearchParams): SearchFilters {
 export function serializeFilters(filters: SearchFilters) {
   const next = new URLSearchParams();
   if (filters.q.trim()) next.set('q', filters.q.trim());
+  if (filters.match_mode && filters.match_mode !== 'topic')
+    next.set('match_mode', filters.match_mode);
   if (filters.source) next.set('source', filters.source);
   if (filters.category) next.set('category', filters.category);
   if (filters.date_from) next.set('date_from', filters.date_from);
@@ -64,6 +67,7 @@ export function buildCurrentFilters(
 ) {
   return serializeFilters({
     q,
+    match_mode: existing.match_mode,
     source,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,

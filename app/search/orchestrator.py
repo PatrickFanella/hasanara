@@ -68,6 +68,7 @@ class SearchOrchestrator:
         language: str | None = None,
         has_speaker_labels: bool | None = None,
         category: str | None = None,
+        match_mode: str = "topic",
         sort_by: str = "relevance",
     ) -> SearchResponse:
         start_time = time.time()
@@ -87,10 +88,13 @@ class SearchOrchestrator:
                 ]
             )
             or sort_by != "relevance"
+            or match_mode != "topic"
         )
         filters = search_analytics.build_search_filters(
             date_from, date_to, min_duration, max_duration, channel, language, has_speaker_labels, category
         )
+        if match_mode != "topic":
+            filters["match_mode"] = match_mode
 
         if settings.SEARCH_BACKEND == "opensearch" and not requires_relational_filters:
             effective_source = "native" if source == "best" else source
@@ -473,11 +477,14 @@ class SearchOrchestrator:
         language: str | None = None,
         has_speaker_labels: bool | None = None,
         category: str | None = None,
+        match_mode: str = "topic",
         sort_by: str = "relevance",
     ) -> GroupedSearchResponse:
         filters = search_analytics.build_search_filters(
             date_from, date_to, min_duration, max_duration, channel, language, has_speaker_labels, category
         )
+        if match_mode != "topic":
+            filters["match_mode"] = match_mode
         context = search_analytics.record_search_request(request, db, q, source)
         result = crud.get_grouped_search(
             db,
@@ -518,12 +525,15 @@ class SearchOrchestrator:
         language: str | None = None,
         has_speaker_labels: bool | None = None,
         category: str | None = None,
+        match_mode: str = "topic",
         sort_by: str = "relevance",
         top_limit: int = 5,
     ) -> MentionMap:
         filters = search_analytics.build_search_filters(
             date_from, date_to, min_duration, max_duration, channel, language, has_speaker_labels, category
         )
+        if match_mode != "topic":
+            filters["match_mode"] = match_mode
         context = search_analytics.record_search_request(request, db, q, source)
         result = crud.get_mention_map(
             db,

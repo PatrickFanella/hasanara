@@ -1,10 +1,43 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from sqlalchemy import text
 
 from app.search.highlights import POSTGRES_HEADLINE_OPTIONS, normalize_search_rows
+
+
+def _match_expressions(
+    alias: str, q: str, filters: dict[str, Any], params: dict[str, Any]
+) -> tuple[str, str, str, str]:
+    """Return parameterized text/title match, presentation, and rank SQL."""
+    mode = filters.get("match_mode", "topic")
+    text_column = f"{alias}.text"
+    tsv_column = f"{alias}.text_tsv"
+    if mode == "exact_phrase":
+        params["literal_q"] = q.strip().lower()
+        return (
+            f"position(lower(:literal_q) in lower({text_column})) > 0",
+            text_column,
+            "1.0",
+            "position(lower(:literal_q) in lower(v.title)) > 0",
+        )
+    if mode == "whole_word":
+        escaped = re.escape(q.strip()).replace(r"\ ", r"\s+")
+        params["whole_word_q"] = rf"\m{escaped}\M"
+        return (
+            f"{text_column} ~* :whole_word_q",
+            text_column,
+            "1.0",
+            "v.title ~* :whole_word_q",
+        )
+    return (
+        f"{tsv_column} @@ websearch_to_tsquery('english', :q)",
+        f"ts_headline('english', {text_column}, websearch_to_tsquery('english', :q), :headline_options)",
+        f"ts_rank_cd({tsv_column}, websearch_to_tsquery('english', :q))",
+        "v.title ILIKE :title_q",
+    )
 
 
 class SearchRepository:
@@ -22,9 +55,6 @@ class SearchRepository:
 
         filters = filters or {}
 
-        # Build WHERE clause with filters. Search transcript text and video title so
-        # users can find newly processed videos by title from the main search box.
-        where_clauses = ["(s.text_tsv @@ websearch_to_tsquery('english', :q) OR v.title ILIKE :title_q)"]
         params = {
             "q": q,
             "limit": limit,
@@ -32,6 +62,10 @@ class SearchRepository:
             "headline_options": POSTGRES_HEADLINE_OPTIONS,
         }
         params["title_q"] = f"%{q.strip()}%"
+        text_match, highlighted_text, text_rank, title_match = _match_expressions("s", q, filters, params)
+
+        # Search transcript text and video title so newly processed videos are discoverable.
+        where_clauses = [f"({text_match} OR {title_match})"]
 
         if video_id:
             where_clauses.append("s.video_id = :vid")
@@ -86,11 +120,11 @@ class SearchRepository:
         from_clause = "segments s"
         select_fields = (
             "s.id, s.video_id, s.start_ms, s.end_ms, "
-            "CASE WHEN s.text_tsv @@ websearch_to_tsquery('english', :q) "
-            "THEN ts_headline('english', s.text, websearch_to_tsquery('english', :q), :headline_options) "
+            f"CASE WHEN {text_match} "
+            f"THEN {highlighted_text} "
             "ELSE coalesce(v.title, s.text) END AS snippet, "
-            "ts_rank_cd(s.text_tsv, websearch_to_tsquery('english', :q)) AS rank, "
-            "CASE WHEN v.title ILIKE :title_q THEN 1 ELSE 0 END AS title_match"
+            f"{text_rank} AS rank, "
+            f"CASE WHEN {title_match} THEN 1 ELSE 0 END AS title_match"
         )
 
         if needs_video_join:
@@ -123,11 +157,6 @@ class SearchRepository:
     ):
         filters = filters or {}
 
-        # Keep transcript text search separate from title/youtube_id metadata search.
-        # Applying a title match directly to every youtube_segments row makes title
-        # searches scan/return every caption segment for matching videos.
-        text_where = ["ys.text_tsv @@ websearch_to_tsquery('english', :q)"]
-        title_where = ["(v.title ILIKE :title_q OR v.youtube_id ILIKE :title_q)"]
         params = {
             "q": q,
             "limit": limit,
@@ -135,6 +164,13 @@ class SearchRepository:
             "title_q": f"%{q.strip()}%",
             "headline_options": POSTGRES_HEADLINE_OPTIONS,
         }
+        text_match, highlighted_text, text_rank, title_match = _match_expressions("ys", q, filters, params)
+
+        # Keep transcript text search separate from title/youtube_id metadata search.
+        # Applying a title match directly to every youtube_segments row makes title
+        # searches scan/return every caption segment for matching videos.
+        text_where = [text_match]
+        title_where = [f"({title_match} OR v.youtube_id ILIKE :title_q)"]
 
         if video_id:
             text_where.append("yt.video_id = :vid")
@@ -193,10 +229,8 @@ class SearchRepository:
                     yt.video_id,
                     ys.start_ms,
                     ys.end_ms,
-                    ts_headline(
-                        'english', ys.text, websearch_to_tsquery('english', :q), :headline_options
-                    ) AS snippet,
-                    ts_rank_cd(ys.text_tsv, websearch_to_tsquery('english', :q)) AS rank,
+                    {highlighted_text} AS snippet,
+                    {text_rank} AS rank,
                     0 AS title_match,
                     v.uploaded_at,
                     v.duration_seconds,
@@ -259,10 +293,12 @@ class SearchRepository:
             "title_q": f"%{q.strip()}%",
             "headline_options": POSTGRES_HEADLINE_OPTIONS,
         }
-        native_where = ["s.text_tsv @@ websearch_to_tsquery('english', :q)"]
-        native_title_where = ["v.title ILIKE :title_q"]
-        youtube_where = ["ys.text_tsv @@ websearch_to_tsquery('english', :q)"]
-        youtube_title_where = ["(v.title ILIKE :title_q OR v.youtube_id ILIKE :title_q)"]
+        native_match, native_highlight, native_rank, title_match = _match_expressions("s", q, filters, params)
+        youtube_match, youtube_highlight, youtube_rank, _ = _match_expressions("ys", q, filters, params)
+        native_where = [native_match]
+        native_title_where = [title_match]
+        youtube_where = [youtube_match]
+        youtube_title_where = [f"({title_match} OR v.youtube_id ILIKE :title_q)"]
 
         if video_id:
             native_where.append("s.video_id = :vid")
@@ -345,15 +381,13 @@ class SearchRepository:
                     s.video_id,
                     s.start_ms,
                     s.end_ms,
-                    CASE WHEN s.text_tsv @@ websearch_to_tsquery('english', :q)
-                        THEN ts_headline(
-                            'english', s.text, websearch_to_tsquery('english', :q), :headline_options
-                        )
+                    CASE WHEN {native_match}
+                        THEN {native_highlight}
                         ELSE coalesce(v.title, s.text)
                     END AS snippet,
                     'whisper' AS source,
-                    ts_rank_cd(s.text_tsv, websearch_to_tsquery('english', :q)) AS rank,
-                    CASE WHEN v.title ILIKE :title_q THEN 1 ELSE 0 END AS title_match,
+                    {native_rank} AS rank,
+                    CASE WHEN {title_match} THEN 1 ELSE 0 END AS title_match,
                     v.uploaded_at,
                     v.duration_seconds,
                     v.title AS video_title,
@@ -394,15 +428,13 @@ class SearchRepository:
                     yt.video_id,
                     ys.start_ms,
                     ys.end_ms,
-                    CASE WHEN ys.text_tsv @@ websearch_to_tsquery('english', :q)
-                        THEN ts_headline(
-                            'english', ys.text, websearch_to_tsquery('english', :q), :headline_options
-                        )
+                    CASE WHEN {youtube_match}
+                        THEN {youtube_highlight}
                         ELSE coalesce(v.title, ys.text)
                     END AS snippet,
                     'youtube' AS source,
-                    ts_rank_cd(ys.text_tsv, websearch_to_tsquery('english', :q)) AS rank,
-                    CASE WHEN v.title ILIKE :title_q OR v.youtube_id ILIKE :title_q THEN 1 ELSE 0 END AS title_match,
+                    {youtube_rank} AS rank,
+                    CASE WHEN {title_match} OR v.youtube_id ILIKE :title_q THEN 1 ELSE 0 END AS title_match,
                     v.uploaded_at,
                     v.duration_seconds,
                     v.title AS video_title,
