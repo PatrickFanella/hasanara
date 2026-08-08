@@ -137,6 +137,18 @@ def test_release_manifest_is_ignored_by_git_and_docker() -> None:
     )
 
 
+def test_patched_runtime_dependency_pins_match_all_release_inputs() -> None:
+    required = {
+        "Authlib==1.7.2",
+        "python-dotenv==1.2.2",
+        "requests==2.34.2",
+        "yt-dlp==2026.7.4",
+    }
+    for dependency_file in ("requirements.txt", "requirements-api.txt", "constraints.txt"):
+        pins = set((ROOT / dependency_file).read_text(encoding="utf-8").splitlines())
+        assert required <= pins, f"{dependency_file} is missing a patched runtime pin"
+
+
 def test_release_overlay_is_last_and_requires_immutable_images() -> None:
     helper = (ROOT / "scripts" / "compose_prod.sh").read_text(encoding="utf-8")
     assert helper.rfind("docker-compose.release.yml") > helper.rfind("docker-compose.pitr.yml")
