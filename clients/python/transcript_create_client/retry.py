@@ -2,7 +2,7 @@
 
 import asyncio
 import random
-from typing import Any, Callable, Optional, Set, TypeVar
+from typing import Any, Awaitable, Callable, Optional, Set, TypeVar
 
 from httpx import HTTPStatusError
 
@@ -92,7 +92,7 @@ class RetryConfig:
 
 
 async def retry_async(
-    func: Callable[..., Any],
+    func: Callable[..., Awaitable[T]],
     config: Optional[RetryConfig] = None,
     *args: Any,
     **kwargs: Any,

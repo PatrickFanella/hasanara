@@ -169,6 +169,7 @@ class TranscriptClient:
         """
         await self._ensure_client()
         assert self._client is not None
+        client = self._client
 
         # Apply rate limiting
         if self.rate_limiter:
@@ -176,7 +177,7 @@ class TranscriptClient:
 
         async def _do_request() -> httpx.Response:
             try:
-                response = await self._client.request(method, path, **kwargs)
+                response = await client.request(method, path, **kwargs)
 
                 # Handle rate limiting feedback
                 if response.status_code == 429 and isinstance(self.rate_limiter, AdaptiveRateLimiter):

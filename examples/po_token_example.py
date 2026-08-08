@@ -6,7 +6,7 @@ for obtaining and managing YouTube PO tokens.
 """
 
 from worker.po_token_manager import POTokenManager, TokenType
-from worker.po_token_providers import ManualTokenProvider, HTTPTokenProvider
+from worker.po_token_providers import HTTPTokenProvider, ManualTokenProvider
 
 
 def example_basic_usage():
@@ -56,7 +56,7 @@ def example_caching():
 
     # Get stats
     stats = manager.get_stats()
-    print(f"\nCache stats:")
+    print("\nCache stats:")
     print(f"  Hits: {stats['cache']['hits']}")
     print(f"  Misses: {stats['cache']['misses']}")
     print(f"  Hit rate: {stats['cache']['hit_rate']:.1%}")
@@ -81,7 +81,7 @@ def example_context():
 
     print(f"Token for US region: {token_us}")
     print(f"Token for EU region: {token_eu}")
-    print(f"Both contexts cached separately")
+    print("Both contexts cached separately")
     print()
 
 
@@ -156,12 +156,12 @@ def example_http_provider():
     )
 
     print(f"HTTP provider configured: {provider.is_available()}")
-    print(f"Base URL: http://localhost:8080")
-    print(f"Timeout: 5.0 seconds")
+    print("Base URL: http://localhost:8080")
+    print("Timeout: 5.0 seconds")
     print()
     print("Note: HTTP provider requires external service to be running.")
     print("Expected API endpoint: GET /token?type=<player|gvs|subs>")
-    print("Expected response: {\"token\": \"value\"}")
+    print('Expected response: {"token": "value"}')
     print()
 
 
