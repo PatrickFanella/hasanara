@@ -81,6 +81,7 @@ DIARIZATION_RENDERED_ENVIRONMENT = {
     "ENVIRONMENT",
     "LOG_LEVEL",
     "ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION",
+    "ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION",
 }
 FOUR_GIB_VALUES = {"4g", "4G", 4_294_967_296, "4294967296"}
 
@@ -241,6 +242,7 @@ def validate_rendered_services(rendered: dict[str, Any], services: set[str], man
             if (
                 not isinstance(environment, dict)
                 or environment.get("ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION") != "false"
+                or environment.get("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION") != "false"
             ):
                 fail("Compose migration safety contract is invalid")
             if environment.get("DATABASE_URL") != expected_database_url:
@@ -353,6 +355,7 @@ def validate_diarization_contract(rendered: dict[str, Any], manifest: dict[str, 
         or environment.get("ENVIRONMENT") != "production"
         or environment.get("LOG_LEVEL") != "INFO"
         or environment.get("ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION") != "false"
+        or environment.get("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION") != "false"
     ):
         fail("Compose diarization environment contract is invalid")
     if environment.get("DATABASE_URL") != diarization_url:

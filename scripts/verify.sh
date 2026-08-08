@@ -19,6 +19,7 @@ export FRONTEND_ORIGIN='http://localhost:5173'
 # The repository-owned isolated database deliberately exercises the one-time
 # destructive session contract migration.
 export ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION='true'
+export ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION='true'
 
 cleanup() {
   local status=$?

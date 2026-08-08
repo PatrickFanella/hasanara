@@ -726,6 +726,44 @@ def test_drop_plaintext_session_tokens_allows_explicit_opt_in(alembic_config, cl
             assert _sessions_contract(conn) == ({"token_hash": True}, {"UNIQUE (token_hash)"})
 
 
+@pytest.mark.parametrize("flag", [None, "false", "0"])
+def test_drop_event_session_token_requires_explicit_opt_in(alembic_config, clean_db, monkeypatch, flag):
+    command.upgrade(alembic_config, "20260714_0300")
+    if flag is None:
+        monkeypatch.delenv("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION", raising=False)
+    else:
+        monkeypatch.setenv("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION", flag)
+
+    with pytest.raises(RuntimeError, match="ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION=true"):
+        command.upgrade(alembic_config, "20260807_event_token")
+
+
+def test_drop_event_session_token_contract_and_downgrade(alembic_config, clean_db, test_db_url, monkeypatch):
+    command.upgrade(alembic_config, "20260714_0300")
+    monkeypatch.setenv("ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION", "true")
+    command.upgrade(alembic_config, "20260807_event_token")
+
+    with get_engine(test_db_url) as engine:
+        with engine.begin() as conn:
+            assert not conn.execute(text("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema='public' AND table_name='events'
+                          AND column_name='session_token'
+                    )
+                """)).scalar_one()
+
+    command.downgrade(alembic_config, "20260714_0300")
+    with get_engine(test_db_url) as engine:
+        with engine.begin() as conn:
+            nullable = conn.execute(text("""
+                    SELECT is_nullable FROM information_schema.columns
+                    WHERE table_schema='public' AND table_name='events'
+                      AND column_name='session_token'
+                """)).scalar_one()
+            assert nullable == "YES"
+
+
 def test_drop_plaintext_session_tokens_downgrade_invalidates_sessions(alembic_config, clean_db, test_db_url):
     """Downgrade invalidates sessions and exactly restores the expand catalog."""
     command.upgrade(alembic_config, "20260714_linked_identities")

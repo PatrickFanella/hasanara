@@ -65,7 +65,13 @@ def rendered_service(service: str, image: str) -> dict[str, Any]:
     if service == "db":
         environment["POSTGRES_PASSWORD"] = "inert"
     if service in preflight.DATABASE_CLIENTS:
-        environment.update({"DATABASE_URL": DATABASE_URL, "ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION": "false"})
+        environment.update(
+            {
+                "DATABASE_URL": DATABASE_URL,
+                "ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION": "false",
+                "ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION": "false",
+            }
+        )
     if service == "backup":
         environment["PGPASSWORD"] = "inert"
     if service in preflight.APPLICATION_SERVICES:
@@ -98,6 +104,7 @@ def rendered_service(service: str, image: str) -> dict[str, Any]:
                 "ENVIRONMENT": "production",
                 "LOG_LEVEL": "INFO",
                 "ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION": "false",
+                "ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION": "false",
             }
         )
         rendered.update(
@@ -148,6 +155,7 @@ def test_release_overlay_is_last_and_requires_immutable_images() -> None:
     assert overlay.count("ENVIRONMENT: production") == len(preflight.APPLICATION_SERVICES) + 1
     assert overlay.count("LOG_LEVEL: INFO") == len(preflight.APPLICATION_SERVICES) + 1
     assert 'ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION: "false"' in overlay
+    assert overlay.count('ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION: "false"') == 8
 
 
 def test_overlay_forces_env_file_and_diarization_is_opt_in() -> None:
@@ -1578,6 +1586,7 @@ def test_compose_render_with_inert_values_when_available(tmp_path: Path, monkeyp
             assert environment["POSTGRES_PASSWORD"] == "inert"
         if service in env_file_services:
             assert environment["ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION"] == "false"
+            assert environment["ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION"] == "false"
         if service in env_file_services - {"diarization-worker"}:
             assert environment["DB_PASSWORD"] == "inert"
         if service in preflight.DATABASE_CLIENTS:

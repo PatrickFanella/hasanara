@@ -41,6 +41,7 @@ services:
             # Local fresh databases opt in by default. docker-compose.prod.yml
             # explicitly overrides this to false for fail-closed rolling production.
             ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION: ${ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION:-true}
+            ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION: ${ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION:-true}
         depends_on:
             db:
                 condition: service_healthy

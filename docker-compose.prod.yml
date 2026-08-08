@@ -39,6 +39,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:${DB_PASSWORD:?DB_PASSWORD is required}@db:5432/transcripts
       # Never enable for an ordinary rolling deployment.
       ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION: ${ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION:-false}
+      ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION: ${ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION:-false}
 
   api:
     ports: !reset []
