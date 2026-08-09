@@ -26,6 +26,20 @@ def _chapter_title(text: str, index: int) -> str:
     return f"Opening: {title}" if index == 0 else title
 
 
+def _representative_evidence(group: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
+    filler = {"again", "okay", "ok", "wow", "yeah", "right", "anyway", "so"}
+    for block in group:
+        sentences = re.split(r"(?<=[.!?])\s+", _clean_text(str(block.get("text") or "")))
+        for sentence in sentences:
+            words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'-]*", sentence)
+            normalized = " ".join(words).casefold()
+            if len(words) < 4 or normalized in filler:
+                continue
+            return block, sentence
+    first = group[0]
+    return first, _clean_text(str(first.get("text") or ""))
+
+
 def build_grounded_chapters(
     blocks: Iterable[dict[str, Any]],
     *,
@@ -60,12 +74,12 @@ def build_grounded_chapters(
 
     chapters: list[dict[str, Any]] = []
     for index, group in enumerate(groups):
-        evidence = group[0]
+        evidence, representative_text = _representative_evidence(group)
         start_ms = int(group[0].get("start_ms") or 0)
         next_start = int(groups[index + 1][0].get("start_ms") or 0) if index + 1 < len(groups) else None
         natural_end = int(group[-1].get("end_ms") or start_ms)
         end_ms = next_start if next_start is not None else max(natural_end, duration_ms or 0)
-        quote = _truncate(str(evidence.get("text") or ""), 280)
+        quote = _truncate(representative_text, 280)
         chapters.append(
             {
                 "chapter_index": index,

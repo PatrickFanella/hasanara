@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from app.archive.labeling.evaluation import calculate_label_quality_metrics, format_label_quality_report
+from app.archive.labeling.evaluation import (
+    calculate_label_quality_metrics,
+    evaluate_enrichment_predictions,
+    format_label_quality_report,
+)
 
 
 def test_calculate_label_quality_metrics_counts_statuses_evidence_and_rates():
@@ -101,3 +105,39 @@ def test_format_label_quality_report_prints_contract_lines():
     assert "assignments_without_evidence=0" in output
     assert "admin_approval_rate=0.0" in output
     assert "rejected_rate=0.0" in output
+
+
+def test_evaluate_enrichment_predictions_scores_tags_and_chapters():
+    metrics = evaluate_enrichment_predictions(
+        predicted_tags=["Gaza", "US election", "generic filler"],
+        expected_tags=["gaza", "labor", "us election"],
+        junk_tags=["generic filler"],
+        predicted_chapters=[
+            {"start_ms": 0, "end_ms": 300_000, "title": "Opening news roundup"},
+            {"start_ms": 300_000, "end_ms": 600_000, "title": "Labor organizing in Michigan"},
+        ],
+        expected_chapter_starts_ms=[0, 330_000],
+        duration_ms=600_000,
+        boundary_tolerance_ms=90_000,
+    )
+
+    assert metrics.tag_precision_at_5 == 0.6667
+    assert metrics.tag_recall_at_10 == 0.6667
+    assert metrics.junk_tag_rate == 0.3333
+    assert metrics.chapter_boundary_f1 == 1.0
+    assert metrics.chapter_coverage == 1.0
+    assert metrics.fragment_title_rate == 0.0
+
+
+def test_evaluate_enrichment_predictions_penalizes_uncovered_time_and_fragment_titles():
+    metrics = evaluate_enrichment_predictions(
+        predicted_tags=[],
+        expected_tags=[],
+        predicted_chapters=[{"start_ms": 100_000, "end_ms": 200_000, "title": "Okay?"}],
+        expected_chapter_starts_ms=[0, 300_000],
+        duration_ms=400_000,
+    )
+
+    assert metrics.chapter_boundary_f1 == 0.0
+    assert metrics.chapter_coverage == 0.25
+    assert metrics.fragment_title_rate == 1.0

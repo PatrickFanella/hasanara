@@ -1808,55 +1808,14 @@ def refresh_named_period_stats(db, limit: int | None = None, period_slug: str | 
 
 
 def autopublish_search_topics(db, limit: int = 20):
-    rows = _safe_mappings(
-        db,
-        """
-        SELECT term, frequency
-        FROM search_suggestions
-        ORDER BY frequency DESC, last_used DESC NULLS LAST, term ASC
-        LIMIT :limit
-        """,
-        {"limit": limit},
-    )
-    if not rows:
-        return {"topics": 0}
+    """Retain the legacy maintenance hook without promoting user queries.
 
-    existing = {row["slug"] for row in _safe_mappings(db, "SELECT slug FROM archive_topics")}
-    inserted = 0
-    for row in rows:
-        term = row["term"]
-        slug = slugify_topic(term)
-        if slug in AUTO_TOPIC_STOP_TERMS or term.strip().lower() in AUTO_TOPIC_STOP_TERMS or _is_junk_topic_label(term):
-            continue
-        if slug in existing:
-            continue
-        result = _safe_execute(
-            db,
-            """
-            INSERT INTO archive_topics (slug, label, description, source, status, is_editable, created_at, updated_at)
-            VALUES (:slug, :label, NULL, 'automatic', 'published', true, now(), now())
-            ON CONFLICT (slug) DO UPDATE SET
-                label = EXCLUDED.label,
-                source = 'automatic',
-                status = 'published',
-                is_editable = true,
-                updated_at = now()
-            """,
-            {"slug": slug, "label": term},
-        )
-        if result is None:
-            continue
-        inserted += 1
-        _safe_execute(
-            db,
-            """
-            INSERT INTO archive_topic_aliases (topic_id, alias, weight, created_at)
-            SELECT id, :alias, 1, now() FROM archive_topics WHERE slug = :slug
-            ON CONFLICT DO NOTHING
-            """,
-            {"slug": slug, "alias": term},
-        )
-    return {"topics": inserted}
+    Search frequency is a demand signal, not evidence that a term belongs in
+    the public taxonomy. Candidate creation now belongs in the evidence-backed
+    label pipeline; this compatibility hook deliberately performs no writes.
+    """
+    _ = db, limit
+    return {"topics": 0}
 
 
 def hide_automatic_stop_topics(db):

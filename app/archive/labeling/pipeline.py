@@ -144,6 +144,14 @@ def _load_video_title(db: Any, video_id: str) -> str:
     return str(row.get("title") or "") if row else ""
 
 
+def _load_preferred_source_segments(db: Any, video_id: str) -> tuple[str, list[dict]]:
+    """Load one transcript source so corroborating transcripts do not double-count evidence."""
+    whisper_segments = load_source_segments(db, video_id, "whisper")
+    if whisper_segments:
+        return "whisper", whisper_segments
+    return "youtube", load_source_segments(db, video_id, "youtube")
+
+
 def extract_labels_for_video(
     db: Any,
     video_id: str,
@@ -167,22 +175,21 @@ def extract_labels_for_video(
     try:
         window_dicts: list[dict] = []
         if not title_only:
-            for source in ("whisper", "youtube"):
-                segments = load_source_segments(db, video_id, source)
-                windows = build_windows_from_segments(segments, source=source)
-                persist_windows(db, video_id, windows)
-                metrics["windows"] += len(windows)
-                window_dicts.extend(
-                    {
-                        "id": window.text_hash,
-                        "video_id": video_id,
-                        "source": source,
-                        "text": window.text,
-                        "start_ms": window.start_ms,
-                        "end_ms": window.end_ms,
-                    }
-                    for window in windows
-                )
+            source, segments = _load_preferred_source_segments(db, video_id)
+            windows = build_windows_from_segments(segments, source=source)
+            persist_windows(db, video_id, windows)
+            metrics["windows"] += len(windows)
+            window_dicts.extend(
+                {
+                    "id": window.text_hash,
+                    "video_id": video_id,
+                    "source": source,
+                    "text": window.text,
+                    "start_ms": window.start_ms,
+                    "end_ms": window.end_ms,
+                }
+                for window in windows
+            )
 
         aliases = _load_existing_aliases(db)
         candidates = [] if title_only else extract_alias_candidates(window_dicts, aliases)

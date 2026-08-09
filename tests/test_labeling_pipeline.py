@@ -153,15 +153,36 @@ def test_extract_labels_for_video_persists_windows_and_assignments(monkeypatch):
 
     assert result["video_id"] == "video-1"
     assert result["run_id"] == "run-1"
-    assert result["windows"] == 2
+    assert result["windows"] == 1
     assert result["candidates"] == 1
     assert result["assignments"] == 1
-    assert len(windows_written) == 2
+    assert len(windows_written) == 1
+    assert windows_written[0][1][0].source == "whisper"
     assignment_call = next(call for kind, call in assignments if kind == "assignment")
     assert assignment_call["source"] == "alias"
     assert assignment_call["status"] == "auto_published"
     assert assignment_call["window_id"] is None
-    assert runs == [("completed", {"windows": 2, "candidates": 1, "assignments": 1})]
+    assert runs == [("completed", {"windows": 1, "candidates": 1, "assignments": 1})]
+
+
+def test_preferred_transcript_source_falls_back_to_youtube(monkeypatch):
+    from app.archive.labeling import pipeline
+
+    calls = []
+
+    def load_segments(_db, _video_id, source):
+        calls.append(source)
+        if source == "whisper":
+            return []
+        return [{"id": 7, "start_ms": 0, "end_ms": 1000, "text": "youtube only"}]
+
+    monkeypatch.setattr(pipeline, "load_source_segments", load_segments)
+
+    source, segments = pipeline._load_preferred_source_segments(object(), "video-youtube")
+
+    assert source == "youtube"
+    assert segments[0]["text"] == "youtube only"
+    assert calls == ["whisper", "youtube"]
 
 
 def test_extract_labels_for_video_uses_keyphrase_assignment_source(monkeypatch):
