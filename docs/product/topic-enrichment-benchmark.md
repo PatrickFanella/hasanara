@@ -107,3 +107,29 @@ Partial runs are recoverable with `--resume`. Limit an initial smoke test by rep
 - `blind-editorial-review.md`, which hides model identities while titles, boundaries, topics, and keywords are judged.
 
 The blind worksheet is the quality decision. Automated grounding and shape metrics catch invalid or unsupported results, but they cannot determine whether a chapter title is genuinely useful to an editor. Reveal `blind_model_key` in the comparison report only after completing the worksheet.
+
+## Candidate generation with V4 Pro
+
+The production-facing enrichment path is deliberately review-only. It uses the pinned `deepseek/deepseek-v4-pro` model through OpenRouter, divides long episodes into balanced windows no longer than 90 minutes, and merges their chapter timelines and recurring labels. This avoids the oversized tail chapters found in the whole-episode bake-off.
+
+Configure the ignored `.env` file:
+
+```dotenv
+ARCHIVE_ENRICHMENT_ENABLED=true
+ARCHIVE_ENRICHMENT_PROVIDER=openrouter
+ARCHIVE_ENRICHMENT_MODEL=deepseek/deepseek-v4-pro
+OPENROUTER_API_KEY=...
+ARCHIVE_ENRICHMENT_MAX_WINDOW_MINUTES=90
+ARCHIVE_ENRICHMENT_MAX_COST_USD_PER_VIDEO=1.00
+ARCHIVE_ENRICHMENT_PUBLISH=false
+```
+
+Run an explicit pilot from the repository root, repeating `--video-id` when needed:
+
+```bash
+./.venv/bin/python scripts/enrich_archive_video.py \
+  --video-id VIDEO_UUID_1 \
+  --video-id VIDEO_UUID_2
+```
+
+The command processes videos sequentially, writes an auditable extraction run, and replaces only prior automatic candidates. It refuses videos with curated or moderated chapters, never publishes chapters or labels, disables OpenRouter provider fallback, rejects labels without lexical support in cited transcript blocks, and fails the run before persistence if the reported model cost exceeds the configured per-video limit. Editors must review candidates before any separate publication step.
