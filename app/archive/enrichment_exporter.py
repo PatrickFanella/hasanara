@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from .enrichment_runner import EnrichmentInput
+from .enrichment_runner import EnrichmentInput, EpisodeInput, TranscriptBlockInput
 from .golden_sampler import select_representative_videos
 
 
@@ -53,7 +53,7 @@ def _candidate_videos(
     return [dict(row) for row in rows]
 
 
-def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> list[dict[str, Any]]:
+def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> list[TranscriptBlockInput]:
     rows = (
         db.execute(
             text("""
@@ -68,7 +68,7 @@ def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> 
         .mappings()
         .all()
     )
-    blocks: list[dict[str, Any]] = []
+    blocks: list[TranscriptBlockInput] = []
     for row in rows:
         start_ms = max(0, int(row.get("start_ms") or 0))
         end_ms = min(duration_ms, int(row.get("end_ms") or start_ms))
@@ -76,12 +76,12 @@ def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> 
         if end_ms <= start_ms or not cleaned:
             continue
         blocks.append(
-            {
-                "block_index": int(row.get("block_index") or 0),
-                "start_ms": start_ms,
-                "end_ms": end_ms,
-                "text": cleaned,
-            }
+            TranscriptBlockInput(
+                block_index=int(row.get("block_index") or 0),
+                start_ms=start_ms,
+                end_ms=end_ms,
+                text=cleaned,
+            )
         )
     return blocks
 
@@ -117,13 +117,19 @@ def export_enrichment_input(
         selected = [candidates_by_id[video_id] for video_id in requested_ids]
     else:
         selected = select_representative_videos(candidates, per_stratum=per_stratum, total_limit=sample_size)
-    episodes = []
+    episodes: list[EpisodeInput] = []
     for video in selected:
         duration_ms = int(video.get("duration_seconds") or 0) * 1000
         blocks = _video_blocks(db, str(video["id"]), duration_ms, max_blocks_per_video)
         if not blocks:
             continue
-        episodes.append({"video_id": str(video["id"]), "duration_ms": duration_ms, "blocks": blocks})
+        episodes.append(
+            EpisodeInput(
+                video_id=str(video["id"]),
+                duration_ms=duration_ms,
+                blocks=blocks,
+            )
+        )
     if not episodes:
         raise ValueError("no exportable transcript blocks were found")
     return EnrichmentInput(

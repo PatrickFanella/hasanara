@@ -63,7 +63,7 @@ def select_representative_videos(
     if per_stratum <= 0 or total_limit <= 0:
         raise ValueError("sample sizes must be positive")
     ordered = sorted((dict(video) for video in videos), key=_sort_key, reverse=True)
-    buckets = {stratum: [] for stratum in REPRESENTATIVE_STRATA}
+    buckets: dict[str, list[dict[str, Any]]] = {stratum: [] for stratum in REPRESENTATIVE_STRATA}
     for video in ordered:
         stratum = classify_video_stratum(video)
         if stratum in buckets:
