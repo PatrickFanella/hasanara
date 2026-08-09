@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import math
 import time
+from collections import Counter
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 from urllib import error, request
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .enrichment_runner import EpisodeInput
+from .enrichment_runner import EpisodeInput, TranscriptBlockInput
 from .labeling.benchmark import EpisodePrediction, PredictedChapter
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -70,7 +73,9 @@ class EpisodeEnrichmentCandidate(BaseModel):
 
     subjects: list[str] = Field(min_length=1, max_length=12)
     keywords: list[str] = Field(min_length=1, max_length=24)
-    chapters: list[EpisodeChapterCandidate] = Field(min_length=2, max_length=40)
+    # Each bounded provider response is capped at 40 chapters by the request
+    # schema. The merged episode may legitimately contain more than that.
+    chapters: list[EpisodeChapterCandidate] = Field(min_length=2)
 
     @model_validator(mode="after")
     def validate_chapter_starts(self) -> EpisodeEnrichmentCandidate:
@@ -116,6 +121,7 @@ class OpenRouterEpisodeResult(BaseModel):
     first_boundary_normalized: bool = False
     summaries_truncated: int = 0
     evidence_overlap_violations: int = 0
+    window_count: int = 1
 
     def prediction(self, duration_ms: int) -> EpisodePrediction:
         chapters: list[PredictedChapter] = []
@@ -149,6 +155,7 @@ class OpenRouterEpisodeResult(BaseModel):
                 "summaries_truncated": self.summaries_truncated,
             },
             "validation": {"evidence_overlap_violations": self.evidence_overlap_violations},
+            "window_count": self.window_count,
         }
 
 
@@ -366,6 +373,109 @@ def generate_openrouter_episode_enrichment(
     raise RuntimeError("OpenRouter request failed after retries")
 
 
+def _rank_window_labels(values: list[list[str]], limit: int) -> list[str]:
+    counts: Counter[str] = Counter()
+    first_seen: dict[str, int] = {}
+    display: dict[str, str] = {}
+    position = 0
+    for group in values:
+        for value in dict.fromkeys(group):
+            normalized = " ".join(value.casefold().split())
+            if not normalized:
+                continue
+            counts[normalized] += 1
+            first_seen.setdefault(normalized, position)
+            display.setdefault(normalized, value)
+            position += 1
+    ranked = sorted(counts, key=lambda value: (-counts[value], first_seen[value], value))
+    return [display[value] for value in ranked[:limit]]
+
+
+def _balanced_episode_windows(episode: EpisodeInput, max_window_ms: int) -> list[tuple[int, EpisodeInput]]:
+    if max_window_ms <= 0:
+        raise ValueError("max enrichment window must be positive")
+    window_count = max(1, math.ceil(episode.duration_ms / max_window_ms))
+    windows: list[tuple[int, EpisodeInput]] = []
+    for index in range(window_count):
+        start_ms = round(index * episode.duration_ms / window_count)
+        end_ms = round((index + 1) * episode.duration_ms / window_count)
+        blocks: list[TranscriptBlockInput] = []
+        for block in episode.blocks:
+            if block.end_ms <= start_ms or block.start_ms >= end_ms:
+                continue
+            relative_start = max(0, block.start_ms - start_ms)
+            relative_end = min(end_ms - start_ms, block.end_ms - start_ms)
+            if relative_end <= relative_start:
+                continue
+            blocks.append(
+                TranscriptBlockInput(
+                    block_index=block.block_index,
+                    start_ms=relative_start,
+                    end_ms=relative_end,
+                    text=block.text,
+                )
+            )
+        if not blocks:
+            raise ValueError("enrichment window contains no transcript blocks")
+        windows.append(
+            (
+                start_ms,
+                EpisodeInput(
+                    video_id=episode.video_id,
+                    duration_ms=end_ms - start_ms,
+                    blocks=blocks,
+                ),
+            )
+        )
+    return windows
+
+
+def generate_hierarchical_openrouter_enrichment(
+    episode: EpisodeInput,
+    *,
+    generate_window: Callable[[EpisodeInput], OpenRouterEpisodeResult],
+    max_window_ms: int = 90 * 60 * 1000,
+) -> OpenRouterEpisodeResult:
+    """Generate bounded window outlines and merge them into one complete candidate."""
+    window_results: list[tuple[int, OpenRouterEpisodeResult]] = []
+    for offset_ms, window in _balanced_episode_windows(episode, max_window_ms):
+        window_results.append((offset_ms, generate_window(window)))
+
+    models = {result.model for _offset, result in window_results}
+    prompt_versions = {result.prompt_version for _offset, result in window_results}
+    if len(models) != 1 or len(prompt_versions) != 1:
+        raise ValueError("hierarchical enrichment windows must use one model and prompt version")
+
+    chapters: list[EpisodeChapterCandidate] = []
+    for offset_ms, result in window_results:
+        chapters.extend(
+            chapter.model_copy(update={"start_ms": offset_ms + chapter.start_ms})
+            for chapter in result.candidate.chapters
+        )
+    candidate = EpisodeEnrichmentCandidate(
+        subjects=_rank_window_labels([result.candidate.subjects for _offset, result in window_results], 12),
+        keywords=_rank_window_labels([result.candidate.keywords for _offset, result in window_results], 24),
+        chapters=chapters,
+    )
+    providers = list(dict.fromkeys(result.provider for _offset, result in window_results))
+    first_result = window_results[0][1]
+    return OpenRouterEpisodeResult(
+        video_id=episode.video_id,
+        model=first_result.model,
+        provider=", ".join(providers),
+        prompt_version=first_result.prompt_version,
+        candidate=candidate,
+        prompt_tokens=sum(result.prompt_tokens for _offset, result in window_results),
+        completion_tokens=sum(result.completion_tokens for _offset, result in window_results),
+        cost_usd=sum(result.cost_usd for _offset, result in window_results),
+        elapsed_seconds=sum(result.elapsed_seconds for _offset, result in window_results),
+        first_boundary_normalized=any(result.first_boundary_normalized for _offset, result in window_results),
+        summaries_truncated=sum(result.summaries_truncated for _offset, result in window_results),
+        evidence_overlap_violations=sum(result.evidence_overlap_violations for _offset, result in window_results),
+        window_count=len(window_results),
+    )
+
+
 __all__ = [
     "EPISODE_ENRICHMENT_SCHEMA",
     "OPENROUTER_CHAT_URL",
@@ -375,5 +485,6 @@ __all__ = [
     "OpenRouterEpisodeResult",
     "OpenRouterResponseValidationError",
     "build_openrouter_episode_request",
+    "generate_hierarchical_openrouter_enrichment",
     "generate_openrouter_episode_enrichment",
 ]

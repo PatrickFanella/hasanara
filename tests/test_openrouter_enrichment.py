@@ -6,7 +6,10 @@ import pytest
 from app.archive.enrichment_runner import EpisodeInput, TranscriptBlockInput
 from app.archive.openrouter_enrichment import (
     EPISODE_ENRICHMENT_SCHEMA,
+    EpisodeEnrichmentCandidate,
+    OpenRouterEpisodeResult,
     build_openrouter_episode_request,
+    generate_hierarchical_openrouter_enrichment,
     generate_openrouter_episode_enrichment,
 )
 
@@ -197,3 +200,71 @@ def test_generate_openrouter_enrichment_retries_transient_http_errors(monkeypatc
 def test_generate_openrouter_enrichment_requires_key():
     with pytest.raises(ValueError, match="API key"):
         generate_openrouter_episode_enrichment(_episode(), api_key="", model="model")
+
+
+def test_hierarchical_enrichment_bounds_windows_and_recombines_episode():
+    duration_ms = 200 * 60_000
+    episode = EpisodeInput(
+        video_id="long-video",
+        duration_ms=duration_ms,
+        blocks=[
+            TranscriptBlockInput(
+                block_index=index,
+                start_ms=index * 10 * 60_000,
+                end_ms=(index + 1) * 10 * 60_000,
+                text=f"Discussion block {index} about topic {index // 4}.",
+            )
+            for index in range(20)
+        ],
+    )
+    window_durations: list[int] = []
+
+    def generate_window(window: EpisodeInput) -> OpenRouterEpisodeResult:
+        window_durations.append(window.duration_ms)
+        midpoint = window.duration_ms // 2
+        return OpenRouterEpisodeResult(
+            video_id=window.video_id,
+            model="deepseek/deepseek-v4-pro",
+            provider="provider",
+            prompt_version="prompt-v1",
+            candidate=EpisodeEnrichmentCandidate(
+                subjects=["Topic"],
+                keywords=["discussion topic"],
+                chapters=[
+                    {
+                        "start_ms": 0,
+                        "title": "First Topic in This Window",
+                        "summary": "The first portion discusses one sustained topic.",
+                        "evidence_block_indexes": [window.blocks[0].block_index],
+                    },
+                    {
+                        "start_ms": midpoint,
+                        "title": "Second Topic in This Window",
+                        "summary": "The second portion discusses another sustained topic.",
+                        "evidence_block_indexes": [window.blocks[-1].block_index],
+                    },
+                ],
+            ),
+            prompt_tokens=100,
+            completion_tokens=20,
+            cost_usd=0.01,
+            elapsed_seconds=1.0,
+        )
+
+    result = generate_hierarchical_openrouter_enrichment(
+        episode,
+        generate_window=generate_window,
+        max_window_ms=90 * 60_000,
+    )
+
+    assert len(window_durations) == 3
+    assert max(window_durations) <= 90 * 60_000
+    prediction = result.prediction(duration_ms)
+    assert prediction.chapters[0].start_ms == 0
+    assert prediction.chapters[-1].end_ms == duration_ms
+    assert all(
+        chapter.end_ms == prediction.chapters[index + 1].start_ms
+        for index, chapter in enumerate(prediction.chapters[:-1])
+    )
+    assert result.window_count == 3
+    assert result.cost_usd == pytest.approx(0.03)
