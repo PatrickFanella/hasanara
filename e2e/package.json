@@ -23,7 +23,7 @@
     "@playwright/test": "^1.50.1",
     "@types/node": "^24.6.0",
     "@types/pg": "^8.11.10",
-    "typescript": "~5.9.3",
+    "typescript": "~7.0.2",
     "tsx": "^4.19.2"
   }
 }
