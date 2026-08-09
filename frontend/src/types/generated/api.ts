@@ -816,7 +816,7 @@ export interface paths {
     put?: never;
     /**
      * Set user plan (Admin)
-     * @description Change a user's administratively assigned access plan. Billing is disabled.
+     * @description Change a user's manually assigned internal access tier.
      *
      *         **Admin Only:** Requires admin privileges
      *
@@ -2184,7 +2184,7 @@ export interface components {
       type: string;
     };
     /** ArchiveEvidenceMoment */
-    ArchiveEvidenceMoment: {
+    'ArchiveEvidenceMoment-Input': {
       /**
        * End Ms
        * @description Moment end timestamp
@@ -2206,7 +2206,32 @@ export interface components {
        */
       topic?: string | null;
       /** @description VOD containing the cited evidence */
-      video: components['schemas']['VideoInfo'];
+      video: components['schemas']['VideoInfo-Input'];
+    };
+    /** ArchiveEvidenceMoment */
+    'ArchiveEvidenceMoment-Output': {
+      /**
+       * End Ms
+       * @description Moment end timestamp
+       */
+      end_ms: number;
+      /**
+       * Snippet
+       * @description Evidence snippet from transcript text
+       */
+      snippet: string;
+      /**
+       * Start Ms
+       * @description Moment start timestamp
+       */
+      start_ms: number;
+      /**
+       * Topic
+       * @description Topic or query this evidence supports
+       */
+      topic?: string | null;
+      /** @description VOD containing the cited evidence */
+      video: components['schemas']['VideoInfo-Output'];
     };
     /** ArchiveIntelligenceResponse */
     ArchiveIntelligenceResponse: {
@@ -2219,7 +2244,7 @@ export interface components {
        * People
        * @description Featured people facets for the selected scope
        */
-      people?: components['schemas']['ArchivePerson'][];
+      people?: components['schemas']['ArchivePerson-Output'][];
       /**
        * Period Options
        * @description Available predefined archive periods
@@ -2229,7 +2254,7 @@ export interface components {
        * Periods
        * @description Timeline periods enriched with topic/evidence data
        */
-      periods?: components['schemas']['ArchivePeriodIntelligence'][];
+      periods?: components['schemas']['ArchivePeriodIntelligence-Output'][];
       /**
        * Query Time Ms
        * @description Time taken to compose archive intelligence
@@ -2248,12 +2273,12 @@ export interface components {
        * Tags
        * @description Featured tag facets for the selected scope
        */
-      tags?: components['schemas']['ArchiveVideoTag'][];
+      tags?: components['schemas']['ArchiveVideoTag-Output'][];
       /**
        * Topic Cards
        * @description Hybrid curated/automatic topic cards
        */
-      topic_cards?: components['schemas']['ArchiveTopicCard'][];
+      topic_cards?: components['schemas']['ArchiveTopicCard-Output'][];
       /**
        * Trending Searches
        * @description Trending public searches
@@ -2639,12 +2664,12 @@ export interface components {
       status?: string | null;
     };
     /** ArchivePeriodIntelligence */
-    ArchivePeriodIntelligence: {
+    'ArchivePeriodIntelligence-Input': {
       /**
        * Evidence
        * @description Citations supporting the summary
        */
-      evidence?: components['schemas']['ArchiveEvidenceMoment'][];
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Input'][];
       /**
        * Label
        * @description Human-readable period label
@@ -2664,7 +2689,7 @@ export interface components {
        * Top Topics
        * @description Top topics for the period
        */
-      top_topics?: components['schemas']['ArchiveTopicCard'][];
+      top_topics?: components['schemas']['ArchiveTopicCard-Input'][];
       /**
        * Total Duration Seconds
        * @description Total VOD duration in this period
@@ -2679,7 +2704,50 @@ export interface components {
        * Videos
        * @description Representative VODs
        */
-      videos?: components['schemas']['VideoInfo'][];
+      videos?: components['schemas']['VideoInfo-Input'][];
+    };
+    /** ArchivePeriodIntelligence */
+    'ArchivePeriodIntelligence-Output': {
+      /**
+       * Evidence
+       * @description Citations supporting the summary
+       */
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Output'][];
+      /**
+       * Label
+       * @description Human-readable period label
+       */
+      label: string;
+      /**
+       * Period
+       * @description Period identifier, e.g. 2026-05
+       */
+      period: string;
+      /**
+       * Summary
+       * @description Extractive or generated period summary
+       */
+      summary: string;
+      /**
+       * Top Topics
+       * @description Top topics for the period
+       */
+      top_topics?: components['schemas']['ArchiveTopicCard-Output'][];
+      /**
+       * Total Duration Seconds
+       * @description Total VOD duration in this period
+       */
+      total_duration_seconds: number;
+      /**
+       * Video Count
+       * @description VOD count in this period
+       */
+      video_count: number;
+      /**
+       * Videos
+       * @description Representative VODs
+       */
+      videos?: components['schemas']['VideoInfo-Output'][];
     };
     /** ArchivePeriodOption */
     ArchivePeriodOption: {
@@ -2749,7 +2817,46 @@ export interface components {
       selected_period?: components['schemas']['ArchivePeriodOption'] | null;
     };
     /** ArchivePerson */
-    ArchivePerson: {
+    'ArchivePerson-Input': {
+      /**
+       * Aliases
+       * @description Known aliases
+       */
+      aliases?: string[];
+      /**
+       * Default Role
+       * @description Default role/context for automatic video assignments
+       */
+      default_role?: string | null;
+      /**
+       * Description
+       * @description Optional description
+       */
+      description?: string | null;
+      /**
+       * Display Name
+       * @description Display name
+       */
+      display_name: string;
+      /**
+       * Role
+       * @description Role on the video, if assigned
+       */
+      role?: string | null;
+      /**
+       * Slug
+       * @description Stable person slug
+       */
+      slug: string;
+      /**
+       * Sort Order
+       * @description Internal ordering weight
+       * @default 0
+       */
+      sort_order: number;
+    };
+    /** ArchivePerson */
+    'ArchivePerson-Output': {
       /**
        * Aliases
        * @description Known aliases
@@ -2952,7 +3059,7 @@ export interface components {
        * Recent Videos
        * @description Most recent archived videos
        */
-      recent_videos?: components['schemas']['VideoInfo'][];
+      recent_videos?: components['schemas']['VideoInfo-Output'][];
       /**
        * Total Duration Seconds
        * @description Total duration across archived videos
@@ -2983,7 +3090,7 @@ export interface components {
        * Buckets
        * @description Chronological archive buckets
        */
-      buckets?: components['schemas']['TimelineBucket'][];
+      buckets?: components['schemas']['TimelineBucket-Output'][];
       /**
        * Query Time Ms
        * @description Time taken to build the timeline
@@ -2991,7 +3098,7 @@ export interface components {
       query_time_ms?: number | null;
     };
     /** ArchiveTopicCard */
-    ArchiveTopicCard: {
+    'ArchiveTopicCard-Input': {
       /**
        * Aliases
        * @description Search aliases used for this topic
@@ -3001,7 +3108,81 @@ export interface components {
        * Evidence
        * @description Timestamped evidence moments
        */
-      evidence?: components['schemas']['ArchiveEvidenceMoment'][];
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Input'][];
+      /**
+       * Is Editable
+       * @description Whether operators may edit this topic
+       * @default true
+       */
+      is_editable: boolean;
+      /**
+       * Kind
+       * @description Label kind such as topic, series, category, or person
+       */
+      kind?: string | null;
+      /**
+       * Label
+       * @description Public topic label
+       */
+      label: string;
+      /**
+       * Recent Mentions 90D
+       * @description Mentions in the last 90 days
+       * @default 0
+       */
+      recent_mentions_90d: number;
+      /**
+       * Related Topics
+       * @description Related topic labels
+       */
+      related_topics?: string[];
+      /**
+       * Slug
+       * @description Stable topic slug
+       */
+      slug: string;
+      /**
+       * Source
+       * @description curated, automatic, or hybrid
+       */
+      source: string;
+      /**
+       * Status
+       * @description Public lifecycle status for the topic
+       * @default published
+       */
+      status: string;
+      /**
+       * Total Moments
+       * @description Matched transcript moments
+       * @default 0
+       */
+      total_moments: number;
+      /**
+       * Total Videos
+       * @description VODs with at least one matched moment
+       * @default 0
+       */
+      total_videos: number;
+      /**
+       * Trend Score
+       * @description Combined search and transcript trend score
+       * @default 0
+       */
+      trend_score: number;
+    };
+    /** ArchiveTopicCard */
+    'ArchiveTopicCard-Output': {
+      /**
+       * Aliases
+       * @description Search aliases used for this topic
+       */
+      aliases?: string[];
+      /**
+       * Evidence
+       * @description Timestamped evidence moments
+       */
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Output'][];
       /**
        * Is Editable
        * @description Whether operators may edit this topic
@@ -3157,7 +3338,7 @@ export interface components {
        * People
        * @description Assigned people
        */
-      people?: components['schemas']['ArchivePerson'][];
+      people?: components['schemas']['ArchivePerson-Output'][];
       /**
        * State
        * @description Processing state
@@ -3167,7 +3348,7 @@ export interface components {
        * Tags
        * @description Assigned tags
        */
-      tags?: components['schemas']['ArchiveVideoTag'][];
+      tags?: components['schemas']['ArchiveVideoTag-Output'][];
       /**
        * Title
        * @description Video title
@@ -3226,7 +3407,37 @@ export interface components {
       slug: string;
     };
     /** ArchiveVideoTag */
-    ArchiveVideoTag: {
+    'ArchiveVideoTag-Input': {
+      /**
+       * Description
+       * @description Optional description
+       */
+      description?: string | null;
+      /**
+       * Kind
+       * @description Tag kind
+       * @default category
+       */
+      kind: string;
+      /**
+       * Label
+       * @description Display label
+       */
+      label: string;
+      /**
+       * Slug
+       * @description Stable tag slug
+       */
+      slug: string;
+      /**
+       * Sort Order
+       * @description Internal ordering weight
+       * @default 0
+       */
+      sort_order: number;
+    };
+    /** ArchiveVideoTag */
+    'ArchiveVideoTag-Output': {
       /**
        * Description
        * @description Optional description
@@ -3716,14 +3927,24 @@ export interface components {
       csrf_token: string;
     };
     /** EpisodeSearchGroup */
-    EpisodeSearchGroup: {
+    'EpisodeSearchGroup-Input': {
       /**
        * Moments
        * @description Moments matched in this video
        */
       moments?: components['schemas']['SearchMoment'][];
       /** @description Video metadata for the group */
-      video: components['schemas']['VideoInfo'];
+      video: components['schemas']['VideoInfo-Input'];
+    };
+    /** EpisodeSearchGroup */
+    'EpisodeSearchGroup-Output': {
+      /**
+       * Moments
+       * @description Moments matched in this video
+       */
+      moments?: components['schemas']['SearchMoment'][];
+      /** @description Video metadata for the group */
+      video: components['schemas']['VideoInfo-Output'];
     };
     /**
      * ErrorResponse
@@ -3831,7 +4052,7 @@ export interface components {
        * Groups
        * @description Search groups by video
        */
-      groups?: components['schemas']['EpisodeSearchGroup'][];
+      groups?: components['schemas']['EpisodeSearchGroup-Output'][];
       /** Index Lag Seconds */
       index_lag_seconds?: number | null;
       /** Indexed At */
@@ -4128,7 +4349,7 @@ export interface components {
        * Top Episodes
        * @description Top matching episodes
        */
-      top_episodes?: components['schemas']['EpisodeSearchGroup'][];
+      top_episodes?: components['schemas']['EpisodeSearchGroup-Output'][];
       /**
        * Top Episodes Count
        * @description Number of top episodes included in this mention map
@@ -4194,7 +4415,28 @@ export interface components {
       video_id: string;
     };
     /** OpinionHistoryItem */
-    OpinionHistoryItem: {
+    'OpinionHistoryItem-Input': {
+      /** Current Revision */
+      current_revision: number;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Normalized Claim */
+      normalized_claim: string;
+      /** Revisions */
+      revisions: components['schemas']['OpinionRevisionResponse'][];
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'candidate' | 'published' | 'corrected' | 'retracted';
+      /** Subject Slug */
+      subject_slug: string;
+    };
+    /** OpinionHistoryItem */
+    'OpinionHistoryItem-Output': {
       /** Current Revision */
       current_revision: number;
       /**
@@ -4217,7 +4459,7 @@ export interface components {
     /** OpinionHistoryResponse */
     OpinionHistoryResponse: {
       /** Items */
-      items?: components['schemas']['OpinionHistoryItem'][];
+      items?: components['schemas']['OpinionHistoryItem-Output'][];
     };
     /** OpinionRevisionResponse */
     OpinionRevisionResponse: {
@@ -4308,7 +4550,7 @@ export interface components {
        * Items
        * @description List of videos in current page
        */
-      items: components['schemas']['VideoInfo'][];
+      items: components['schemas']['VideoInfo-Output'][];
       /** @description Pagination information */
       page_info: components['schemas']['PageInfo'];
     };
@@ -4389,17 +4631,25 @@ export interface components {
       video_id: string;
     };
     /** RelatedEpisode */
-    RelatedEpisode: {
+    'RelatedEpisode-Input': {
       /** Reasons */
       reasons?: string[];
       /** Score */
       score: number;
-      video: components['schemas']['VideoInfo'];
+      video: components['schemas']['VideoInfo-Input'];
+    };
+    /** RelatedEpisode */
+    'RelatedEpisode-Output': {
+      /** Reasons */
+      reasons?: string[];
+      /** Score */
+      score: number;
+      video: components['schemas']['VideoInfo-Output'];
     };
     /** RelatedEpisodesResponse */
     RelatedEpisodesResponse: {
       /** Items */
-      items?: components['schemas']['RelatedEpisode'][];
+      items?: components['schemas']['RelatedEpisode-Output'][];
     };
     /** RevokedResponse */
     RevokedResponse: {
@@ -4824,7 +5074,7 @@ export interface components {
       sessions: components['schemas']['SessionResponse'][];
     };
     /** TimelineBucket */
-    TimelineBucket: {
+    'TimelineBucket-Input': {
       /**
        * Label
        * @description Human-readable bucket label
@@ -4849,14 +5099,55 @@ export interface components {
        * Videos
        * @description Videos in chronological order
        */
-      videos?: components['schemas']['VideoInfo'][];
+      videos?: components['schemas']['VideoInfo-Input'][];
+    };
+    /** TimelineBucket */
+    'TimelineBucket-Output': {
+      /**
+       * Label
+       * @description Human-readable bucket label
+       */
+      label: string;
+      /**
+       * Period
+       * @description Bucket period label, e.g. 2026-05
+       */
+      period: string;
+      /**
+       * Total Duration Seconds
+       * @description Total duration for videos in the bucket
+       */
+      total_duration_seconds: number;
+      /**
+       * Video Count
+       * @description Number of videos in the bucket
+       */
+      video_count: number;
+      /**
+       * Videos
+       * @description Videos in chronological order
+       */
+      videos?: components['schemas']['VideoInfo-Output'][];
     };
     /** TopicTimelineBucket */
-    TopicTimelineBucket: {
+    'TopicTimelineBucket-Input': {
       /** Episode Count */
       episode_count: number;
       /** Evidence */
-      evidence?: components['schemas']['ArchiveEvidenceMoment'][];
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Input'][];
+      /** Label */
+      label: string;
+      /** Mention Count */
+      mention_count: number;
+      /** Period */
+      period: string;
+    };
+    /** TopicTimelineBucket */
+    'TopicTimelineBucket-Output': {
+      /** Episode Count */
+      episode_count: number;
+      /** Evidence */
+      evidence?: components['schemas']['ArchiveEvidenceMoment-Output'][];
       /** Label */
       label: string;
       /** Mention Count */
@@ -4867,7 +5158,7 @@ export interface components {
     /** TopicTimelineResponse */
     TopicTimelineResponse: {
       /** Buckets */
-      buckets?: components['schemas']['TopicTimelineBucket'][];
+      buckets?: components['schemas']['TopicTimelineBucket-Output'][];
       /** Date From */
       date_from?: string | null;
       /** Date To */
@@ -4996,10 +5287,6 @@ export interface components {
     };
     /** ValidationError */
     ValidationError: {
-      /** Context */
-      ctx?: Record<string, never>;
-      /** Input */
-      input?: unknown;
       /** Location */
       loc: (string | number)[];
       /** Message */
@@ -5070,7 +5357,7 @@ export interface components {
      *       "youtube_id": "dQw4w9WgXcQ"
      *     }
      */
-    VideoInfo: {
+    'VideoInfo-Input': {
       /**
        * Caption Ingest State
        * @description YouTube caption ingest state
@@ -5128,7 +5415,7 @@ export interface components {
        * People
        * @description Assigned people
        */
-      people?: components['schemas']['ArchivePerson'][];
+      people?: components['schemas']['ArchivePerson-Input'][];
       /**
        * State
        * @description Processing state
@@ -5138,7 +5425,107 @@ export interface components {
        * Tags
        * @description Assigned tags
        */
-      tags?: components['schemas']['ArchiveVideoTag'][];
+      tags?: components['schemas']['ArchiveVideoTag-Input'][];
+      /**
+       * Title
+       * @description Video title
+       */
+      title?: string | null;
+      /**
+       * Updated At
+       * @description Local row update time
+       */
+      updated_at?: string | null;
+      /**
+       * Uploaded At
+       * @description YouTube upload or stream publish time
+       */
+      uploaded_at?: string | null;
+      /**
+       * Youtube Id
+       * @description YouTube video ID
+       */
+      youtube_id: string;
+    };
+    /**
+     * VideoInfo
+     * @description Basic information about a video.
+     * @example {
+     *       "duration_seconds": 212,
+     *       "id": "123e4567-e89b-12d3-a456-426614174000",
+     *       "title": "Example Video Title",
+     *       "youtube_id": "dQw4w9WgXcQ"
+     *     }
+     */
+    'VideoInfo-Output': {
+      /**
+       * Caption Ingest State
+       * @description YouTube caption ingest state
+       */
+      caption_ingest_state?: string | null;
+      /**
+       * Category
+       * @description Video category
+       */
+      category?: string | null;
+      /**
+       * Channel Name
+       * @description YouTube channel name
+       */
+      channel_name?: string | null;
+      /**
+       * Created At
+       * @description Local row creation time
+       */
+      created_at?: string | null;
+      /**
+       * Diarization State
+       * @description Diarization state
+       */
+      diarization_state?: string | null;
+      /**
+       * Duration Seconds
+       * @description Video duration in seconds
+       */
+      duration_seconds?: number | null;
+      /**
+       * Has Whisper Transcript
+       * @description Whether Whisper transcript segments exist
+       * @default false
+       */
+      has_whisper_transcript: boolean;
+      /**
+       * Has Youtube Transcript
+       * @description Whether YouTube captions exist
+       * @default false
+       */
+      has_youtube_transcript: boolean;
+      /**
+       * Id
+       * Format: uuid
+       * @description Unique identifier for the video
+       */
+      id: string;
+      /**
+       * Language
+       * @description Detected or declared language
+       */
+      language?: string | null;
+      /**
+       * People
+       * @description Assigned people
+       */
+      people?: components['schemas']['ArchivePerson-Output'][];
+      /**
+       * State
+       * @description Processing state
+       */
+      state?: string | null;
+      /**
+       * Tags
+       * @description Assigned tags
+       */
+      tags?: components['schemas']['ArchiveVideoTag-Output'][];
       /**
        * Title
        * @description Video title
@@ -8136,6 +8523,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
       };
@@ -8298,6 +8687,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
       };
@@ -8388,6 +8779,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
         /** @description Number of top episodes to include */
@@ -8871,7 +9264,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['VideoInfo'];
+          'application/json': components['schemas']['VideoInfo-Output'];
         };
       };
       /** @description Video not found */
