@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app.archive.chapter_naming import (
@@ -153,3 +155,47 @@ def test_generate_chapter_name_calls_local_ollama_and_validates_response(monkeyp
 
     assert captured == {"url": "http://ollama:11434/api/chat", "timeout": 30}
     assert named.title == "Michigan Auto Workers Prepare for a Strike"
+
+
+def test_generate_chapter_name_falls_back_to_grounded_extract_when_model_title_is_unsupported(monkeypatch):
+    proposal = SemanticChapterProposal(0, 240_000, 1.0, (0, 1))
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            content = {
+                "title": "California Governor Joins Michigan Strike",
+                "summary": "Auto workers describe their strike vote and contract demands.",
+                "subjects": ["Michigan auto workers"],
+                "keywords": ["contract demands"],
+                "evidence_ids": ["w0", "w1"],
+            }
+            return json.dumps(
+                {
+                    "message": {"content": json.dumps(content)},
+                    "prompt_eval_count": 120,
+                    "eval_count": 48,
+                }
+            ).encode()
+
+    monkeypatch.setattr("app.archive.chapter_naming.request.urlopen", lambda *_args, **_kwargs: _Response())
+
+    named = generate_chapter_name(
+        proposal,
+        WINDOWS,
+        base_url="http://ollama:11434",
+        model="qwen3:8b",
+    )
+
+    assert named.title == "Michigan auto workers announced strike authorization vote wages plant"
+    assert named.summary == WINDOWS[0]["text"]
+    assert named.subjects == ()
+    assert named.keywords == ()
+    assert named.evidence_ids == ("w0",)
+    assert named.model == "qwen3:8b:extractive-fallback"
+    assert named.prompt_tokens == 120

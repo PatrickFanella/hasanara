@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -9,6 +10,7 @@ from urllib import error, request
 from .semantic_chapters import SemanticChapterProposal
 
 PROMPT_VERSION = "archive-chapter-naming-v1"
+logger = logging.getLogger(__name__)
 
 CHAPTER_NAMING_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -203,6 +205,77 @@ def _unsupported_summary_entities(summary: str, evidence_text: str) -> set[str]:
     }
 
 
+_EXTRACTIVE_STOPWORDS = _GROUNDING_STOPWORDS | {
+    "about",
+    "again",
+    "anyway",
+    "like",
+    "okay",
+    "over",
+    "really",
+    "right",
+    "so",
+    "that",
+    "this",
+    "yeah",
+}
+
+
+def _extractive_fallback(
+    payload: dict[str, Any],
+    proposal: SemanticChapterProposal,
+    windows: list[dict[str, Any]],
+    *,
+    model: str,
+) -> NamedChapter:
+    evidence = _evidence_for_proposal(proposal, windows)
+    candidates: list[tuple[int, int, int, int, str, str, list[str]]] = []
+    for evidence_position, item in enumerate(evidence):
+        sentences = re.split(r"(?<=[.!?])\s+", str(item["text"]))
+        for sentence_position, sentence in enumerate(sentences):
+            cleaned = " ".join(sentence.split()).strip()
+            words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'-]*", cleaned)
+            content_words = [word for word in words if word.casefold() not in _EXTRACTIVE_STOPWORDS]
+            if not content_words:
+                continue
+            score = len({_stem(word) for word in content_words})
+            candidates.append(
+                (
+                    score,
+                    len(content_words),
+                    -evidence_position,
+                    -sentence_position,
+                    str(item["evidence_id"]),
+                    cleaned,
+                    content_words,
+                )
+            )
+    if not candidates:
+        item = evidence[0]
+        cleaned = " ".join(str(item["text"]).split())
+        content_words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'-]*", cleaned)
+        candidates.append((0, len(content_words), 0, 0, str(item["evidence_id"]), cleaned, content_words))
+
+    _score, _word_count, _evidence_position, _sentence_position, evidence_id, summary, content_words = max(candidates)
+    title = " ".join(content_words[:9]).strip() or summary
+    if len(title) > 100:
+        title = title[:100].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    if len(summary) > 300:
+        summary = summary[:300].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    return NamedChapter(
+        start_ms=proposal.start_ms,
+        end_ms=proposal.end_ms,
+        title=title,
+        summary=summary,
+        subjects=(),
+        keywords=(),
+        evidence_ids=(evidence_id,),
+        model=f"{model}:extractive-fallback",
+        prompt_tokens=int(payload.get("prompt_eval_count") or 0),
+        completion_tokens=int(payload.get("eval_count") or 0),
+    )
+
+
 def parse_chapter_naming_response(
     payload: dict[str, Any],
     proposal: SemanticChapterProposal,
@@ -283,7 +356,19 @@ def generate_chapter_name(
         raise RuntimeError(f"Ollama chapter naming request failed: HTTP {exc.code}: {detail}") from exc
     except (error.URLError, TimeoutError) as exc:
         raise RuntimeError(f"Ollama chapter naming request failed: {exc}") from exc
-    return parse_chapter_naming_response(payload, proposal, windows, model=model)
+    try:
+        return parse_chapter_naming_response(payload, proposal, windows, model=model)
+    except ChapterNamingValidationError as exc:
+        logger.warning(
+            "Using extractive chapter fallback after rejected model output",
+            extra={
+                "model": model,
+                "start_ms": proposal.start_ms,
+                "end_ms": proposal.end_ms,
+                "validation_error": str(exc),
+            },
+        )
+        return _extractive_fallback(payload, proposal, windows, model=model)
 
 
 __all__ = [

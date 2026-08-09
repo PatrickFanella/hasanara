@@ -55,3 +55,51 @@ def test_enrichment_runner_builds_benchmark_predictions_without_database_writes(
     assert predictions.episodes[0].subjects == ["Election", "Labor"]
     assert [chapter.start_ms for chapter in predictions.episodes[0].chapters] == [0, 120_000]
     assert embedded_inputs == ["Election campaign", "Union strike"]
+
+
+def test_enrichment_runner_embeds_all_episodes_before_loading_chapter_namer():
+    packet = EnrichmentInput.model_validate(
+        {
+            "schema_version": "1",
+            "pipeline_version": "semantic-qwen-v1",
+            "episodes": [
+                {
+                    "video_id": "video-1",
+                    "duration_ms": 120_000,
+                    "blocks": [{"block_index": 0, "start_ms": 0, "end_ms": 120_000, "text": "First episode"}],
+                },
+                {
+                    "video_id": "video-2",
+                    "duration_ms": 120_000,
+                    "blocks": [{"block_index": 0, "start_ms": 0, "end_ms": 120_000, "text": "Second episode"}],
+                },
+            ],
+        }
+    )
+    events = []
+
+    def embedder(texts):
+        events.append(("embed", texts[0]))
+        return [[1.0, 0.0] for _text in texts]
+
+    def namer(proposal, windows):
+        events.append(("name", windows[0]["text"]))
+        return NamedChapter(
+            start_ms=proposal.start_ms,
+            end_ms=proposal.end_ms,
+            title=windows[0]["text"],
+            summary="A grounded chapter summary.",
+            subjects=(),
+            keywords=(),
+            evidence_ids=("w0",),
+            model="qwen3:4b",
+        )
+
+    generate_prediction_set(packet, embedder=embedder, name_proposal=namer)
+
+    assert events == [
+        ("embed", "First episode"),
+        ("embed", "Second episode"),
+        ("name", "First episode"),
+        ("name", "Second episode"),
+    ]

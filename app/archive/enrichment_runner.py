@@ -74,7 +74,7 @@ def generate_prediction_set(
     novelty_threshold: float = 0.35,
 ) -> PredictionSet:
     """Run the complete enrichment proposal pipeline without persistence."""
-    predictions = []
+    prepared_episodes: list[tuple[EpisodeInput, list[dict[str, Any]], Sequence[Sequence[float]]]] = []
     for episode in packet.episodes:
         windows = build_semantic_windows(
             [block.model_dump() for block in episode.blocks],
@@ -83,6 +83,10 @@ def generate_prediction_set(
             stride_ms=stride_ms,
         )
         embeddings = embedder([str(window["text"]) for window in windows])
+        prepared_episodes.append((episode, windows, embeddings))
+
+    predictions = []
+    for episode, windows, embeddings in prepared_episodes:
         predictions.append(
             generate_episode_prediction(
                 episode.video_id,
