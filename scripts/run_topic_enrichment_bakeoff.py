@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from dotenv import load_dotenv
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -18,6 +20,7 @@ from app.archive.enrichment_runner import EnrichmentInput, EpisodeInput
 from app.archive.labeling.benchmark import PredictionSet
 from app.archive.openrouter_enrichment import (
     OpenRouterEpisodeResult,
+    OpenRouterResponseValidationError,
     generate_openrouter_episode_enrichment,
 )
 
@@ -35,6 +38,10 @@ def _safe_model_name(model: str) -> str:
 def _result_from_dict(payload: dict[str, Any]) -> OpenRouterEpisodeResult:
     raw_usage = payload.get("usage")
     usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
+    raw_normalizations = payload.get("normalizations")
+    normalizations: dict[str, Any] = raw_normalizations if isinstance(raw_normalizations, dict) else {}
+    raw_validation = payload.get("validation")
+    validation: dict[str, Any] = raw_validation if isinstance(raw_validation, dict) else {}
     return OpenRouterEpisodeResult(
         video_id=str(payload["video_id"]),
         model=str(payload["model"]),
@@ -45,6 +52,9 @@ def _result_from_dict(payload: dict[str, Any]) -> OpenRouterEpisodeResult:
         completion_tokens=int(usage.get("completion_tokens") or 0),
         cost_usd=float(usage.get("cost_usd") or 0.0),
         elapsed_seconds=float(usage.get("elapsed_seconds") or 0.0),
+        first_boundary_normalized=bool(normalizations.get("first_boundary_to_zero", False)),
+        summaries_truncated=int(normalizations.get("summaries_truncated") or 0),
+        evidence_overlap_violations=int(validation.get("evidence_overlap_violations") or 0),
     )
 
 
@@ -105,6 +115,9 @@ def _model_metrics(results: list[OpenRouterEpisodeResult], episodes: dict[str, E
         "completion_tokens": sum(result.completion_tokens for result in results),
         "cost_usd": round(sum(result.cost_usd for result in results), 6),
         "mean_latency_seconds": round(statistics.mean(elapsed), 2) if elapsed else 0.0,
+        "first_boundary_normalizations": sum(result.first_boundary_normalized for result in results),
+        "summaries_truncated": sum(result.summaries_truncated for result in results),
+        "evidence_overlap_violations": sum(result.evidence_overlap_violations for result in results),
     }
 
 
@@ -204,6 +217,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
+        load_dotenv(REPO_ROOT / ".env")
+        api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if not api_key:
         parser.error("OPENROUTER_API_KEY must be set in the process environment")
     if args.max_observed_cost_usd <= 0:
         parser.error("--max-observed-cost-usd must be positive")
@@ -247,6 +263,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                         allow_provider_fallbacks=args.allow_provider_fallbacks,
                         max_retries=args.max_retries,
                     )
+                except OpenRouterResponseValidationError as exc:
+                    observed_cost += exc.cost_usd
+                    errors.append(
+                        {
+                            "video_id": episode.video_id,
+                            "model": model,
+                            "provider": exc.provider,
+                            "prompt_tokens": str(exc.prompt_tokens),
+                            "completion_tokens": str(exc.completion_tokens),
+                            "cost_usd": str(exc.cost_usd),
+                            "error": str(exc),
+                        }
+                    )
+                    continue
                 except (RuntimeError, ValueError) as exc:
                     errors.append({"video_id": episode.video_id, "model": model, "error": str(exc)})
                     continue

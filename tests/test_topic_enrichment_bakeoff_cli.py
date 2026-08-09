@@ -59,6 +59,9 @@ def _result(model: str) -> OpenRouterEpisodeResult:
         completion_tokens=50,
         cost_usd=0.01,
         elapsed_seconds=2.0,
+        first_boundary_normalized=True,
+        summaries_truncated=1,
+        evidence_overlap_violations=0,
     )
 
 
@@ -88,6 +91,9 @@ def test_bakeoff_cli_writes_predictions_metrics_and_blind_review(tmp_path, monke
     assert report["observed_cost_usd"] == 0.02
     assert report["blind_model_key"] == {"Model A": "model/one", "Model B": "model/two"}
     assert report["models"]["model/one"]["chapter_evidence_overlap_rate"] == 1.0
+    assert report["models"]["model/one"]["first_boundary_normalizations"] == 1
+    assert report["models"]["model/one"]["summaries_truncated"] == 1
+    assert report["models"]["model/one"]["evidence_overlap_violations"] == 0
     predictions = json.loads((output_dir / "predictions-model-one.json").read_text())
     assert predictions["episodes"][0]["chapters"][-1]["end_ms"] == 1_200_000
     review = (output_dir / "blind-editorial-review.md").read_text()

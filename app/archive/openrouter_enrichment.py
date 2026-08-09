@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import time
+from copy import deepcopy
 from typing import Any
 from urllib import error, request
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .enrichment_runner import EpisodeInput
 from .labeling.benchmark import EpisodePrediction, PredictedChapter
@@ -81,6 +82,25 @@ class EpisodeEnrichmentCandidate(BaseModel):
         return self
 
 
+class OpenRouterResponseValidationError(ValueError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        cost_usd: float,
+        elapsed_seconds: float,
+    ) -> None:
+        super().__init__(message)
+        self.provider = provider
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.cost_usd = cost_usd
+        self.elapsed_seconds = elapsed_seconds
+
+
 class OpenRouterEpisodeResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -93,6 +113,9 @@ class OpenRouterEpisodeResult(BaseModel):
     completion_tokens: int
     cost_usd: float
     elapsed_seconds: float
+    first_boundary_normalized: bool = False
+    summaries_truncated: int = 0
+    evidence_overlap_violations: int = 0
 
     def prediction(self, duration_ms: int) -> EpisodePrediction:
         chapters: list[PredictedChapter] = []
@@ -121,6 +144,11 @@ class OpenRouterEpisodeResult(BaseModel):
                 "cost_usd": self.cost_usd,
                 "elapsed_seconds": round(self.elapsed_seconds, 4),
             },
+            "normalizations": {
+                "first_boundary_to_zero": self.first_boundary_normalized,
+                "summaries_truncated": self.summaries_truncated,
+            },
+            "validation": {"evidence_overlap_violations": self.evidence_overlap_violations},
         }
 
 
@@ -135,6 +163,11 @@ def build_openrouter_episode_request(
     allow_provider_fallbacks: bool = False,
 ) -> dict[str, Any]:
     target_count = _target_chapter_count(episode.duration_ms)
+    response_schema = deepcopy(EPISODE_ENRICHMENT_SCHEMA)
+    evidence_schema = response_schema["properties"]["chapters"]["items"]["properties"]["evidence_block_indexes"][
+        "items"
+    ]
+    evidence_schema["maximum"] = max(block.block_index for block in episode.blocks)
     transcript = [
         {
             "block_index": block.block_index,
@@ -181,7 +214,7 @@ Return only JSON matching the supplied schema."""
             "json_schema": {
                 "name": "hasanara_episode_enrichment",
                 "strict": True,
-                "schema": EPISODE_ENRICHMENT_SCHEMA,
+                "schema": response_schema,
             },
         },
         "provider": {
@@ -193,47 +226,94 @@ Return only JSON matching the supplied schema."""
     }
 
 
+def _validation_summary(exc: ValidationError) -> str:
+    messages = []
+    for item in exc.errors(include_input=False)[:3]:
+        location = ".".join(str(part) for part in item.get("loc", ())) or "response"
+        messages.append(f"{location}: {item.get('msg', 'invalid value')}")
+    return "; ".join(messages)
+
+
 def _parse_response(
     payload: dict[str, Any], episode: EpisodeInput, *, model: str, elapsed: float
 ) -> OpenRouterEpisodeResult:
+    raw_usage = payload.get("usage")
+    usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
+    provider = str(payload.get("provider") or "unknown")
+    prompt_tokens = int(usage.get("prompt_tokens") or 0)
+    completion_tokens = int(usage.get("completion_tokens") or 0)
+    cost_usd = float(usage.get("cost") or 0.0)
+
+    def invalid(message: str) -> OpenRouterResponseValidationError:
+        return OpenRouterResponseValidationError(
+            message,
+            provider=provider,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            cost_usd=cost_usd,
+            elapsed_seconds=elapsed,
+        )
+
     try:
         content = payload["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise ValueError("OpenRouter response did not contain assistant content") from exc
+        raise invalid("OpenRouter response did not contain assistant content") from exc
     if not isinstance(content, str):
-        raise ValueError("OpenRouter assistant content was not text")
+        raise invalid("OpenRouter assistant content was not text")
     try:
-        candidate = EpisodeEnrichmentCandidate.model_validate_json(content)
-    except ValueError as exc:
-        raise ValueError("OpenRouter response was not valid episode-enrichment JSON") from exc
+        raw_candidate = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise invalid("OpenRouter response was not JSON") from exc
+    first_boundary_normalized = False
+    summaries_truncated = 0
+    if isinstance(raw_candidate, dict):
+        chapters = raw_candidate.get("chapters")
+        if isinstance(chapters, list) and chapters and isinstance(chapters[0], dict):
+            first_start = chapters[0].get("start_ms")
+            if isinstance(first_start, int) and first_start > 0:
+                chapters[0]["start_ms"] = 0
+                first_boundary_normalized = True
+            for chapter in chapters:
+                if not isinstance(chapter, dict):
+                    continue
+                summary = chapter.get("summary")
+                if isinstance(summary, str) and len(summary) > 300:
+                    chapter["summary"] = summary[:300].rsplit(" ", 1)[0].rstrip(" ,;:-")
+                    summaries_truncated += 1
+    try:
+        candidate = EpisodeEnrichmentCandidate.model_validate(raw_candidate)
+    except ValidationError as exc:
+        raise invalid(f"OpenRouter episode enrichment failed validation: {_validation_summary(exc)}") from exc
 
     if candidate.chapters[-1].start_ms >= episode.duration_ms:
-        raise ValueError("final chapter starts outside the episode")
+        raise invalid("final chapter starts outside the episode")
     block_by_index = {block.block_index: block for block in episode.blocks}
+    evidence_overlap_violations = 0
     for index, chapter in enumerate(candidate.chapters):
         end_ms = candidate.chapters[index + 1].start_ms if index + 1 < len(candidate.chapters) else episode.duration_ms
         if chapter.start_ms >= episode.duration_ms:
-            raise ValueError("chapter starts outside the episode")
+            raise invalid("chapter starts outside the episode")
         if any(block_index not in block_by_index for block_index in chapter.evidence_block_indexes):
-            raise ValueError("chapter cites an unknown transcript block")
+            raise invalid("chapter cites an unknown transcript block")
         if not any(
             block_by_index[block_index].end_ms > chapter.start_ms and block_by_index[block_index].start_ms < end_ms
             for block_index in chapter.evidence_block_indexes
         ):
-            raise ValueError("chapter evidence does not overlap its timeline")
+            evidence_overlap_violations += 1
 
-    raw_usage = payload.get("usage")
-    usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
     return OpenRouterEpisodeResult(
         video_id=episode.video_id,
         model=model,
-        provider=str(payload.get("provider") or "unknown"),
+        provider=provider,
         prompt_version=PROMPT_VERSION,
         candidate=candidate,
-        prompt_tokens=int(usage.get("prompt_tokens") or 0),
-        completion_tokens=int(usage.get("completion_tokens") or 0),
-        cost_usd=float(usage.get("cost") or 0.0),
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        cost_usd=cost_usd,
         elapsed_seconds=elapsed,
+        first_boundary_normalized=first_boundary_normalized,
+        summaries_truncated=summaries_truncated,
+        evidence_overlap_violations=evidence_overlap_violations,
     )
 
 
@@ -293,6 +373,7 @@ __all__ = [
     "EpisodeChapterCandidate",
     "EpisodeEnrichmentCandidate",
     "OpenRouterEpisodeResult",
+    "OpenRouterResponseValidationError",
     "build_openrouter_episode_request",
     "generate_openrouter_episode_enrichment",
 ]

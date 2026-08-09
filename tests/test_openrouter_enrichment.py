@@ -78,11 +78,20 @@ def test_build_openrouter_request_uses_identical_strict_controls():
     assert body["model"] == "deepseek/deepseek-v4-pro"
     assert body["temperature"] == 0
     assert body["reasoning"] == {"enabled": False, "exclude": True}
-    assert body["response_format"]["json_schema"] == {
-        "name": "hasanara_episode_enrichment",
-        "strict": True,
-        "schema": EPISODE_ENRICHMENT_SCHEMA,
-    }
+    response_schema = body["response_format"]["json_schema"]
+    assert response_schema["name"] == "hasanara_episode_enrichment"
+    assert response_schema["strict"] is True
+    assert response_schema["schema"] is not EPISODE_ENRICHMENT_SCHEMA
+    evidence_items = response_schema["schema"]["properties"]["chapters"]["items"]["properties"][
+        "evidence_block_indexes"
+    ]["items"]
+    assert evidence_items["maximum"] == 1
+    assert (
+        "maximum"
+        not in EPISODE_ENRICHMENT_SCHEMA["properties"]["chapters"]["items"]["properties"]["evidence_block_indexes"][
+            "items"
+        ]
+    )
     assert body["provider"] == {
         "allow_fallbacks": False,
         "data_collection": "deny",
@@ -112,6 +121,7 @@ def test_generate_openrouter_enrichment_tracks_usage_and_builds_prediction(monke
     assert result.prompt_tokens == 100
     assert result.completion_tokens == 50
     assert result.cost_usd == pytest.approx(0.0012)
+    assert result.first_boundary_normalized is False
     prediction = result.prediction(1_200_000)
     assert [(chapter.start_ms, chapter.end_ms) for chapter in prediction.chapters] == [
         (0, 600_000),
@@ -119,7 +129,23 @@ def test_generate_openrouter_enrichment_tracks_usage_and_builds_prediction(monke
     ]
 
 
-def test_generate_openrouter_enrichment_rejects_nonoverlapping_evidence(monkeypatch):
+def test_generate_openrouter_enrichment_normalizes_first_boundary_to_origin(monkeypatch):
+    payload = _response_payload()
+    parsed = json.loads(payload["choices"][0]["message"]["content"])
+    parsed["chapters"][0]["start_ms"] = 120_000
+    payload["choices"][0]["message"]["content"] = json.dumps(parsed)
+    monkeypatch.setattr(
+        "app.archive.openrouter_enrichment.request.urlopen",
+        lambda _req, timeout: _Response(payload),
+    )
+
+    result = generate_openrouter_episode_enrichment(_episode(), api_key="key", model="model")
+
+    assert result.first_boundary_normalized is True
+    assert result.candidate.chapters[0].start_ms == 0
+
+
+def test_generate_openrouter_enrichment_records_nonoverlapping_evidence(monkeypatch):
     payload = _response_payload()
     parsed = json.loads(payload["choices"][0]["message"]["content"])
     parsed["chapters"][1]["evidence_block_indexes"] = [0]
@@ -129,8 +155,25 @@ def test_generate_openrouter_enrichment_rejects_nonoverlapping_evidence(monkeypa
         lambda _req, timeout: _Response(payload),
     )
 
-    with pytest.raises(ValueError, match="evidence does not overlap"):
-        generate_openrouter_episode_enrichment(_episode(), api_key="key", model="model", max_retries=0)
+    result = generate_openrouter_episode_enrichment(_episode(), api_key="key", model="model", max_retries=0)
+
+    assert result.evidence_overlap_violations == 1
+
+
+def test_generate_openrouter_enrichment_truncates_overlong_summaries(monkeypatch):
+    payload = _response_payload()
+    parsed = json.loads(payload["choices"][0]["message"]["content"])
+    parsed["chapters"][0]["summary"] = "word " * 100
+    payload["choices"][0]["message"]["content"] = json.dumps(parsed)
+    monkeypatch.setattr(
+        "app.archive.openrouter_enrichment.request.urlopen",
+        lambda _req, timeout: _Response(payload),
+    )
+
+    result = generate_openrouter_episode_enrichment(_episode(), api_key="key", model="model")
+
+    assert result.summaries_truncated == 1
+    assert len(result.candidate.chapters[0].summary) <= 300
 
 
 def test_generate_openrouter_enrichment_retries_transient_http_errors(monkeypatch):
