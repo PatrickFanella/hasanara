@@ -26,6 +26,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate-limit", type=int, default=600)
     parser.add_argument("--max-blocks-per-video", type=int, default=20_000)
     parser.add_argument(
+        "--minimum-duration-minutes",
+        type=int,
+        default=30,
+        help="Minimum duration for sampled videos; explicit video IDs bypass this filter",
+    )
+    parser.add_argument(
         "--video-id",
         action="append",
         default=[],
@@ -42,6 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             per_stratum=args.per_stratum,
             candidate_limit=args.candidate_limit,
             max_blocks_per_video=args.max_blocks_per_video,
+            minimum_duration_seconds=args.minimum_duration_minutes * 60,
             video_ids=args.video_id or None,
         )
         args.output.write_text(

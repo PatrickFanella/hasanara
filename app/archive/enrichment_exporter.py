@@ -12,9 +12,17 @@ def _clean_transcript_text(value: Any) -> str:
     return " ".join(str(value or "").replace("\x00", " ").split())[:20_000]
 
 
-def _candidate_videos(db: Any, candidate_limit: int, video_ids: list[str] | None = None) -> list[dict[str, Any]]:
+def _candidate_videos(
+    db: Any,
+    candidate_limit: int,
+    minimum_duration_seconds: int,
+    video_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
     id_clause = "AND CAST(v.id AS text) = ANY(CAST(:video_ids AS text[]))" if video_ids else ""
-    params: dict[str, Any] = {"candidate_limit": candidate_limit}
+    params: dict[str, Any] = {
+        "candidate_limit": candidate_limit,
+        "minimum_duration_seconds": minimum_duration_seconds,
+    }
     if video_ids:
         params["video_ids"] = video_ids
     rows = (
@@ -27,7 +35,7 @@ def _candidate_videos(db: Any, candidate_limit: int, video_ids: list[str] | None
                     v.uploaded_at,
                     v.category
                 FROM videos AS v
-                WHERE COALESCE(v.duration_seconds, 0) > 0
+                WHERE COALESCE(v.duration_seconds, 0) >= :minimum_duration_seconds
                   {id_clause}
                   AND EXISTS (
                       SELECT 1
@@ -86,10 +94,11 @@ def export_enrichment_input(
     per_stratum: int = 5,
     candidate_limit: int = 600,
     max_blocks_per_video: int = 20_000,
+    minimum_duration_seconds: int = 30 * 60,
     video_ids: list[str] | None = None,
 ) -> EnrichmentInput:
     """Export a minimal, read-only transcript packet for offline evaluation."""
-    if sample_size <= 0 or candidate_limit < sample_size or max_blocks_per_video <= 0:
+    if sample_size <= 0 or candidate_limit < sample_size or max_blocks_per_video <= 0 or minimum_duration_seconds <= 0:
         raise ValueError("export bounds are invalid")
     requested_ids = list(dict.fromkeys(video_ids or []))
     if len(requested_ids) > 100:
@@ -97,6 +106,7 @@ def export_enrichment_input(
     candidates = _candidate_videos(
         db,
         max(candidate_limit, len(requested_ids)),
+        1 if requested_ids else minimum_duration_seconds,
         requested_ids or None,
     )
     if requested_ids:

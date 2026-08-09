@@ -50,4 +50,5 @@ def test_export_cli_writes_versioned_packet_and_closes_read_session(monkeypatch,
     assert exit_code == 0
     assert db.closed
     assert captured["video_ids"] == ["video-1"]
+    assert captured["minimum_duration_seconds"] == 30 * 60
     assert json.loads(output.read_text())["schema_version"] == "1"

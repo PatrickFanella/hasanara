@@ -74,6 +74,21 @@ def test_exporter_emits_minimal_versioned_transcript_packet_without_sensitive_fi
         assert forbidden not in sql
 
 
+def test_representative_export_excludes_episodes_too_short_for_chapter_review():
+    db = _ReadOnlyDb()
+
+    export_enrichment_input(
+        db,
+        pipeline_version="semantic-qwen-v1",
+        sample_size=1,
+        per_stratum=1,
+    )
+
+    candidate_sql, candidate_params = next(call for call in db.calls if "FROM videos AS v" in call[0])
+    assert "duration_seconds" in candidate_sql
+    assert candidate_params["minimum_duration_seconds"] == 30 * 60
+
+
 def test_exporter_supports_explicit_video_ids_for_editor_selected_golden_sets():
     db = _ReadOnlyDb()
 
@@ -86,3 +101,4 @@ def test_exporter_supports_explicit_video_ids_for_editor_selected_golden_sets():
     assert [episode.video_id for episode in packet.episodes] == ["video-1"]
     candidate_params = next(params for sql, params in db.calls if "FROM videos AS v" in sql)
     assert candidate_params["video_ids"] == ["video-1"]
+    assert candidate_params["minimum_duration_seconds"] == 1

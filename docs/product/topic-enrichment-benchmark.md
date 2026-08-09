@@ -53,7 +53,7 @@ Create a representative, read-only transcript packet from the application databa
   --pipeline-version semantic-qwen-v1
 ```
 
-By default the exporter selects 30 recent videos, taking up to five from each of six formats: politics/news, interviews, gaming, reaction content, recurring segments, and long mixed streams. If a format is undersupplied, the newest remaining candidates fill the packet. To export a deliberate review set instead, repeat `--video-id`:
+By default the exporter selects 30 recent videos of at least 30 minutes, taking up to five from each of six formats: politics/news, interviews, gaming, reaction content, recurring segments, and long mixed streams. If a format is undersupplied, the newest remaining candidates fill the packet. Change the floor with `--minimum-duration-minutes`. To export a deliberate review set instead, repeat `--video-id`; explicit selections bypass the duration floor:
 
 ```bash
 ./.venv/bin/python scripts/export_topic_enrichment_input.py \
