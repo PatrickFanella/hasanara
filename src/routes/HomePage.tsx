@@ -194,7 +194,7 @@ export default function HomePage() {
                   to={`/search?q=${encodeURIComponent(item.term)}`}
                   className="group inline-flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-ink transition-colors hover:border-accent/60"
                 >
-                  <span className="font-mono text-[10px] text-subtle">
+                  <span className="translate-y-px font-mono text-[10px] text-subtle">
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="group-hover:text-accent">{item.term}</span>
