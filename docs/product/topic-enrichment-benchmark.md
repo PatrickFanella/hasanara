@@ -76,3 +76,32 @@ Generate predictions from that packet:
 The versioned input contains `pipeline_version` plus episodes with `video_id`, `duration_ms`, and ordered transcript blocks (`block_index`, `start_ms`, `end_ms`, and `text`). Unknown fields, duplicate videos or block indexes, invalid ranges, and out-of-duration blocks are rejected.
 
 The command builds overlapping two-minute windows with a one-minute stride by default. It embeds every episode in ordered batches with `qwen3-embedding:0.6b`, validates response count, dimensions, numeric values, and ordering, then names all semantic spans with `qwen3:8b`. The two-phase order avoids repeatedly loading the embedding and naming models on memory-constrained hosts. Both models and segmentation thresholds are configurable. Output is directly consumable by `evaluate_topic_enrichment.py` and no application database is imported or modified.
+
+## OpenRouter full-episode bake-off
+
+The OpenRouter bake-off evaluates complete enrichment behavior rather than reusing local semantic boundaries. Each model independently chooses chapter starts, titles, subjects, and keywords from the same timestamped transcript packet. The command performs no database writes and does not publish its results.
+
+Provide the key only in the command environment, then run:
+
+```bash
+OPENROUTER_API_KEY=... ./.venv/bin/python scripts/run_topic_enrichment_bakeoff.py \
+  data/topic-enrichment/pilot-transcripts-v1.json \
+  data/topic-enrichment/openrouter-bakeoff-v1
+```
+
+The default contenders are pinned to:
+
+- `google/gemini-2.5-flash`;
+- `deepseek/deepseek-v4-pro`;
+- `deepseek/deepseek-v4-flash`.
+
+The runner uses the same prompt, strict JSON Schema, temperature zero, and disabled reasoning for all contenders. It rotates request order by episode to reduce timing bias, refuses data-collection providers, requires structured-output support, disables provider fallback by default, and stops scheduling new calls once `--max-observed-cost-usd` is reached. OpenRouter's reported provider, token counts, cost, and latency are retained with every episode result.
+
+Partial runs are recoverable with `--resume`. Limit an initial smoke test by repeating `--video-id`. The output directory contains:
+
+- one detailed result per model and episode, including cited transcript block indexes;
+- one benchmark-compatible prediction file per fully completed model;
+- `comparison-report.json` with structural, grounding, cost, and latency measurements;
+- `blind-editorial-review.md`, which hides model identities while titles, boundaries, topics, and keywords are judged.
+
+The blind worksheet is the quality decision. Automated grounding and shape metrics catch invalid or unsupported results, but they cannot determine whether a chapter title is genuinely useful to an editor. Reveal `blind_model_key` in the comparison report only after completing the worksheet.
