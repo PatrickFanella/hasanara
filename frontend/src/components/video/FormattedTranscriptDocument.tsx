@@ -1,8 +1,10 @@
 import { memo, useMemo } from 'react';
 import type { SearchHit, Segment, TranscriptBlock } from '../../types/api';
-import { formatTimestamp } from '../../features/archive/format';
+import { canonicalMomentId, formatTimestamp } from '../../features/archive/format';
+import type { TranscriptSource } from '../../features/archive/format';
 
 type Props = {
+  source: TranscriptSource;
   blocks: TranscriptBlock[];
   transcriptSegments: Segment[];
   hits: SearchHit[] | null;
@@ -165,6 +167,7 @@ function sentenceDomId(piece: SentencePiece) {
 }
 
 function FormattedTranscriptDocument({
+  source,
   blocks,
   transcriptSegments,
   hits,
@@ -245,7 +248,7 @@ function FormattedTranscriptDocument({
                   );
 
                   return (
-                    <span key={piece.id}>
+                    <span key={piece.id} id={canonicalMomentId(source, piece.startMs)}>
                       <span
                         id={sentenceDomId(piece)}
                         role="button"

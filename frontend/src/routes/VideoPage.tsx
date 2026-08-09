@@ -15,7 +15,8 @@ import type { Segment, TranscriptResponse, VideoInfo, SearchHit, VideoChapter } 
 import { ExportMenu } from '../components';
 import type { YouTubePlayerHandle } from '../components/YouTubePlayer';
 // track imported from services barrel
-import { buildTimestampLink, formatTimestamp } from '../features/archive/format';
+import { buildTimestampLink, formatTimestamp, formatVideoTitle } from '../features/archive/format';
+import type { TranscriptSource } from '../features/archive/format';
 import {
   buildTranscriptTurns,
   normalizeTranscriptText,
@@ -26,6 +27,7 @@ import {
   PlaybackProgress,
   PlayerPanel,
   PlainTranscriptTurns,
+  TranscriptQualityNotice,
   TranscriptSearchBar,
   VideoDetailsPanel,
   VideoHeader,
@@ -500,7 +502,12 @@ export default function VideoPage() {
     },
     [serverFavs, videoId]
   );
-  const episodeTitle = video?.title ?? 'Loading VOD...';
+  const episodeTitle = video ? formatVideoTitle(video.title, video.uploaded_at) : 'Loading VOD...';
+
+  useEffect(() => {
+    if (!video) return;
+    document.title = `${episodeTitle} | HasanAra`;
+  }, [episodeTitle, video]);
 
   function selectChapter(chapter: VideoChapter) {
     jumpTo(chapter.start_ms);
@@ -767,27 +774,42 @@ export default function VideoPage() {
               {transcriptStatus === 'ready' &&
                 transcript &&
                 (hasFormattedBlocks ? (
-                  <FormattedTranscriptDocument
-                    blocks={formattedBlocks}
-                    transcriptSegments={transcript.segments}
-                    hits={hits}
-                    activeBlockIndex={activeBlockIndex}
-                    activeSegId={activeSegId}
-                    activeSentenceId={activeSentenceId}
-                    isSavedSegment={isSavedSegment}
-                    onClickSentence={onClickFormattedSentence}
-                    onSaveMoment={saveTranscriptMoment}
-                    onCopyQuote={copyTranscriptQuote}
-                  />
+                  <>
+                    <TranscriptQualityNotice
+                      source={(transcript.source ?? 'whisper') as TranscriptSource}
+                      sourceLabel={transcript.source_label}
+                      blocks={formattedBlocks}
+                    />
+                    <FormattedTranscriptDocument
+                      source={(transcript.source ?? 'whisper') as TranscriptSource}
+                      blocks={formattedBlocks}
+                      transcriptSegments={transcript.segments}
+                      hits={hits}
+                      activeBlockIndex={activeBlockIndex}
+                      activeSegId={activeSegId}
+                      activeSentenceId={activeSentenceId}
+                      isSavedSegment={isSavedSegment}
+                      onClickSentence={onClickFormattedSentence}
+                      onSaveMoment={saveTranscriptMoment}
+                      onCopyQuote={copyTranscriptQuote}
+                    />
+                  </>
                 ) : (
-                  <PlainTranscriptTurns
-                    turns={transcriptTurns}
-                    activeSegId={activeSegId}
-                    isSavedSegment={isSavedSegment}
-                    onClickSegment={onClickSegment}
-                    onSaveMoment={saveTranscriptMoment}
-                    onCopyQuote={copyTranscriptQuote}
-                  />
+                  <>
+                    <TranscriptQualityNotice
+                      source={(transcript.source ?? 'whisper') as TranscriptSource}
+                      sourceLabel={transcript.source_label}
+                      blocks={[]}
+                    />
+                    <PlainTranscriptTurns
+                      turns={transcriptTurns}
+                      activeSegId={activeSegId}
+                      isSavedSegment={isSavedSegment}
+                      onClickSegment={onClickSegment}
+                      onSaveMoment={saveTranscriptMoment}
+                      onCopyQuote={copyTranscriptQuote}
+                    />
+                  </>
                 ))}
             </div>
           </div>

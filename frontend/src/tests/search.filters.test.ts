@@ -14,6 +14,7 @@ describe('search filters helpers', () => {
 
     expect(readFilters(params)).toEqual({
       q: 'hasan',
+      match_mode: 'topic',
       source: 'native',
       category: 'news',
       date_from: '2026-05-01',

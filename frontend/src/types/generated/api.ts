@@ -816,7 +816,7 @@ export interface paths {
     put?: never;
     /**
      * Set user plan (Admin)
-     * @description Change a user's administratively assigned access plan. Billing is disabled.
+     * @description Change a user's manually assigned internal access tier.
      *
      *         **Admin Only:** Requires admin privileges
      *
@@ -8136,6 +8136,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
       };
@@ -8298,6 +8300,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
       };
@@ -8388,6 +8392,8 @@ export interface operations {
         has_speaker_labels?: boolean | null;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Matching rule: topic, exact_phrase, or whole_word */
+        match_mode?: string;
         /** @description Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc */
         sort_by?: string;
         /** @description Number of top episodes to include */

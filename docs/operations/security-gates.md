@@ -51,7 +51,9 @@ release.
 
 - Owner: backend maintainers
 - Approved: 2026-08-07
-- Expires: 2026-08-09
+- Reassessed: 2026-08-09; Lightning 2.6.5 remains the latest PyPI release and
+  no patched wheel is available
+- Expires: 2026-08-23
 - Required action: upgrade to the first compatible patched Lightning release
   and remove the exact ignore immediately
 
@@ -66,7 +68,9 @@ through either qualified or imported-alias syntax.
 
 - Owner: backend maintainers
 - Approved: 2026-07-10
-- Expires: 2026-08-09
+- Reassessed: 2026-08-09; no patched release is available and the guarded API
+  remains unreachable in the application source
+- Expires: 2026-08-23
 - Required action: reassess upstream fixes and remove the exact ignore as
   soon as a compatible patched wheel is published
 
@@ -81,7 +85,9 @@ does not blanket-ignore dev dependencies or other high/critical findings.
 
 - Owner: frontend maintainers
 - Approved: 2026-07-24
-- Expires: 2026-08-08 UTC
+- Reassessed: 2026-08-09; the lockfile paths remain dev-only and the recursive
+  audit graph and production-reachability checks remain green
+- Expires: 2026-08-23 UTC
 - Required action: update or remove the transitive dependency and delete this
   exception and its exact dev-only lockfile check
 

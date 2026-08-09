@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from redis import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.pool import NullPool
@@ -31,7 +33,22 @@ logger = logging.getLogger(__name__)
 
 
 def _clear_rate_limit_state() -> None:
-    """The Redis limiter has no process-local request counters to reset."""
+    """Clear only request-quota keys so TestClient IPs cannot leak across tests."""
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url:
+        return
+
+    client = Redis.from_url(redis_url)
+    try:
+        keys = list(client.scan_iter(match="rate-limit:*", count=100))
+        if keys:
+            client.delete(*keys)
+    except RedisError as exc:
+        # A missing Redis backend makes the application limiter fail open. Do
+        # not make otherwise isolated unit tests depend on an external daemon.
+        logger.debug("Could not clear test rate-limit keys: %s", exc)
+    finally:
+        client.close()
 
 
 @pytest.fixture(autouse=True)

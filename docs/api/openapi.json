@@ -10208,6 +10208,18 @@
             }
           },
           {
+            "description": "Matching rule: topic, exact_phrase, or whole_word",
+            "in": "query",
+            "name": "match_mode",
+            "required": false,
+            "schema": {
+              "default": "topic",
+              "description": "Matching rule: topic, exact_phrase, or whole_word",
+              "title": "Match Mode",
+              "type": "string"
+            }
+          },
+          {
             "description": "Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc",
             "in": "query",
             "name": "sort_by",
@@ -10762,6 +10774,18 @@
             }
           },
           {
+            "description": "Matching rule: topic, exact_phrase, or whole_word",
+            "in": "query",
+            "name": "match_mode",
+            "required": false,
+            "schema": {
+              "default": "topic",
+              "description": "Matching rule: topic, exact_phrase, or whole_word",
+              "title": "Match Mode",
+              "type": "string"
+            }
+          },
+          {
             "description": "Sort results by: relevance, date_asc, date_desc, duration_asc, duration_desc",
             "in": "query",
             "name": "sort_by",
@@ -11070,6 +11094,18 @@
               ],
               "description": "Filter by video category/type",
               "title": "Category"
+            }
+          },
+          {
+            "description": "Matching rule: topic, exact_phrase, or whole_word",
+            "in": "query",
+            "name": "match_mode",
+            "required": false,
+            "schema": {
+              "default": "topic",
+              "description": "Matching rule: topic, exact_phrase, or whole_word",
+              "title": "Match Mode",
+              "type": "string"
             }
           },
           {

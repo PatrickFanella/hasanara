@@ -38,6 +38,13 @@ export function formatDate(value?: string | null) {
   return DATE_FORMAT.format(date);
 }
 
+export function formatVideoTitle(title?: string | null, uploadedAt?: string | null) {
+  const cleaned = title?.replace(/\s*[—-]\s*$/, '').trim();
+  if (cleaned) return cleaned;
+  const date = formatDate(uploadedAt);
+  return date === '—' ? 'Broadcast recording' : `Broadcast from ${date}`;
+}
+
 export function formatDateTime(value?: string | null) {
   if (!value) return '—';
   const date = new Date(value);
@@ -75,9 +82,26 @@ export function buildMonthRange(year: number, month: number) {
   };
 }
 
-export function buildTimestampLink(videoId: string, startMs: number, segmentId?: number) {
+export type TranscriptSource = 'whisper' | 'youtube' | 'merged';
+
+export function canonicalMomentId(source: TranscriptSource, startMs: number) {
+  return `moment-${source}-${Math.max(0, Math.floor(startMs))}`;
+}
+
+export function buildTimestampLink(
+  videoId: string,
+  startMs: number,
+  sourceOrSegmentId?: TranscriptSource | number
+) {
   const seconds = Math.max(0, Math.floor(startMs / 1000));
-  return `/v/${videoId}?t=${seconds}${segmentId ? `#seg-${segmentId}` : ''}`;
+  if (typeof sourceOrSegmentId === 'number') {
+    return `/v/${videoId}?t=${seconds}#seg-${sourceOrSegmentId}`;
+  }
+  const params = new URLSearchParams({ t: String(seconds) });
+  if (sourceOrSegmentId) params.set('source', sourceOrSegmentId);
+  return `/v/${videoId}?${params.toString()}${
+    sourceOrSegmentId ? `#${canonicalMomentId(sourceOrSegmentId, startMs)}` : ''
+  }`;
 }
 
 export function titleCase(value: string) {
@@ -89,6 +113,7 @@ export function titleCase(value: string) {
 }
 
 export function sourceLabel(source?: 'whisper' | 'youtube' | 'merged' | 'best' | 'native') {
-  void source;
-  return 'Transcript';
+  if (source === 'youtube') return 'YouTube captions';
+  if (source === 'merged' || source === 'best') return 'Best available transcript';
+  return 'Whisper transcript';
 }
