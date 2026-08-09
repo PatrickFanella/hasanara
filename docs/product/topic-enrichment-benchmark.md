@@ -42,3 +42,17 @@ The report includes per-episode and macro-average subject precision/recall, keyw
 - invalid output never becomes a prediction.
 
 `app.archive.enrichment_predictions.generate_episode_prediction` joins semantic proposals to a supplied grounded naming function. Episode subjects and keywords are deduplicated and ranked by the duration of the chapters they cover, so sustained subjects outrank isolated mentions. The result uses the same `EpisodePrediction` contract consumed by the benchmark and still performs no database writes.
+
+## Offline prediction command
+
+Generate predictions from an exported transcript packet:
+
+```bash
+./.venv/bin/python scripts/generate_topic_enrichment_predictions.py \
+  transcript-input-v1.json predictions.json \
+  --ollama-url http://localhost:11434
+```
+
+The versioned input contains `pipeline_version` plus episodes with `video_id`, `duration_ms`, and ordered transcript blocks (`block_index`, `start_ms`, `end_ms`, and `text`). Unknown fields, duplicate videos or block indexes, invalid ranges, and out-of-duration blocks are rejected.
+
+The command builds overlapping two-minute windows with a one-minute stride by default. It embeds them in ordered batches with `qwen3-embedding:0.6b`, validates response count, dimensions, numeric values, and ordering, then names semantic spans with `qwen3:8b`. Both models and segmentation thresholds are configurable. Output is directly consumable by `evaluate_topic_enrichment.py` and no application database is imported or modified.
