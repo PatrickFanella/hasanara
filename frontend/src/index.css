@@ -446,15 +446,11 @@ body {
   }
 
   .transcript-rail {
-    @apply min-w-0 self-stretch;
+    @apply min-w-0;
   }
 
   .transcript-rail > * + * {
     margin-top: 1rem;
-  }
-
-  .split-player-sticky {
-    @apply lg:sticky lg:top-24 lg:z-10;
   }
 
   .rail-panel {
@@ -594,6 +590,41 @@ body {
 
   .outline-time {
     @apply shrink-0 font-mono text-[9px] text-subtle;
+  }
+}
+
+@media (min-width: 64rem) {
+  .transcript-rail {
+    position: sticky;
+    top: 6rem;
+    z-index: 10;
+    display: flex;
+    height: calc(100vh - 7.5rem);
+    height: calc(100dvh - 7.5rem);
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .transcript-rail > * {
+    flex: 0 0 auto;
+  }
+
+  .transcript-rail > .outline-panel[open] {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .transcript-rail .outline-list {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+    overscroll-behavior: contain;
+  }
+
+  .transcript-rail .outline-heading {
+    flex: 0 0 auto;
   }
 }
 
