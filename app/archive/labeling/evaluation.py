@@ -28,8 +28,103 @@ class LabelQualityMetrics:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class EnrichmentBenchmarkMetrics:
+    tag_precision_at_5: float = 0.0
+    tag_recall_at_10: float = 0.0
+    junk_tag_rate: float = 0.0
+    chapter_boundary_f1: float = 0.0
+    chapter_coverage: float = 0.0
+    fragment_title_rate: float = 0.0
+
+    def as_dict(self) -> dict[str, float]:
+        return asdict(self)
+
+
 def _normalized(value: str) -> str:
     return " ".join(value.strip().casefold().split())
+
+
+def _ratio(numerator: int | float, denominator: int | float) -> float:
+    return round(numerator / denominator, 4) if denominator else 0.0
+
+
+def _boundary_f1(predicted: list[int], expected: list[int], tolerance_ms: int) -> float:
+    unmatched = set(range(len(expected)))
+    matches = 0
+    for boundary in predicted:
+        candidates = [index for index in unmatched if abs(expected[index] - boundary) <= tolerance_ms]
+        if not candidates:
+            continue
+        closest = min(candidates, key=lambda index: abs(expected[index] - boundary))
+        unmatched.remove(closest)
+        matches += 1
+    if not predicted or not expected:
+        return 0.0
+    precision = matches / len(predicted)
+    recall = matches / len(expected)
+    return round(2 * precision * recall / (precision + recall), 4) if precision + recall else 0.0
+
+
+def _chapter_coverage(chapters: list[dict[str, Any]], duration_ms: int) -> float:
+    if duration_ms <= 0:
+        return 0.0
+    intervals = sorted(
+        (max(0, int(item.get("start_ms") or 0)), min(duration_ms, int(item.get("end_ms") or 0)))
+        for item in chapters
+        if int(item.get("end_ms") or 0) > int(item.get("start_ms") or 0)
+    )
+    covered = 0
+    cursor_start: int | None = None
+    cursor_end = 0
+    for start, end in intervals:
+        if end <= start:
+            continue
+        if cursor_start is None:
+            cursor_start, cursor_end = start, end
+        elif start > cursor_end:
+            covered += cursor_end - cursor_start
+            cursor_start, cursor_end = start, end
+        else:
+            cursor_end = max(cursor_end, end)
+    if cursor_start is not None:
+        covered += cursor_end - cursor_start
+    return _ratio(covered, duration_ms)
+
+
+def _is_fragment_title(title: str) -> bool:
+    normalized = _normalized(title).strip(".!?…")
+    words = normalized.split()
+    fillers = {"again", "okay", "ok", "wow", "yeah", "right", "anyway", "so"}
+    return len(words) < 2 or normalized in fillers
+
+
+def evaluate_enrichment_predictions(
+    *,
+    predicted_tags: list[str],
+    expected_tags: list[str],
+    predicted_chapters: list[dict[str, Any]],
+    expected_chapter_starts_ms: list[int],
+    duration_ms: int,
+    junk_tags: list[str] | None = None,
+    boundary_tolerance_ms: int = 90_000,
+) -> EnrichmentBenchmarkMetrics:
+    """Score one episode against editor-reviewed tags and chapter boundaries."""
+    predicted = list(dict.fromkeys(_normalized(tag) for tag in predicted_tags if _normalized(tag)))
+    expected = {_normalized(tag) for tag in expected_tags if _normalized(tag)}
+    junk = {_normalized(tag) for tag in (junk_tags or []) if _normalized(tag)}
+    top_five = predicted[:5]
+    top_ten = predicted[:10]
+    predicted_starts = [int(item.get("start_ms") or 0) for item in predicted_chapters]
+    fragment_count = sum(1 for item in predicted_chapters if _is_fragment_title(str(item.get("title") or "")))
+    return EnrichmentBenchmarkMetrics(
+        tag_precision_at_5=_ratio(sum(tag in expected for tag in top_five), len(top_five)),
+        tag_recall_at_10=_ratio(sum(tag in expected for tag in top_ten), len(expected)),
+        junk_tag_rate=_ratio(sum(tag in junk for tag in predicted), len(predicted)),
+        chapter_boundary_f1=_boundary_f1(predicted_starts, expected_chapter_starts_ms, boundary_tolerance_ms),
+        chapter_coverage=_chapter_coverage(predicted_chapters, duration_ms),
+        fragment_title_rate=_ratio(fragment_count, len(predicted_chapters)),
+    )
 
 
 def calculate_label_quality_metrics(

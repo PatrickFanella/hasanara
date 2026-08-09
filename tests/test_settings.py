@@ -125,6 +125,31 @@ def test_validate_production_settings_allows_safe_config():
     validate_production_settings(config)
 
 
+def test_archive_enrichment_defaults_to_disabled_v4_pro_candidates():
+    config = _isolated_settings()
+
+    assert config.ARCHIVE_ENRICHMENT_ENABLED is False
+    assert config.ARCHIVE_ENRICHMENT_MODEL == "deepseek/deepseek-v4-pro"
+    assert config.ARCHIVE_ENRICHMENT_MAX_WINDOW_MINUTES == 90
+    assert config.ARCHIVE_ENRICHMENT_PUBLISH is False
+
+
+def test_production_archive_enrichment_requires_openrouter_key():
+    from app.settings import validate_production_settings
+
+    config = _isolated_settings(
+        ENVIRONMENT="production",
+        SESSION_SECRET=SESSION_SECRET,
+        DATABASE_URL="postgresql+psycopg://postgres:strong-password@db/transcripts",
+        FRONTEND_ORIGIN="https://app.example.com",
+        ARCHIVE_ENRICHMENT_ENABLED=True,
+        OPENROUTER_API_KEY="",
+    )
+
+    with pytest.raises(ValueError, match="OPENROUTER_API_KEY"):
+        validate_production_settings(config)
+
+
 def test_validate_worker_production_settings_allows_missing_web_auth_settings():
     from app.settings import validate_worker_production_settings
 

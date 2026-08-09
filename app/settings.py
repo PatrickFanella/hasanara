@@ -251,6 +251,17 @@ class Settings(BaseSettings):
     GOOGLE_TRANSLATE_API_KEY: str = ""  # Google Cloud Translation API key
     DEEPL_API_KEY: str = ""  # DeepL API key
 
+    # Model-backed archive enrichment. Disabled until explicitly enabled; new
+    # model output remains a review candidate rather than public metadata.
+    ARCHIVE_ENRICHMENT_ENABLED: bool = False
+    ARCHIVE_ENRICHMENT_PROVIDER: str = "openrouter"
+    ARCHIVE_ENRICHMENT_MODEL: str = "deepseek/deepseek-v4-pro"
+    OPENROUTER_API_KEY: str = ""
+    ARCHIVE_ENRICHMENT_MAX_WINDOW_MINUTES: int = Field(default=90, ge=30, le=120)
+    ARCHIVE_ENRICHMENT_TIMEOUT_SECONDS: float = Field(default=300.0, ge=30.0, le=900.0)
+    ARCHIVE_ENRICHMENT_MAX_COST_USD_PER_VIDEO: float = Field(default=1.0, gt=0.0, le=10.0)
+    ARCHIVE_ENRICHMENT_PUBLISH: bool = False
+
     # Transcript cleanup configuration
     CLEANUP_ENABLED: bool = True  # Enable transcript cleanup features
     # Text normalization
@@ -460,6 +471,16 @@ def validate_production_settings(config: Settings | None = None) -> None:
     db_password = _parse_db_password(cfg.DATABASE_URL)
     if not db_password or db_password in {"postgres", "change-me", "change-me-in-production"}:
         errors.append("DATABASE_URL must use a non-default database password in production.")
+
+    if cfg.ARCHIVE_ENRICHMENT_ENABLED:
+        if cfg.ARCHIVE_ENRICHMENT_PROVIDER != "openrouter":
+            errors.append("ARCHIVE_ENRICHMENT_PROVIDER must be openrouter when archive enrichment is enabled.")
+        if not _has_value(cfg.OPENROUTER_API_KEY):
+            errors.append("OPENROUTER_API_KEY must be set when archive enrichment is enabled.")
+        if not _has_value(cfg.ARCHIVE_ENRICHMENT_MODEL):
+            errors.append("ARCHIVE_ENRICHMENT_MODEL must be pinned when archive enrichment is enabled.")
+        if cfg.ARCHIVE_ENRICHMENT_PUBLISH:
+            errors.append("ARCHIVE_ENRICHMENT_PUBLISH must remain disabled until the editorial release gate passes.")
 
     if (
         not _has_value(cfg.FRONTEND_ORIGIN)

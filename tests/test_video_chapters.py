@@ -33,6 +33,23 @@ def test_build_grounded_chapters_returns_empty_for_empty_blocks():
     assert build_grounded_chapters([]) == []
 
 
+def test_build_grounded_chapters_uses_representative_sentence_instead_of_filler():
+    blocks = [
+        {"block_index": 0, "start_ms": 0, "end_ms": 2_000, "text": "Okay?"},
+        {
+            "block_index": 1,
+            "start_ms": 2_000,
+            "end_ms": 20_000,
+            "text": "The Michigan auto workers announced a new organizing campaign.",
+        },
+    ]
+
+    chapters = build_grounded_chapters(blocks, duration_ms=60_000)
+
+    assert chapters[0]["title"] == "Opening: The Michigan auto workers announced a new organizing campaign."
+    assert chapters[0]["evidence"][0]["block_index"] == 1
+
+
 def test_video_chapter_route_uses_transcript_fallback(monkeypatch):
     video_id = uuid.uuid4()
     blocks = [{"block_index": 0, "start_ms": 0, "end_ms": 20_000, "text": "Opening discussion."}]

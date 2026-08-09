@@ -561,7 +561,7 @@ export default function VideoPage() {
           }
         >
           {video && (
-            <div className={viewMode === 'standard' ? 'split-player-sticky' : ''}>
+            <div>
               <PlayerPanel video={video} start={start} playerRef={playerRef} />
             </div>
           )}

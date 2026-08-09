@@ -790,7 +790,7 @@ def test_refresh_topic_period_stats_uses_created_at_when_uploaded_at_missing():
     assert db.inserted_stats[0]["period"] == "2026-06"
 
 
-def test_autopublish_search_topics_skips_existing_slugs():
+def test_search_suggestions_never_publish_archive_topics():
     class _AutoDb(_FakeDb):
         def execute(self, sql, params=None):
             sql_text = str(sql)
@@ -812,12 +812,8 @@ def test_autopublish_search_topics_skips_existing_slugs():
     db = _AutoDb([])
     stats = autopublish_search_topics(db, limit=20)
 
-    assert stats["topics"] == 1
-    assert any(
-        "'automatic'" in sql and "new topic" in str(params)
-        for sql, params in db.calls
-        if "INSERT INTO archive_topics" in sql
-    )
+    assert stats == {"topics": 0}
+    assert not any("INSERT INTO archive_topics" in sql for sql, _params in db.calls)
 
 
 def test_merge_topic_cards_excludes_untrusted_automatic_and_junk_cards():
