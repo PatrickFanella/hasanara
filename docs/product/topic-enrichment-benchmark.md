@@ -30,3 +30,15 @@ The report includes per-episode and macro-average subject precision/recall, keyw
 ## Semantic chapter proposals
 
 `app.archive.semantic_chapters.propose_semantic_chapters` accepts ordered transcript windows plus one embedding per window. It detects sustained cosine-distance changes, enforces chapter-duration constraints, covers the complete supplied duration, and returns evidence-window indexes. It deliberately does not name, persist, or publish chapters; grounded naming and persistence are later gated stages.
+
+## Grounded naming and episode rollups
+
+`app.archive.chapter_naming` sends one semantic span at a time to Ollama using temperature zero, thinking disabled, and a strict JSON schema. Every result is validated after generation:
+
+- citations must resolve to transcript windows inside the span;
+- subjects and keywords must be lexically grounded in the cited evidence;
+- editorial chapter titles may paraphrase only through a small explicit vocabulary;
+- unsupported named terms and numbers are rejected;
+- invalid output never becomes a prediction.
+
+`app.archive.enrichment_predictions.generate_episode_prediction` joins semantic proposals to a supplied grounded naming function. Episode subjects and keywords are deduplicated and ranked by the duration of the chapters they cover, so sustained subjects outrank isolated mentions. The result uses the same `EpisodePrediction` contract consumed by the benchmark and still performs no database writes.
