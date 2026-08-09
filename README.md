@@ -2,6 +2,17 @@
 
 HasanAra is a citation-first HasanAbi VOD archive. It searches timestamped transcripts, groups evidence by episode, and provides topic timelines, opinion-history revisions, related episodes, quoted moments, and portable mention exports.
 
+## Outcome
+
+HasanAra turns long-form video into reviewable research: a reader can move from
+a query to the relevant timestamp, episode context, and supporting excerpts
+without treating an AI-generated summary as the source of record. It is the
+deployed, branded successor to the earlier Transcript Create project.
+
+**Public signals:** [deployed application](https://hasanara.tv) ·
+[API contract](docs/api-reference.md) · [Apache-2.0 license](LICENSE) ·
+[third-party notices](docs/THIRD_PARTY_NOTICES.md)
+
 ## Current status
 
 - **Shipped:** React 19 frontend, FastAPI API, PostgreSQL source of truth, Redis DTO caches, optional OpenSearch acceleration with PostgreSQL fallback, durable ingestion jobs, scoped API keys, pseudonymous analytics, and archive intelligence.
