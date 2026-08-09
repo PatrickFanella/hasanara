@@ -264,7 +264,7 @@
         "title": "AnalyticsEventInput",
         "type": "object"
       },
-      "ArchiveEvidenceMoment-Input": {
+      "ArchiveEvidenceMoment": {
         "properties": {
           "end_ms": {
             "description": "Moment end timestamp",
@@ -294,50 +294,7 @@
             "title": "Topic"
           },
           "video": {
-            "$ref": "#/components/schemas/VideoInfo-Input",
-            "description": "VOD containing the cited evidence"
-          }
-        },
-        "required": [
-          "video",
-          "start_ms",
-          "end_ms",
-          "snippet"
-        ],
-        "title": "ArchiveEvidenceMoment",
-        "type": "object"
-      },
-      "ArchiveEvidenceMoment-Output": {
-        "properties": {
-          "end_ms": {
-            "description": "Moment end timestamp",
-            "title": "End Ms",
-            "type": "integer"
-          },
-          "snippet": {
-            "description": "Evidence snippet from transcript text",
-            "title": "Snippet",
-            "type": "string"
-          },
-          "start_ms": {
-            "description": "Moment start timestamp",
-            "title": "Start Ms",
-            "type": "integer"
-          },
-          "topic": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Topic or query this evidence supports",
-            "title": "Topic"
-          },
-          "video": {
-            "$ref": "#/components/schemas/VideoInfo-Output",
+            "$ref": "#/components/schemas/VideoInfo",
             "description": "VOD containing the cited evidence"
           }
         },
@@ -363,7 +320,7 @@
           "people": {
             "description": "Featured people facets for the selected scope",
             "items": {
-              "$ref": "#/components/schemas/ArchivePerson-Output"
+              "$ref": "#/components/schemas/ArchivePerson"
             },
             "title": "People",
             "type": "array"
@@ -379,7 +336,7 @@
           "periods": {
             "description": "Timeline periods enriched with topic/evidence data",
             "items": {
-              "$ref": "#/components/schemas/ArchivePeriodIntelligence-Output"
+              "$ref": "#/components/schemas/ArchivePeriodIntelligence"
             },
             "title": "Periods",
             "type": "array"
@@ -422,7 +379,7 @@
           "tags": {
             "description": "Featured tag facets for the selected scope",
             "items": {
-              "$ref": "#/components/schemas/ArchiveVideoTag-Output"
+              "$ref": "#/components/schemas/ArchiveVideoTag"
             },
             "title": "Tags",
             "type": "array"
@@ -430,7 +387,7 @@
           "topic_cards": {
             "description": "Hybrid curated/automatic topic cards",
             "items": {
-              "$ref": "#/components/schemas/ArchiveTopicCard-Output"
+              "$ref": "#/components/schemas/ArchiveTopicCard"
             },
             "title": "Topic Cards",
             "type": "array"
@@ -1129,12 +1086,12 @@
         "title": "ArchiveNamedPeriodUpdate",
         "type": "object"
       },
-      "ArchivePeriodIntelligence-Input": {
+      "ArchivePeriodIntelligence": {
         "properties": {
           "evidence": {
             "description": "Citations supporting the summary",
             "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Input"
+              "$ref": "#/components/schemas/ArchiveEvidenceMoment"
             },
             "title": "Evidence",
             "type": "array"
@@ -1157,7 +1114,7 @@
           "top_topics": {
             "description": "Top topics for the period",
             "items": {
-              "$ref": "#/components/schemas/ArchiveTopicCard-Input"
+              "$ref": "#/components/schemas/ArchiveTopicCard"
             },
             "title": "Top Topics",
             "type": "array"
@@ -1175,69 +1132,7 @@
           "videos": {
             "description": "Representative VODs",
             "items": {
-              "$ref": "#/components/schemas/VideoInfo-Input"
-            },
-            "title": "Videos",
-            "type": "array"
-          }
-        },
-        "required": [
-          "period",
-          "label",
-          "video_count",
-          "total_duration_seconds",
-          "summary"
-        ],
-        "title": "ArchivePeriodIntelligence",
-        "type": "object"
-      },
-      "ArchivePeriodIntelligence-Output": {
-        "properties": {
-          "evidence": {
-            "description": "Citations supporting the summary",
-            "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Output"
-            },
-            "title": "Evidence",
-            "type": "array"
-          },
-          "label": {
-            "description": "Human-readable period label",
-            "title": "Label",
-            "type": "string"
-          },
-          "period": {
-            "description": "Period identifier, e.g. 2026-05",
-            "title": "Period",
-            "type": "string"
-          },
-          "summary": {
-            "description": "Extractive or generated period summary",
-            "title": "Summary",
-            "type": "string"
-          },
-          "top_topics": {
-            "description": "Top topics for the period",
-            "items": {
-              "$ref": "#/components/schemas/ArchiveTopicCard-Output"
-            },
-            "title": "Top Topics",
-            "type": "array"
-          },
-          "total_duration_seconds": {
-            "description": "Total VOD duration in this period",
-            "title": "Total Duration Seconds",
-            "type": "integer"
-          },
-          "video_count": {
-            "description": "VOD count in this period",
-            "title": "Video Count",
-            "type": "integer"
-          },
-          "videos": {
-            "description": "Representative VODs",
-            "items": {
-              "$ref": "#/components/schemas/VideoInfo-Output"
+              "$ref": "#/components/schemas/VideoInfo"
             },
             "title": "Videos",
             "type": "array"
@@ -1366,77 +1261,7 @@
         "title": "ArchivePeriodOptionsResponse",
         "type": "object"
       },
-      "ArchivePerson-Input": {
-        "properties": {
-          "aliases": {
-            "description": "Known aliases",
-            "items": {
-              "type": "string"
-            },
-            "title": "Aliases",
-            "type": "array"
-          },
-          "default_role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Default role/context for automatic video assignments",
-            "title": "Default Role"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional description",
-            "title": "Description"
-          },
-          "display_name": {
-            "description": "Display name",
-            "title": "Display Name",
-            "type": "string"
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Role on the video, if assigned",
-            "title": "Role"
-          },
-          "slug": {
-            "description": "Stable person slug",
-            "title": "Slug",
-            "type": "string"
-          },
-          "sort_order": {
-            "default": 0,
-            "description": "Internal ordering weight",
-            "title": "Sort Order",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "slug",
-          "display_name"
-        ],
-        "title": "ArchivePerson",
-        "type": "object"
-      },
-      "ArchivePerson-Output": {
+      "ArchivePerson": {
         "properties": {
           "aliases": {
             "description": "Known aliases",
@@ -1819,7 +1644,7 @@
           "recent_videos": {
             "description": "Most recent archived videos",
             "items": {
-              "$ref": "#/components/schemas/VideoInfo-Output"
+              "$ref": "#/components/schemas/VideoInfo"
             },
             "title": "Recent Videos",
             "type": "array"
@@ -1864,7 +1689,7 @@
           "buckets": {
             "description": "Chronological archive buckets",
             "items": {
-              "$ref": "#/components/schemas/TimelineBucket-Output"
+              "$ref": "#/components/schemas/TimelineBucket"
             },
             "title": "Buckets",
             "type": "array"
@@ -1885,7 +1710,7 @@
         "title": "ArchiveTimelineResponse",
         "type": "object"
       },
-      "ArchiveTopicCard-Input": {
+      "ArchiveTopicCard": {
         "properties": {
           "aliases": {
             "description": "Search aliases used for this topic",
@@ -1898,105 +1723,7 @@
           "evidence": {
             "description": "Timestamped evidence moments",
             "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Input"
-            },
-            "title": "Evidence",
-            "type": "array"
-          },
-          "is_editable": {
-            "default": true,
-            "description": "Whether operators may edit this topic",
-            "title": "Is Editable",
-            "type": "boolean"
-          },
-          "kind": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Label kind such as topic, series, category, or person",
-            "title": "Kind"
-          },
-          "label": {
-            "description": "Public topic label",
-            "title": "Label",
-            "type": "string"
-          },
-          "recent_mentions_90d": {
-            "default": 0,
-            "description": "Mentions in the last 90 days",
-            "title": "Recent Mentions 90D",
-            "type": "integer"
-          },
-          "related_topics": {
-            "description": "Related topic labels",
-            "items": {
-              "type": "string"
-            },
-            "title": "Related Topics",
-            "type": "array"
-          },
-          "slug": {
-            "description": "Stable topic slug",
-            "title": "Slug",
-            "type": "string"
-          },
-          "source": {
-            "description": "curated, automatic, or hybrid",
-            "title": "Source",
-            "type": "string"
-          },
-          "status": {
-            "default": "published",
-            "description": "Public lifecycle status for the topic",
-            "title": "Status",
-            "type": "string"
-          },
-          "total_moments": {
-            "default": 0,
-            "description": "Matched transcript moments",
-            "title": "Total Moments",
-            "type": "integer"
-          },
-          "total_videos": {
-            "default": 0,
-            "description": "VODs with at least one matched moment",
-            "title": "Total Videos",
-            "type": "integer"
-          },
-          "trend_score": {
-            "default": 0,
-            "description": "Combined search and transcript trend score",
-            "title": "Trend Score",
-            "type": "number"
-          }
-        },
-        "required": [
-          "slug",
-          "label",
-          "source"
-        ],
-        "title": "ArchiveTopicCard",
-        "type": "object"
-      },
-      "ArchiveTopicCard-Output": {
-        "properties": {
-          "aliases": {
-            "description": "Search aliases used for this topic",
-            "items": {
-              "type": "string"
-            },
-            "title": "Aliases",
-            "type": "array"
-          },
-          "evidence": {
-            "description": "Timestamped evidence moments",
-            "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Output"
+              "$ref": "#/components/schemas/ArchiveEvidenceMoment"
             },
             "title": "Evidence",
             "type": "array"
@@ -2236,7 +1963,7 @@
           "people": {
             "description": "Assigned people",
             "items": {
-              "$ref": "#/components/schemas/ArchivePerson-Output"
+              "$ref": "#/components/schemas/ArchivePerson"
             },
             "title": "People",
             "type": "array"
@@ -2256,7 +1983,7 @@
           "tags": {
             "description": "Assigned tags",
             "items": {
-              "$ref": "#/components/schemas/ArchiveVideoTag-Output"
+              "$ref": "#/components/schemas/ArchiveVideoTag"
             },
             "title": "Tags",
             "type": "array"
@@ -2384,51 +2111,7 @@
         "title": "ArchiveVideoPersonAssignment",
         "type": "object"
       },
-      "ArchiveVideoTag-Input": {
-        "properties": {
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional description",
-            "title": "Description"
-          },
-          "kind": {
-            "default": "category",
-            "description": "Tag kind",
-            "title": "Kind",
-            "type": "string"
-          },
-          "label": {
-            "description": "Display label",
-            "title": "Label",
-            "type": "string"
-          },
-          "slug": {
-            "description": "Stable tag slug",
-            "title": "Slug",
-            "type": "string"
-          },
-          "sort_order": {
-            "default": 0,
-            "description": "Internal ordering weight",
-            "title": "Sort Order",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "slug",
-          "label"
-        ],
-        "title": "ArchiveVideoTag",
-        "type": "object"
-      },
-      "ArchiveVideoTag-Output": {
+      "ArchiveVideoTag": {
         "properties": {
           "description": {
             "anyOf": [
@@ -3209,7 +2892,7 @@
         "title": "CsrfTokenResponse",
         "type": "object"
       },
-      "EpisodeSearchGroup-Input": {
+      "EpisodeSearchGroup": {
         "properties": {
           "moments": {
             "description": "Moments matched in this video",
@@ -3220,28 +2903,7 @@
             "type": "array"
           },
           "video": {
-            "$ref": "#/components/schemas/VideoInfo-Input",
-            "description": "Video metadata for the group"
-          }
-        },
-        "required": [
-          "video"
-        ],
-        "title": "EpisodeSearchGroup",
-        "type": "object"
-      },
-      "EpisodeSearchGroup-Output": {
-        "properties": {
-          "moments": {
-            "description": "Moments matched in this video",
-            "items": {
-              "$ref": "#/components/schemas/SearchMoment"
-            },
-            "title": "Moments",
-            "type": "array"
-          },
-          "video": {
-            "$ref": "#/components/schemas/VideoInfo-Output",
+            "$ref": "#/components/schemas/VideoInfo",
             "description": "Video metadata for the group"
           }
         },
@@ -3394,7 +3056,7 @@
           "groups": {
             "description": "Search groups by video",
             "items": {
-              "$ref": "#/components/schemas/EpisodeSearchGroup-Output"
+              "$ref": "#/components/schemas/EpisodeSearchGroup"
             },
             "title": "Groups",
             "type": "array"
@@ -4042,7 +3704,7 @@
           "top_episodes": {
             "description": "Top matching episodes",
             "items": {
-              "$ref": "#/components/schemas/EpisodeSearchGroup-Output"
+              "$ref": "#/components/schemas/EpisodeSearchGroup"
             },
             "title": "Top Episodes",
             "type": "array"
@@ -4223,55 +3885,7 @@
         "title": "OpinionEvidence",
         "type": "object"
       },
-      "OpinionHistoryItem-Input": {
-        "properties": {
-          "current_revision": {
-            "title": "Current Revision",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "normalized_claim": {
-            "title": "Normalized Claim",
-            "type": "string"
-          },
-          "revisions": {
-            "items": {
-              "$ref": "#/components/schemas/OpinionRevisionResponse"
-            },
-            "title": "Revisions",
-            "type": "array"
-          },
-          "status": {
-            "enum": [
-              "candidate",
-              "published",
-              "corrected",
-              "retracted"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "subject_slug": {
-            "title": "Subject Slug",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "subject_slug",
-          "normalized_claim",
-          "status",
-          "current_revision",
-          "revisions"
-        ],
-        "title": "OpinionHistoryItem",
-        "type": "object"
-      },
-      "OpinionHistoryItem-Output": {
+      "OpinionHistoryItem": {
         "properties": {
           "current_revision": {
             "title": "Current Revision",
@@ -4323,7 +3937,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/OpinionHistoryItem-Output"
+              "$ref": "#/components/schemas/OpinionHistoryItem"
             },
             "title": "Items",
             "type": "array"
@@ -4495,7 +4109,7 @@
           "items": {
             "description": "List of videos in current page",
             "items": {
-              "$ref": "#/components/schemas/VideoInfo-Output"
+              "$ref": "#/components/schemas/VideoInfo"
             },
             "title": "Items",
             "type": "array"
@@ -4696,7 +4310,7 @@
         "title": "QuotedMomentsResponse",
         "type": "object"
       },
-      "RelatedEpisode-Input": {
+      "RelatedEpisode": {
         "properties": {
           "reasons": {
             "items": {
@@ -4711,32 +4325,7 @@
             "type": "number"
           },
           "video": {
-            "$ref": "#/components/schemas/VideoInfo-Input"
-          }
-        },
-        "required": [
-          "video",
-          "score"
-        ],
-        "title": "RelatedEpisode",
-        "type": "object"
-      },
-      "RelatedEpisode-Output": {
-        "properties": {
-          "reasons": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Reasons",
-            "type": "array"
-          },
-          "score": {
-            "minimum": 0.0,
-            "title": "Score",
-            "type": "number"
-          },
-          "video": {
-            "$ref": "#/components/schemas/VideoInfo-Output"
+            "$ref": "#/components/schemas/VideoInfo"
           }
         },
         "required": [
@@ -4750,7 +4339,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/RelatedEpisode-Output"
+              "$ref": "#/components/schemas/RelatedEpisode"
             },
             "title": "Items",
             "type": "array"
@@ -5493,7 +5082,7 @@
         "title": "SessionsResponse",
         "type": "object"
       },
-      "TimelineBucket-Input": {
+      "TimelineBucket": {
         "properties": {
           "label": {
             "description": "Human-readable bucket label",
@@ -5518,7 +5107,7 @@
           "videos": {
             "description": "Videos in chronological order",
             "items": {
-              "$ref": "#/components/schemas/VideoInfo-Input"
+              "$ref": "#/components/schemas/VideoInfo"
             },
             "title": "Videos",
             "type": "array"
@@ -5533,47 +5122,7 @@
         "title": "TimelineBucket",
         "type": "object"
       },
-      "TimelineBucket-Output": {
-        "properties": {
-          "label": {
-            "description": "Human-readable bucket label",
-            "title": "Label",
-            "type": "string"
-          },
-          "period": {
-            "description": "Bucket period label, e.g. 2026-05",
-            "title": "Period",
-            "type": "string"
-          },
-          "total_duration_seconds": {
-            "description": "Total duration for videos in the bucket",
-            "title": "Total Duration Seconds",
-            "type": "integer"
-          },
-          "video_count": {
-            "description": "Number of videos in the bucket",
-            "title": "Video Count",
-            "type": "integer"
-          },
-          "videos": {
-            "description": "Videos in chronological order",
-            "items": {
-              "$ref": "#/components/schemas/VideoInfo-Output"
-            },
-            "title": "Videos",
-            "type": "array"
-          }
-        },
-        "required": [
-          "period",
-          "label",
-          "video_count",
-          "total_duration_seconds"
-        ],
-        "title": "TimelineBucket",
-        "type": "object"
-      },
-      "TopicTimelineBucket-Input": {
+      "TopicTimelineBucket": {
         "properties": {
           "episode_count": {
             "minimum": 0.0,
@@ -5582,44 +5131,7 @@
           },
           "evidence": {
             "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Input"
-            },
-            "title": "Evidence",
-            "type": "array"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "mention_count": {
-            "minimum": 0.0,
-            "title": "Mention Count",
-            "type": "integer"
-          },
-          "period": {
-            "title": "Period",
-            "type": "string"
-          }
-        },
-        "required": [
-          "period",
-          "label",
-          "mention_count",
-          "episode_count"
-        ],
-        "title": "TopicTimelineBucket",
-        "type": "object"
-      },
-      "TopicTimelineBucket-Output": {
-        "properties": {
-          "episode_count": {
-            "minimum": 0.0,
-            "title": "Episode Count",
-            "type": "integer"
-          },
-          "evidence": {
-            "items": {
-              "$ref": "#/components/schemas/ArchiveEvidenceMoment-Output"
+              "$ref": "#/components/schemas/ArchiveEvidenceMoment"
             },
             "title": "Evidence",
             "type": "array"
@@ -5651,7 +5163,7 @@
         "properties": {
           "buckets": {
             "items": {
-              "$ref": "#/components/schemas/TopicTimelineBucket-Output"
+              "$ref": "#/components/schemas/TopicTimelineBucket"
             },
             "title": "Buckets",
             "type": "array"
@@ -5886,6 +5398,13 @@
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -6043,7 +5562,7 @@
         "title": "VideoChaptersResponse",
         "type": "object"
       },
-      "VideoInfo-Input": {
+      "VideoInfo": {
         "description": "Basic information about a video.",
         "example": {
           "duration_seconds": 212,
@@ -6159,7 +5678,7 @@
           "people": {
             "description": "Assigned people",
             "items": {
-              "$ref": "#/components/schemas/ArchivePerson-Input"
+              "$ref": "#/components/schemas/ArchivePerson"
             },
             "title": "People",
             "type": "array"
@@ -6179,199 +5698,7 @@
           "tags": {
             "description": "Assigned tags",
             "items": {
-              "$ref": "#/components/schemas/ArchiveVideoTag-Input"
-            },
-            "title": "Tags",
-            "type": "array"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Video title",
-            "title": "Title"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Local row update time",
-            "title": "Updated At"
-          },
-          "uploaded_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "YouTube upload or stream publish time",
-            "title": "Uploaded At"
-          },
-          "youtube_id": {
-            "description": "YouTube video ID",
-            "title": "Youtube Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "youtube_id"
-        ],
-        "title": "VideoInfo",
-        "type": "object"
-      },
-      "VideoInfo-Output": {
-        "description": "Basic information about a video.",
-        "example": {
-          "duration_seconds": 212,
-          "id": "123e4567-e89b-12d3-a456-426614174000",
-          "title": "Example Video Title",
-          "youtube_id": "dQw4w9WgXcQ"
-        },
-        "properties": {
-          "caption_ingest_state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "YouTube caption ingest state",
-            "title": "Caption Ingest State"
-          },
-          "category": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Video category",
-            "title": "Category"
-          },
-          "channel_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "YouTube channel name",
-            "title": "Channel Name"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Local row creation time",
-            "title": "Created At"
-          },
-          "diarization_state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Diarization state",
-            "title": "Diarization State"
-          },
-          "duration_seconds": {
-            "anyOf": [
-              {
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Video duration in seconds",
-            "title": "Duration Seconds"
-          },
-          "has_whisper_transcript": {
-            "default": false,
-            "description": "Whether Whisper transcript segments exist",
-            "title": "Has Whisper Transcript",
-            "type": "boolean"
-          },
-          "has_youtube_transcript": {
-            "default": false,
-            "description": "Whether YouTube captions exist",
-            "title": "Has Youtube Transcript",
-            "type": "boolean"
-          },
-          "id": {
-            "description": "Unique identifier for the video",
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Detected or declared language",
-            "title": "Language"
-          },
-          "people": {
-            "description": "Assigned people",
-            "items": {
-              "$ref": "#/components/schemas/ArchivePerson-Output"
-            },
-            "title": "People",
-            "type": "array"
-          },
-          "state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Processing state",
-            "title": "State"
-          },
-          "tags": {
-            "description": "Assigned tags",
-            "items": {
-              "$ref": "#/components/schemas/ArchiveVideoTag-Output"
+              "$ref": "#/components/schemas/ArchiveVideoTag"
             },
             "title": "Tags",
             "type": "array"
@@ -12597,7 +11924,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VideoInfo-Output"
+                  "$ref": "#/components/schemas/VideoInfo"
                 }
               }
             },
