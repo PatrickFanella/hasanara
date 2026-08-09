@@ -32,7 +32,7 @@ httpx==0.28.1  # Required by Authlib's Starlette async OAuth client
 itsdangerous==2.2.0  # Required for session middleware
 
 # PDF export
-reportlab==4.4.4
+reportlab==5.0.0
 
 # Metrics and monitoring
 prometheus-client==0.21.0
