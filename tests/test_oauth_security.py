@@ -121,7 +121,7 @@ class TestOAuthSecurity:
         with pytest.raises(ExternalServiceError):
             asyncio.run(exchange_and_normalize_profile(client, provider, MagicMock(), "unused"))
         client.get.assert_awaited_once_with(
-            "/users",
+            "users",
             token={"access_token": "secret-token"},
             headers={"Client-ID": provider.client_id, "Authorization": "Bearer secret-token"},
         )

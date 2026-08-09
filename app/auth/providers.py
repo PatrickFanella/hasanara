@@ -137,7 +137,7 @@ async def exchange_and_normalize_profile(
         if not isinstance(access_token, str) or not access_token:
             raise ValidationError("Missing access token from OAuth provider")
         response = await client.get(
-            "/users",
+            "users",
             token=token,
             headers={"Client-ID": provider.client_id, "Authorization": f"Bearer {access_token}"},
         )
