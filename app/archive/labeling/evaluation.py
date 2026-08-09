@@ -96,7 +96,7 @@ def _is_fragment_title(title: str) -> bool:
     normalized = _normalized(title).strip(".!?…")
     words = normalized.split()
     fillers = {"again", "okay", "ok", "wow", "yeah", "right", "anyway", "so"}
-    return len(words) < 3 or normalized in fillers
+    return len(words) < 2 or normalized in fillers
 
 
 def evaluate_enrichment_predictions(
