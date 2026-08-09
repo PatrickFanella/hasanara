@@ -16,7 +16,7 @@ const sourceDefinitions: Record<TranscriptSource, string> = {
 export default function TranscriptQualityNotice({ source, sourceLabel, blocks }: Props) {
   const reviewCount = blocks.filter((block) => block.needs_review).length;
   return (
-    <aside className="transcript-quality" aria-labelledby="transcript-quality-title">
+    <div className="transcript-quality" role="note" aria-labelledby="transcript-quality-title">
       <div>
         <div className="archive-eyebrow">Transcript quality</div>
         <h3 id="transcript-quality-title" className="mt-1 text-base font-semibold text-ink">
@@ -35,6 +35,6 @@ export default function TranscriptQualityNotice({ source, sourceLabel, blocks }:
             : 'No source disagreement flags'}
         </span>
       </div>
-    </aside>
+    </div>
   );
 }
