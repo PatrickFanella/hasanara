@@ -139,7 +139,7 @@ class TestOAuthSecurity:
             name="twitch",
             client_id="client-id",
             client_secret="client-secret",
-            client_kwargs={"scope": "user:read:email"},
+            client_kwargs={"scope": "user:read:email", "token_endpoint_auth_method": "client_secret_post"},
             authorize_url="https://id.twitch.tv/oauth2/authorize",
             access_token_url="https://id.twitch.tv/oauth2/token",
             api_base_url="https://api.twitch.tv/helix/",

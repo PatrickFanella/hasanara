@@ -30,6 +30,7 @@ class OAuthProvider:
     access_token_url: str | None
     api_base_url: str | None
     scope: str
+    token_endpoint_auth_method: str | None
 
     @property
     def enabled(self) -> bool:
@@ -48,6 +49,7 @@ def get_provider(name: str) -> OAuthProvider:
             access_token_url=None,
             api_base_url=None,
             scope="openid email profile",
+            token_endpoint_auth_method=None,
         )
     if name == "twitch":
         return OAuthProvider(
@@ -60,16 +62,20 @@ def get_provider(name: str) -> OAuthProvider:
             access_token_url="https://id.twitch.tv/oauth2/token",
             api_base_url="https://api.twitch.tv/helix/",
             scope="user:read:email",
+            token_endpoint_auth_method="client_secret_post",
         )
     raise ValidationError("Unsupported OAuth provider")
 
 
 def register_provider(oauth: Any, provider: OAuthProvider) -> None:
+    client_kwargs = {"scope": provider.scope}
+    if provider.token_endpoint_auth_method:
+        client_kwargs["token_endpoint_auth_method"] = provider.token_endpoint_auth_method
     options: dict[str, Any] = {
         "name": provider.name,
         "client_id": provider.client_id,
         "client_secret": provider.client_secret,
-        "client_kwargs": {"scope": provider.scope},
+        "client_kwargs": client_kwargs,
     }
     if provider.server_metadata_url:
         options["server_metadata_url"] = provider.server_metadata_url
