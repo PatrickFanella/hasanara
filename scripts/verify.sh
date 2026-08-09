@@ -20,6 +20,9 @@ export FRONTEND_ORIGIN='http://localhost:5173'
 # destructive session contract migration.
 export ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION='true'
 export ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION='true'
+# The test database is created by the isolated hasanara-test Compose project,
+# is name-guarded below by the integration fixtures, and is removed on exit.
+export ALLOW_DESTRUCTIVE_TEST_DB='1'
 
 cleanup() {
   local status=$?
