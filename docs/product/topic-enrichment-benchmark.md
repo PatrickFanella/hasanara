@@ -45,7 +45,27 @@ The report includes per-episode and macro-average subject precision/recall, keyw
 
 ## Offline prediction command
 
-Generate predictions from an exported transcript packet:
+Create a representative, read-only transcript packet from the application database:
+
+```bash
+./.venv/bin/python scripts/export_topic_enrichment_input.py \
+  transcript-input-v1.json \
+  --pipeline-version semantic-qwen-v1
+```
+
+By default the exporter selects 30 recent videos, taking up to five from each of six formats: politics/news, interviews, gaming, reaction content, recurring segments, and long mixed streams. If a format is undersupplied, the newest remaining candidates fill the packet. To export a deliberate review set instead, repeat `--video-id`:
+
+```bash
+./.venv/bin/python scripts/export_topic_enrichment_input.py \
+  transcript-input-v1.json \
+  --pipeline-version semantic-qwen-v1 \
+  --video-id VIDEO_UUID_1 \
+  --video-id VIDEO_UUID_2
+```
+
+The exporter performs only `SELECT` queries and closes its database session without committing. Its output is intentionally limited to video IDs, durations, and transcript block indexes, times, and cleaned text. It does not export users, jobs, speaker labels, media paths, or session data.
+
+Generate predictions from that packet:
 
 ```bash
 ./.venv/bin/python scripts/generate_topic_enrichment_predictions.py \
