@@ -50,6 +50,9 @@ services:
         healthcheck:
             disable: true
         ports: !override []
+        environment:
+            CHANNEL_SYNC_URLS: ${CHANNEL_SYNC_URLS:-https://www.youtube.com/@HasanAbiVODs/videos,https://www.youtube.com/@HasanAbiVODsBackup/videos,https://www.youtube.com/@HasanAbiVODs3/videos}
+            CHANNEL_SYNC_INTERVAL_SECONDS: ${CHANNEL_SYNC_INTERVAL_SECONDS:-21600}
         restart: unless-stopped
         stop_grace_period: 1h
 
