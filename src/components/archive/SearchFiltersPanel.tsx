@@ -4,14 +4,12 @@ type SearchFiltersPanelProps = {
   q: string;
   dateFrom: string;
   dateTo: string;
-  matchMode: NonNullable<ArchiveSearchFilters['match_mode']>;
   sortBy: NonNullable<ArchiveSearchFilters['sort_by']>;
   loading: boolean;
   canSubmitSearch: boolean;
   onQChange: (value: string) => void;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
-  onMatchModeChange: (value: NonNullable<ArchiveSearchFilters['match_mode']>) => void;
   onSortByChange: (value: NonNullable<ArchiveSearchFilters['sort_by']>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onReset: () => void;
@@ -21,14 +19,12 @@ export default function SearchFiltersPanel({
   q,
   dateFrom,
   dateTo,
-  matchMode,
   sortBy,
   loading,
   canSubmitSearch,
   onQChange,
   onDateFromChange,
   onDateToChange,
-  onMatchModeChange,
   onSortByChange,
   onSubmit,
   onReset,
@@ -73,25 +69,7 @@ export default function SearchFiltersPanel({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <label className="space-y-1.5 text-xs text-muted" htmlFor="search-match-mode">
-            <span className="meta-label">Matching</span>
-            <select
-              id="search-match-mode"
-              name="match_mode"
-              className="form-control min-h-[42px] w-full"
-              value={matchMode}
-              onChange={(event) =>
-                onMatchModeChange(
-                  event.target.value as NonNullable<ArchiveSearchFilters['match_mode']>
-                )
-              }
-            >
-              <option value="topic">Topic</option>
-              <option value="whole_word">Whole word</option>
-              <option value="exact_phrase">Exact phrase</option>
-            </select>
-          </label>
+        <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1.5 text-xs text-muted" htmlFor="search-date-from">
             <span className="meta-label">From</span>
             <input
@@ -133,10 +111,7 @@ export default function SearchFiltersPanel({
             </select>
           </label>
         </div>
-        <p className="text-xs leading-5 text-muted sm:max-w-52">
-          Topic finds related word forms, such as “housing” and “house”.
-        </p>
-        {(q || dateFrom || dateTo || matchMode !== 'topic' || sortBy !== 'relevance') && (
+        {(q || dateFrom || dateTo || sortBy !== 'relevance') && (
           <button
             type="button"
             className="btn-ghost self-start text-sm sm:self-auto"

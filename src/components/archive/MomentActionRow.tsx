@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { SearchHit } from '../../types/api';
+import { buildTimestampLink } from '../../features/archive/format';
+import { buildPlayMatchesLink } from '../../features/search/moments';
 
 type MomentActionRowProps = {
   videoId: string;
@@ -12,10 +14,39 @@ type MomentActionRowProps = {
   onSaveMoment: () => void;
 };
 
-export default function MomentActionRow(props: MomentActionRowProps) {
-  const { videoId, saved, onCopyTimestamp, onCopyQuote, onSaveMoment } = props;
+export default function MomentActionRow({
+  videoId,
+  moment,
+  query,
+  saved,
+  onOpenTimestamp,
+  onCopyTimestamp,
+  onCopyQuote,
+  onSaveMoment,
+}: MomentActionRowProps) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-1 gap-y-2 border-t border-border/60 pt-3 text-xs">
+      <Link
+        to={buildTimestampLink(videoId, moment.start_ms, moment.source)}
+        className="btn-secondary min-h-11 px-3 text-xs"
+        onClick={onOpenTimestamp}
+      >
+        Open moment
+      </Link>
+      {query && (
+        <Link
+          to={buildPlayMatchesLink(videoId, moment, query)}
+          className="btn-ghost min-h-11 px-2 text-xs text-accent"
+        >
+          Play from here
+        </Link>
+      )}
+      <button type="button" className="btn-ghost min-h-11 px-2 text-xs" onClick={onCopyTimestamp}>
+        Copy link
+      </button>
+      <button type="button" className="btn-ghost min-h-11 px-2 text-xs" onClick={onCopyQuote}>
+        Copy quote
+      </button>
       <button
         type="button"
         className="btn-ghost min-h-11 px-2 text-xs"
@@ -25,36 +56,9 @@ export default function MomentActionRow(props: MomentActionRowProps) {
       >
         {saved ? 'Saved' : 'Save'}
       </button>
-      <button type="button" className="btn-ghost min-h-11 px-2 text-xs" onClick={onCopyTimestamp}>
-        Share
-      </button>
-      <details className="relative ml-auto">
-        <summary
-          className="btn-ghost min-h-11 cursor-pointer list-none px-3 text-xs"
-          aria-label="More moment actions"
-        >
-          More
-        </summary>
-        <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-border bg-surface-raised p-1 shadow-xl">
-          <button
-            type="button"
-            className="btn-ghost w-full justify-start text-xs"
-            onClick={onCopyTimestamp}
-          >
-            Copy link
-          </button>
-          <button
-            type="button"
-            className="btn-ghost w-full justify-start text-xs"
-            onClick={onCopyQuote}
-          >
-            Copy quote
-          </button>
-          <Link to={`/v/${videoId}`} className="btn-ghost w-full justify-start text-xs">
-            Full VOD
-          </Link>
-        </div>
-      </details>
+      <Link to={`/v/${videoId}`} className="btn-ghost min-h-11 px-2 text-xs">
+        Full VOD
+      </Link>
     </div>
   );
 }
