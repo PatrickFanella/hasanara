@@ -163,6 +163,13 @@ def test_ingest_image_applies_available_base_security_updates() -> None:
     assert "apt-get update && apt-get upgrade -y --no-install-recommends" in dockerfile
 
 
+def test_ingest_image_splits_api_and_gpu_dependencies_for_registry_uploads() -> None:
+    dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
+    assert "pip3 install -c constraints.txt -r requirements-api.txt" in dockerfile
+    assert "pip3 install -c constraints.txt -r requirements-ingest.txt" in dockerfile
+    assert dockerfile.count("RUN pip3 install") >= 2
+
+
 def test_release_overlay_is_last_and_requires_immutable_images() -> None:
     helper = (ROOT / "scripts" / "compose_prod.sh").read_text(encoding="utf-8")
     assert helper.rfind("docker-compose.release.yml") > helper.rfind("docker-compose.pitr.yml")
