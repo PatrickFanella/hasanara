@@ -14,7 +14,7 @@ from sqlalchemy.orm import SessionTransaction
 
 from .audit import ACTION_BOOTSTRAP_ADMIN_PROMOTED, write_audit_event
 from .auth.providers import ProviderProfile
-from .exceptions import AppError, NotFoundError
+from .exceptions import AppError
 from .settings import settings
 
 
@@ -35,15 +35,6 @@ class AccountMergeConflictError(AppError):
 class LastIdentityError(AppError):
     def __init__(self) -> None:
         super().__init__("last_identity", "An account must retain a login identity", 409)
-
-
-class IdentitySelectionRequiredError(AppError):
-    def __init__(self) -> None:
-        super().__init__(
-            "identity_selection_required",
-            "Select the specific identity to unlink",
-            409,
-        )
 
 
 class FinalAdminError(AppError):
@@ -379,8 +370,8 @@ def link_identity(db, user_id: UUID | str, profile: ProviderProfile) -> dict:
             )
             return dict(identity)
     except IntegrityError as exc:
-        # The database-level provider/subject constraint resolves concurrent
-        # attempts to attach the same external identity to two users.
+        # Both identity uniqueness constraints intentionally have the same
+        # public result: a provider cannot be linked twice to an account.
         raise IdentityConflictError() from exc
 
 
@@ -454,6 +445,18 @@ def merge_account_identity(
         .first()
     )
     if not owner or str(owner["user_id"]) != source_user_id:
+        raise AccountMergeConflictError()
+
+    overlapping_provider = db.execute(
+        text("""
+            SELECT provider FROM user_identities WHERE user_id=CAST(:target AS uuid)
+            INTERSECT
+            SELECT provider FROM user_identities WHERE user_id=CAST(:source AS uuid)
+            LIMIT 1
+        """),
+        {"target": target_user_id, "source": source_user_id},
+    ).first()
+    if overlapping_provider:
         raise AccountMergeConflictError()
 
     target = next(row for row in users if str(row["id"]) == target_user_id)
@@ -587,7 +590,7 @@ def merge_account_identity(
     return AccountMergeResult(_user(db, target_user_id), source_user_id, session_token)
 
 
-def unlink_identity(db, user_id: UUID | str, identity_id: UUID | str) -> None:
+def unlink_identity(db, user_id: UUID | str, provider: str) -> None:
     identities = (
         db.execute(
             text("""
@@ -600,13 +603,11 @@ def unlink_identity(db, user_id: UUID | str, identity_id: UUID | str) -> None:
     )
     if len(identities) <= 1:
         raise LastIdentityError()
-    if not any(str(identity["id"]) == str(identity_id) for identity in identities):
-        raise NotFoundError("Identity not found")
     db.execute(
         text("""
-        DELETE FROM user_identities WHERE user_id=:user_id AND id=:identity_id
+        DELETE FROM user_identities WHERE user_id=:user_id AND provider=:provider
     """),
-        {"user_id": str(user_id), "identity_id": str(identity_id)},
+        {"user_id": str(user_id), "provider": provider},
     )
 
 

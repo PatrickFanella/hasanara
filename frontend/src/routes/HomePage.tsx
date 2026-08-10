@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, useAuth } from '../services';
 import type { ArchiveSummary } from '../types/api';
@@ -9,7 +9,6 @@ import {
   formatNumber,
 } from '../features/archive/format';
 import { VideoCard } from '../components/archive';
-import { AsyncError } from '../components/async/AsyncFeedback';
 
 const searchExamples = ['labor', 'Gaza', 'housing', 'election'];
 
@@ -18,34 +17,18 @@ export default function HomePage() {
   const { user, loading: authLoading, login, loginTwitch } = useAuth();
   const [summary, setSummary] = useState<ArchiveSummary | null>(null);
   const [query, setQuery] = useState('');
-  const [summaryState, setSummaryState] = useState<'loading' | 'success' | 'error'>('loading');
-  const summaryController = useRef<AbortController | null>(null);
-
-  const loadSummary = useCallback(() => {
-    summaryController.current?.abort();
-    const controller = new AbortController();
-    summaryController.current = controller;
-    setSummaryState('loading');
-    api
-      .getArchiveSummary(controller.signal)
-      .then((next) => {
-        if (!controller.signal.aborted) {
-          setSummary(next);
-          setSummaryState('success');
-        }
-      })
-      .catch((err: unknown) => {
-        if (!controller.signal.aborted) {
-          console.error('Failed to load archive summary', err);
-          setSummaryState('error');
-        }
-      });
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSummary();
-    return () => summaryController.current?.abort();
-  }, [loadSummary]);
+    api
+      .getArchiveSummary()
+      .then(setSummary)
+      .catch((err: unknown) => {
+        console.error('Failed to load archive summary', err);
+        setSummary(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -138,54 +121,31 @@ export default function HomePage() {
 
         <div className="archive-data-strip relative z-10">
           <div className="archive-data-cell">
-            <div className="meta-label">Searchable VODs</div>
+            <div className="meta-label">Archived VODs</div>
             <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatNumber(summary.video_count)
-                  : '—'}
+              {loading ? '—' : summary ? formatNumber(summary.video_count) : '—'}
             </div>
           </div>
           <div className="archive-data-cell">
             <div className="meta-label">Recorded runtime</div>
             <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatDuration(summary.total_duration_seconds)
-                  : '—'}
+              {loading ? '—' : summary ? formatDuration(summary.total_duration_seconds) : '—'}
             </div>
           </div>
           <div className="archive-data-cell">
             <div className="meta-label">Transcript words</div>
             <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatNumber(summary.transcript_word_count)
-                  : '—'}
+              {loading ? '—' : summary ? formatNumber(summary.transcript_word_count) : '—'}
             </div>
           </div>
           <div className="archive-data-cell">
             <div className="meta-label">Index refreshed</div>
             <div className="mt-2 font-mono text-sm font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? 'Checking…'
-                : formatDate(summary?.updated_at ?? null)}
+              {loading ? 'Checking…' : formatDate(summary?.updated_at ?? null)}
             </div>
           </div>
         </div>
       </section>
-
-      {summaryState === 'error' && (
-        <AsyncError onRetry={loadSummary} retryLabel="Retry archive summary">
-          Archive summary is unavailable.{' '}
-          {summary
-            ? 'The last successful archive snapshot is still shown.'
-            : 'Try again to load archive totals and recent VODs.'}
-        </AsyncError>
-      )}
 
       <section className="archive-section">
         {!authLoading && !user ? (
@@ -248,16 +208,14 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-              {summaryState === 'loading' && !summary
+              {loading
                 ? 'Loading recent VODs…'
-                : summaryState === 'error'
-                  ? 'Recent VODs could not be loaded. Retry the archive summary.'
-                  : 'No recent VODs are available yet.'}
+                : 'Recent VODs will appear when the archive summary is available.'}
             </div>
           )}
         </div>
 
-        <section aria-label="Archive highlights" className="archive-section flex flex-col gap-6">
+        <aside className="archive-section flex flex-col gap-6">
           <div>
             <div className="archive-eyebrow">Open a thread</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
@@ -284,9 +242,7 @@ export default function HomePage() {
               ))
             ) : (
               <p className="text-sm text-muted">
-                {summaryState === 'error'
-                  ? 'Popular searches could not be loaded. Retry the archive summary.'
-                  : 'Search activity will surface useful starting points here.'}
+                Search activity will surface useful starting points here.
               </p>
             )}
           </div>
@@ -303,7 +259,7 @@ export default function HomePage() {
               <div className="mt-3 text-sm text-accent">Start reading →</div>
             </Link>
           )}
-        </section>
+        </aside>
       </section>
 
       <section className="archive-section grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:items-center">

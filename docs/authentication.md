@@ -1,6 +1,6 @@
 # Authentication and accounts
 
-HasanAra supports Google and Twitch OAuth sign-in. There is no password registration, password reset, automatic email-based account merging, or provider access-token persistence. A HasanAra account may link multiple Google and multiple Twitch identities; each immutable provider subject, not email, identifies an external account. If an identity was used to create a separate HasanAra account, the signed-in user may explicitly merge it after proving control of that provider identity again.
+HasanAra supports Google and Twitch OAuth sign-in. There is no password registration, password reset, automatic email-based account merging, or provider access-token persistence. A HasanAra account may link one Google and one Twitch identity; the immutable provider subject, not email, identifies an external account. If the two identities were used to create separate HasanAra accounts, the signed-in user may explicitly merge them after proving control of the second provider again.
 
 ## Provider setup
 
@@ -79,8 +79,7 @@ All account endpoints require authentication. Cookie-authenticated mutations als
 - `GET /account/identities` lists linked provider metadata; subjects and tokens are never returned.
 - `POST /account/identities/{provider}/link` starts a link flow and returns an `authorization_url`; the callback returns to the account page.
 - `POST /account/identities/{provider}/merge` starts a fresh OAuth proof for an explicitly confirmed merge after an ownership collision.
-- `DELETE /account/identities/by-id/{identity_id}` removes one linked identity, except the final login identity cannot be unlinked.
-- `DELETE /account/identities/{provider}` is a compatibility route. It removes the identity only when exactly one is linked for that provider and otherwise returns `identity_selection_required`.
+- `DELETE /account/identities/{provider}` removes a linked identity, except the final login identity cannot be unlinked.
 - `GET /account/sessions` lists active sessions without tokens or token hashes.
 - `DELETE /account/sessions/{session_id}` revokes one session; `DELETE /account/sessions?keep_current=true` revokes other sessions, and `keep_current=false` revokes all sessions and clears the cookie.
 - `DELETE /account` requires JSON `{ "confirmation": "DELETE" }`, revokes account sessions and API keys, deletes private account data, and clears the cookie.
@@ -104,8 +103,6 @@ Deleting an account removes private account data, linked identities, sessions, a
 To rotate a provider secret: create a new secret at the provider, deploy it through the secret store, validate sign-in, then revoke the old secret. Rotating `SESSION_SECRET` does not invalidate opaque database sessions, because session lookup uses the raw token's database hash independently of that secret. It invalidates session-bound CSRF tokens and can disrupt in-progress OAuth compatibility cookies, so users may need to reacquire CSRF tokens or restart sign-in. To force a global logout, revoke or delete the session records.
 
 The expand identity/session schema and the later plaintext-session removal require an atomic maintenance rollout. Do not run old and hash-only session consumers concurrently; drain old API writers, migrate and validate, deploy the converted consumers, complete the contract migration, then reopen traffic. Rolling back after hash-only sessions requires invalidating sessions because raw tokens cannot be reconstructed from hashes.
-
-The multiple-provider-identity migration can be downgraded to the rc.8 constraint only while no user has more than one identity for a provider. Its downgrade checks this condition and fails before changing the schema when duplicate-provider identities exist.
 
 ## Errors
 

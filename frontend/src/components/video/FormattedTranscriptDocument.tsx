@@ -5,7 +5,6 @@ import {
   formatTimestamp,
   type TranscriptSource,
 } from '../../features/archive/format';
-import { normalizeTranscriptText } from '../../features/videoTranscript/transcript';
 
 type Props = {
   blocks: TranscriptBlock[];
@@ -31,12 +30,31 @@ type SentencePiece = {
   firstSegIndex: number;
 };
 
+function msToHms(ms: number) {
+  const total = Math.floor(ms / 1000);
+  const hh = Math.floor(total / 3600)
+    .toString()
+    .padStart(2, '0');
+  const mm = Math.floor((total % 3600) / 60)
+    .toString()
+    .padStart(2, '0');
+  const ss = (total % 60).toString().padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+function normalizeSentenceText(text: string) {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .trim();
+}
+
 function endsSentence(text: string) {
   return /[.!?][”"')\]]*$/.test(text.trim());
 }
 
 function splitIntoSentences(text: string) {
-  const normalized = normalizeTranscriptText(text);
+  const normalized = normalizeSentenceText(text);
   if (!normalized) return [];
   return (
     normalized
@@ -73,7 +91,7 @@ function buildSentencePieces(
     const lastId = currentIds[currentIds.length - 1];
     const firstSegment = transcriptSegments[firstId];
     const lastSegment = transcriptSegments[lastId] ?? firstSegment;
-    const text = normalizeTranscriptText(currentText.join(' '));
+    const text = normalizeSentenceText(currentText.join(' '));
     if (firstSegment && text) {
       pieces.push({
         id: `${block.block_index}-${firstId}-${lastId}`,
@@ -92,7 +110,7 @@ function buildSentencePieces(
   for (const segId of block.segment_ids) {
     const segment = transcriptSegments[segId];
     if (!segment) continue;
-    const text = normalizeTranscriptText(segment.text);
+    const text = normalizeSentenceText(segment.text);
     if (!text) continue;
 
     const segmentSentences = splitIntoSentences(text);
@@ -129,7 +147,7 @@ function buildSentencePieces(
     : [
         {
           id: `${block.block_index}-fallback`,
-          text: normalizeTranscriptText(block.text),
+          text: normalizeSentenceText(block.text),
           startMs: block.start_ms,
           endMs: block.end_ms,
           segmentIds: block.segment_ids,
@@ -213,7 +231,7 @@ function FormattedTranscriptDocument({
                   pieces[0] &&
                   onClickSentence(pieces[0].firstSegment, pieces[0].firstSegIndex, pieces[0].id)
                 }
-                aria-label={`Play from ${formatTimestamp(block.start_ms)}`}
+                aria-label={`Play from ${msToHms(block.start_ms)}`}
               >
                 {formatTimestamp(block.start_ms)}
               </button>
@@ -251,7 +269,7 @@ function FormattedTranscriptDocument({
                           }
                         }}
                         className={`transcript-sentence ${pieceActive ? 'transcript-sentence-active' : ''} ${pieceHighlighted && !pieceActive ? 'transcript-sentence-match' : ''} ${pieceSaved ? 'underline decoration-warning decoration-2 underline-offset-4' : ''}`}
-                        aria-label={`Play sentence from ${formatTimestamp(piece.startMs)}`}
+                        aria-label={`Play sentence from ${msToHms(piece.startMs)}`}
                       >
                         {piece.text}
                       </span>{' '}

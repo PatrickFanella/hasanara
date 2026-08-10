@@ -142,67 +142,33 @@ def test_merge_existing_provider_account_preserves_data_and_rotates_access(db_se
     ).scalar_one() == 0
 
 
-def test_merge_transfers_overlapping_provider_identities(db_session):
+def test_merge_rejects_overlapping_provider_without_mutation(db_session):
     target = sign_in_identity(db_session, google_profile("overlap-target", "target@example.com"))
     source = sign_in_identity(db_session, twitch_profile("overlap-source", "source@example.com"))
     link_identity(db_session, source.user["id"], google_profile("overlap-other", "other@example.com"))
 
-    merged = merge_account_identity(
-        db_session,
-        target.user["id"],
-        twitch_profile("overlap-source", "source@example.com"),
-        user_agent=None,
-        ip_address=None,
-    )
+    from app.accounts import AccountMergeConflictError
 
-    assert merged.source_user_id == str(source.user["id"])
-    assert identity_count(db_session, target.user["id"]) == 3
-    assert db_session.execute(
-        text("SELECT count(*) FROM users WHERE id=:id"), {"id": str(source.user["id"])}
-    ).scalar_one() == 0
+    with pytest.raises(AccountMergeConflictError):
+        merge_account_identity(
+            db_session,
+            target.user["id"],
+            twitch_profile("overlap-source", "source@example.com"),
+            user_agent=None,
+            ip_address=None,
+        )
 
-
-def test_link_allows_multiple_identities_from_the_same_provider(db_session):
-    owner = sign_in_identity(db_session, google_profile("google-primary", "primary@example.com"))
-
-    linked = link_identity(
-        db_session,
-        owner.user["id"],
-        google_profile("google-secondary", "secondary@example.com"),
-    )
-
-    assert linked["subject"] == "google-secondary"
-    assert identity_count(db_session, owner.user["id"]) == 2
+    assert identity_count(db_session, target.user["id"]) == 1
+    assert identity_count(db_session, source.user["id"]) == 2
 
 
 def test_unlink_rejects_final_identity(db_session):
     user = sign_in_identity(db_session, google_profile("g-1", "a@example.com"))
 
     with pytest.raises(LastIdentityError) as exc_info:
-        identity_id = db_session.execute(
-            text("SELECT id FROM user_identities WHERE user_id=:user_id"),
-            {"user_id": str(user.user["id"])},
-        ).scalar_one()
-        unlink_identity(db_session, user.user["id"], identity_id)
+        unlink_identity(db_session, user.user["id"], "google")
 
     assert getattr(exc_info.value, "error_code", None) == "last_identity"
-
-
-def test_unlink_removes_only_the_selected_identity(db_session):
-    user = sign_in_identity(db_session, google_profile("g-primary", "primary@example.com"))
-    secondary = link_identity(
-        db_session,
-        user.user["id"],
-        google_profile("g-secondary", "secondary@example.com"),
-    )
-
-    unlink_identity(db_session, user.user["id"], secondary["id"])
-
-    remaining = db_session.execute(
-        text("SELECT subject FROM user_identities WHERE user_id=:user_id"),
-        {"user_id": str(user.user["id"])},
-    ).scalars().all()
-    assert remaining == ["g-primary"]
 
 
 def test_bootstrap_identity_promotes_a_preexisting_backfilled_account_once(db_session, monkeypatch):
