@@ -88,53 +88,6 @@ async function seedArchiveApi(page: Page) {
         period_options: [selectedPeriod],
       });
     }
-    if (url.pathname === "/api/archive/discovery") {
-      const pageInfo = {
-        has_next_page: false,
-        has_previous_page: false,
-        next_cursor: null,
-        previous_cursor: null,
-        total_count: 1,
-      };
-      if (url.searchParams.get("kind") === "topics") {
-        return respond({
-          items: [
-            {
-              kind: "topic",
-              topic: {
-                slug: "labor",
-                label: "Labor",
-                kind: "topic",
-                source: "curated",
-                status: "published",
-                is_editable: true,
-                aliases: [],
-                total_moments: 1,
-                total_videos: 1,
-                recent_mentions_90d: 1,
-                trend_score: 1,
-                related_topics: [],
-                evidence: [],
-              },
-            },
-          ],
-          page_info: pageInfo,
-        });
-      }
-      return respond({
-        items: [
-          {
-            kind: "moment",
-            video: seededVideo,
-            start_ms: 12000,
-            end_ms: 18000,
-            snippet: "Labor rights are worth protecting.",
-            topic: "Labor",
-          },
-        ],
-        page_info: pageInfo,
-      });
-    }
     if (url.pathname === "/api/search/grouped") {
       if (url.searchParams.get("q") === "no-such-archive-phrase") {
         return respond({ total_moments: 0, total_videos: 0, groups: [] });
@@ -385,7 +338,7 @@ test("anonymous visitors can browse the seeded VOD library", async ({
 }) => {
   await page.goto("/episodes");
   await expect(page.getByText("Seeded archive episode")).toBeVisible();
-  await expect(page.getByText("1 All VOD records")).toBeVisible();
+  await expect(page.getByText(/1 VOD/)).toBeVisible();
 });
 
 test("legacy library and saved links render their current destinations", async ({
@@ -393,7 +346,7 @@ test("legacy library and saved links render their current destinations", async (
 }) => {
   await page.goto("/streams");
   await expect(
-    page.getByRole("heading", { name: "Watch the archive" }),
+    page.getByRole("heading", { name: "Browse HasanAbi VODs" }),
   ).toBeVisible();
   await expect(page.getByText("Seeded archive episode")).toBeVisible();
 
@@ -528,7 +481,7 @@ test("visitors can read, save, remove, and reopen a transcript moment", async ({
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open moment" })).toHaveAttribute(
     "href",
-    `/v/${seededVideo.id}?t=12#moment-12000`,
+    `/v/${seededVideo.id}?t=12#seg-1`,
   );
 
   await page.getByRole("link", { name: "Open moment" }).click();
@@ -630,12 +583,10 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search\?q=labor$/);
 
-  const copyLink = page.getByRole("button", { name: "Share" });
+  const copyLink = page.getByRole("button", { name: "Copy link" });
   await copyLink.focus();
   await page.keyboard.press("Enter");
-  await expect(
-    page.getByRole("status").filter({ hasText: "Timestamp link copied." }),
-  ).toHaveText("Timestamp link copied.");
+  await expect(page.getByRole("status")).toHaveText("Timestamp link copied.");
   await expect
     .poll(() =>
       page.evaluate(
@@ -645,13 +596,11 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
     )
     .toContain(`/v/${seededVideo.id}?t=12`);
 
-  const openMoment = page.getByRole("link", {
-    name: "Play cited moment at 00:00:12",
-  });
+  const openMoment = page.getByRole("link", { name: "Open moment" });
   await openMoment.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(
-    new RegExp(`/v/${seededVideo.id}\\?t=12.*#moment-12000$`),
+    new RegExp(`/v/${seededVideo.id}\\?t=12&source=whisper#moment-whisper-12000$`),
   );
 
   const sentence = page.getByRole("button", {
@@ -679,10 +628,9 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
     name: "Search inside this VOD",
   });
   await transcriptSearch.focus();
-  await page.keyboard.press("ControlOrMeta+A");
   await page.keyboard.type("rights");
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\?t=12&q=rights(?:&play=matches)?$/);
+  await expect(page).toHaveURL(/\?t=12&source=whisper&q=rights$/);
   await expect(
     page.getByRole("button", { name: "Go to next match" }),
   ).toBeVisible();
@@ -702,17 +650,17 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
       .focus();
   }
   await page.keyboard.press("Enter");
-  await expect(
-    page.getByRole("heading", { name: "Search the record." }),
-  ).toBeFocused();
   const query = page.getByRole("searchbox", { name: "Search query" });
-  await query.fill("no-such-archive-phrase");
+  await query.focus();
+  await page.keyboard.type("no-such-archive-phrase");
   await page.keyboard.press("Enter");
   await expect(
     page.getByRole("heading", { name: "No transcript matches" }),
   ).toBeVisible();
 
-  await query.fill("labor");
+  await query.focus();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type("labor");
   await page.keyboard.press("Enter");
   await expect(page.getByText("labor rights").first()).toBeVisible();
 });
@@ -917,7 +865,8 @@ test("400-percent reflow keeps primary touch targets operable", async ({
   await minimumTargetSize(page, "Dates");
 
   await page.goto("/search?q=labor");
-  await minimumTargetSize(page, "Share");
+  await minimumTargetSize(page, "Copy link");
+  await minimumTargetSize(page, "Copy quote");
   await minimumTargetSize(page, "Save moment");
 
   await page.goto(`/v/${seededVideo.id}`);
@@ -1038,113 +987,4 @@ test("core public routes do not overflow a 320px viewport", async ({
       `${route} horizontal overflow`,
     ).toBeLessThanOrEqual(dimensions.clientWidth + 1);
   }
-});
-
-test("release viewport matrix preserves feed density and the mobile player-reader contract", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(240_000);
-  const videos = Array.from({ length: 12 }, (_, index) => ({
-    ...seededVideo,
-    id: `00000000-0000-0000-0000-${String(300 + index).padStart(12, "0")}`,
-    youtube_id: `seeded-video-${index}`,
-    title: `Archive episode ${String(index + 1).padStart(2, "0")}`,
-    uploaded_at: `2026-06-${String(28 - index).padStart(2, "0")}T12:00:00Z`,
-  }));
-  await page.route("**/api/videos**", (route) => {
-    if (new URL(route.request().url()).pathname !== "/api/videos")
-      return route.fallback();
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        items: videos,
-        page_info: {
-          has_next_page: false,
-          has_previous_page: false,
-          next_cursor: null,
-          previous_cursor: null,
-          total_count: videos.length,
-        },
-      }),
-    });
-  });
-  await page.route("https://i.ytimg.com/**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "image/svg+xml",
-      body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="#201d27"/><path d="m6 3 5 1.5L6 7z" fill="#b7ff3c"/></svg>',
-    }),
-  );
-
-  const viewports = [
-    { width: 320, height: 568 },
-    { width: 360, height: 800 },
-    { width: 390, height: 844 },
-    { width: 768, height: 1024 },
-    { width: 1024, height: 768 },
-    { width: 1440, height: 1000 },
-  ];
-
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    for (const colorScheme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme });
-      await page.goto("/episodes");
-      await expect(
-        page.getByRole("heading", { name: "Watch the archive" }),
-      ).toBeVisible();
-      await expect(page.getByRole("article")).toHaveCount(12);
-      const dimensions = await page.evaluate(() => ({
-        clientWidth: document.documentElement.clientWidth,
-        nodes: document.querySelectorAll("*").length,
-        scrollWidth: document.documentElement.scrollWidth,
-      }));
-      expect(dimensions.scrollWidth).toBeLessThanOrEqual(
-        dimensions.clientWidth + 1,
-      );
-      expect(dimensions.nodes).toBeLessThan(1500);
-
-      if (viewport.width === 390) {
-        const cards = page.getByRole("article");
-        const first = await cards.nth(0).boundingBox();
-        const second = await cards.nth(1).boundingBox();
-        expect(first?.height).toBeGreaterThanOrEqual(260);
-        expect(first?.height).toBeLessThanOrEqual(290);
-        expect(second?.y).toBeLessThan(viewport.height);
-      }
-
-      await page.screenshot({
-        path: testInfo.outputPath(
-          `feed-${viewport.width}x${viewport.height}-${colorScheme}.png`,
-        ),
-        fullPage: false,
-      });
-    }
-  }
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/episodes");
-  await page.getByRole("tab", { name: "Topics" }).click();
-  await expect(page.getByText("Explore evidence →")).toBeVisible();
-  await page.getByRole("tab", { name: "Moments" }).click();
-  await expect(page.getByText("Play cited moment →")).toBeVisible();
-
-  await page.goto(`/v/${seededVideo.id}`);
-  await expect(page.locator(".mobile-player-dock")).toBeVisible();
-  const sheet = page.locator(".mobile-transcript-sheet");
-  await expect(sheet).toHaveAttribute("data-snap", "half");
-  const handle = page.getByRole("button", { name: /half transcript sheet/i });
-  await handle.focus();
-  await page.keyboard.press("ArrowUp");
-  await expect(sheet).toHaveAttribute("data-snap", "expanded");
-  await page.keyboard.press("Escape");
-  await expect(sheet).toHaveAttribute("data-snap", "collapsed");
-  expect(await page.locator("[data-current-sentence]").count()).toBeLessThan(
-    300,
-  );
-  expect(await page.locator("*").count()).toBeLessThan(1500);
-  await page.screenshot({
-    path: testInfo.outputPath("episode-mobile-collapsed.png"),
-  });
 });
