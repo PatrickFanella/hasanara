@@ -3,7 +3,7 @@ fastapi==0.139.0
 uvicorn[standard]==0.38.0
 
 # Database
-sqlalchemy==2.0.44
+sqlalchemy==2.0.51
 psycopg[binary]==3.2.10
 alembic==1.17.0
 
@@ -11,12 +11,12 @@ alembic==1.17.0
 yt-dlp==2026.7.4
 
 # Whisper transcription backends
-faster-whisper==1.2.0
+faster-whisper==1.2.1
 # Security-audited PyPI release compatible with the pinned Python 3.11 stack
 openai-whisper==20250625
 
 # Speaker diarization (optional, requires HF_TOKEN)
-pyannote.audio==4.0.1
+pyannote.audio==4.0.7
 
 # Core dependencies
 # Audited Python 3.11 runtime pin; GPU image variants use the same version.
@@ -38,7 +38,7 @@ reportlab==4.4.4
 prometheus-client==0.21.0
 
 # Rate limiting
-slowapi==0.1.9
+slowapi==0.1.10
 
 # Redis caching
 redis==5.2.1
