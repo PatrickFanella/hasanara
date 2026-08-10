@@ -35,6 +35,14 @@ def test_selected_digest_is_scanned_signed_attested_and_uploaded():
     source = WORKFLOW.read_text(encoding="utf-8")
 
     assert "--severity CRITICAL,HIGH --pkg-types library --exit-code 1" in source
+    assert 'docker push "$IMAGE:$TAG"' not in source
+    assert "quay.io/skopeo/stable@sha256:47853bb9fb24202af9110531ebd6e43c5f97701254ca290596640290d17942f4" in source
+    assert 'docker network create --internal "$network"' in source
+    assert 'docker network connect --alias registry-origin "$network" gitea' in source
+    assert '"docker-daemon:${IMAGE}:${TAG}" "docker://registry-origin:3000/${IMAGE#git.subcult.tv/}:${TAG}"' in source
+    assert '--dest-registry-token "$REGISTRY_BEARER_TOKEN"' in source
+    assert '[[ "$canonical_digest" == "$pushed_digest" ]]' in source
+    assert "trap cleanup EXIT" in source
     assert '"builder": {"id":' in source
     assert 'cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$IMAGE_REF"' in source
     assert "--type slsaprovenance --predicate selected.provenance.json" in source

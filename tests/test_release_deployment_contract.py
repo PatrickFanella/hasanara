@@ -160,7 +160,29 @@ def test_patched_runtime_dependency_pins_match_all_release_inputs() -> None:
 
 def test_ingest_image_applies_available_base_security_updates() -> None:
     dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
-    assert "apt-get update && apt-get upgrade -y --no-install-recommends" in dockerfile
+    assert "apt-get update" in dockerfile
+    assert "apt-get upgrade -y --no-install-recommends" in dockerfile
+
+
+def test_ingest_image_splits_cuda_upgrades_for_registry_uploads() -> None:
+    dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
+    assert dockerfile.count("--only-upgrade --no-install-recommends") >= 7
+    for package in (
+        "cuda-compat-12-8",
+        "libcufft-12-8",
+        "libcusolver-12-8",
+        "libcusparse-12-8",
+        "libnpp-12-8",
+    ):
+        assert package in dockerfile
+
+
+def test_ingest_image_splits_api_and_gpu_dependencies_for_registry_uploads() -> None:
+    dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
+    assert "pip3 install -c constraints.txt -r requirements-api.txt" in dockerfile
+    assert "pip3 install -c constraints.txt ctranslate2==4.6.0" in dockerfile
+    assert "pip3 install -c constraints.txt faster-whisper==1.2.0" in dockerfile
+    assert dockerfile.count("RUN pip3 install") >= 3
 
 
 def test_release_overlay_is_last_and_requires_immutable_images() -> None:
