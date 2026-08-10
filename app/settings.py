@@ -184,6 +184,8 @@ class Settings(BaseSettings):
     JOB_CREATE_MAX_CHANNEL_VIDEOS: int = 250  # Maximum videos a channel job may expand into
     JOB_CREATE_MAX_BATCH_EXPECTED_JOBS: int = 100  # Upper bound for staged batch coordination fan-out
     JOB_CREATE_ADMIN_BYPASS_QUOTAS: bool = True  # Admins may create ingestion jobs without quota limits
+    CHANNEL_SYNC_URLS: str = ""  # Comma-separated YouTube channel /videos URLs for recurring discovery
+    CHANNEL_SYNC_INTERVAL_SECONDS: int = Field(default=6 * 60 * 60, ge=60, le=24 * 60 * 60)
 
     # Backup and disaster recovery configuration
     BACKUP_DIR: str = "/backups"  # Root directory for all backups

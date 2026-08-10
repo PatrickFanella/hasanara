@@ -138,6 +138,7 @@ jobs:
           import json, os
           from pathlib import Path
           Path("selected.provenance.json").write_text(json.dumps({
+              "builder": {"id": "https://git.subcult.tv/actions/hasanara-selective-release"},
               "buildType": "https://hasanara.example/selective-release",
               "invocation": {"parameters": {"role": os.environ["ROLE"], "dockerfile": os.environ["DOCKERFILE"]}},
               "materials": [{"uri": "https://git.subcult.tv/${{ gitea.repository }}", "digest": {"sha1": os.environ["SOURCE_COMMIT"]}}],
