@@ -166,8 +166,9 @@ def test_ingest_image_applies_available_base_security_updates() -> None:
 def test_ingest_image_splits_api_and_gpu_dependencies_for_registry_uploads() -> None:
     dockerfile = (ROOT / "Dockerfile.ingest.cuda").read_text(encoding="utf-8")
     assert "pip3 install -c constraints.txt -r requirements-api.txt" in dockerfile
-    assert "pip3 install -c constraints.txt -r requirements-ingest.txt" in dockerfile
-    assert dockerfile.count("RUN pip3 install") >= 2
+    assert "pip3 install -c constraints.txt ctranslate2==4.6.0" in dockerfile
+    assert "pip3 install -c constraints.txt faster-whisper==1.2.0" in dockerfile
+    assert dockerfile.count("RUN pip3 install") >= 3
 
 
 def test_release_overlay_is_last_and_requires_immutable_images() -> None:

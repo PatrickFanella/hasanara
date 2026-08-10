@@ -30,7 +30,9 @@ COPY requirements-api.txt requirements-ingest.txt constraints.txt ./
 RUN pip3 install --upgrade setuptools==81.0.0 wheel==0.47.0
 RUN pip3 install -c constraints.txt -r requirements-api.txt \
     && pip3 check
-RUN pip3 install -c constraints.txt -r requirements-ingest.txt \
+RUN pip3 install -c constraints.txt ctranslate2==4.6.0 \
+    && pip3 check
+RUN pip3 install -c constraints.txt faster-whisper==1.2.0 \
     && pip3 check
 
 COPY app ./app
