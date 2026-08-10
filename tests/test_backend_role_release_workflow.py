@@ -35,6 +35,7 @@ def test_selected_digest_is_scanned_signed_attested_and_uploaded():
     source = WORKFLOW.read_text(encoding="utf-8")
 
     assert "--severity CRITICAL,HIGH --pkg-types library --exit-code 1" in source
+    assert '"builder": {"id":' in source
     assert 'cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$IMAGE_REF"' in source
     assert "--type slsaprovenance --predicate selected.provenance.json" in source
     assert "--type spdxjson --predicate selected.spdx.json" in source
