@@ -15,12 +15,8 @@ describe('search filters helpers', () => {
     expect(readFilters(params)).toEqual({
       q: 'hasan',
       match_mode: 'topic',
-      source: 'native',
-      category: 'news',
       date_from: '2026-05-01',
       date_to: undefined,
-      min_duration: 120,
-      max_duration: undefined,
       sort_by: undefined,
       video_id: undefined,
       limit: 25,
@@ -30,6 +26,7 @@ describe('search filters helpers', () => {
     expect(
       serializeFilters({
         q: 'hasan',
+        match_mode: 'topic',
         source: 'native',
         category: 'news',
         date_from: '2026-05-01',
@@ -41,14 +38,12 @@ describe('search filters helpers', () => {
         limit: 25,
         offset: 50,
       }).toString()
-    ).toBe(
-      'q=hasan&source=native&category=news&date_from=2026-05-01&min_duration=120&sort_by=relevance&limit=25&offset=50'
-    );
+    ).toBe('q=hasan&date_from=2026-05-01&sort_by=relevance&limit=25&offset=50');
   });
 
   it('builds save-search filters without stale blanks', () => {
     expect(
-      buildCurrentFilters('topic', undefined, '', '', '', '', '', 'relevance', {
+      buildCurrentFilters('topic', '', '', 'relevance', {
         video_id: 'video-1',
         limit: 25,
         offset: 50,
