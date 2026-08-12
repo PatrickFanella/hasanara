@@ -481,7 +481,7 @@ test("visitors can read, save, remove, and reopen a transcript moment", async ({
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open moment" })).toHaveAttribute(
     "href",
-    `/v/${seededVideo.id}?t=12#seg-1`,
+    `/v/${seededVideo.id}?t=12&source=whisper#moment-whisper-12000`,
   );
 
   await page.getByRole("link", { name: "Open moment" }).click();
