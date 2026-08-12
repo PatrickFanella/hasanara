@@ -213,23 +213,28 @@ export default function AppLayout() {
             <div className="mx-auto flex max-w-[100rem] flex-col gap-2 py-4">
               <div className="archive-eyebrow mb-2 self-start">Navigation deck</div>
               {navItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.to}
                   to={item.to}
-                  className="nav-link block"
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    `nav-link block ${isActive ? 'bg-surface-muted text-ink' : ''}`
+                  }
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
               {user && (
-                <Link
+                <NavLink
                   to="/account"
-                  className="nav-link block"
+                  className={({ isActive }) =>
+                    `nav-link block ${isActive ? 'bg-surface-muted text-ink' : ''}`
+                  }
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Account
-                </Link>
+                </NavLink>
               )}
 
               <div className="mt-3 border-t border-border pt-3">

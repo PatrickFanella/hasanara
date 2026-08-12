@@ -85,6 +85,18 @@ describe('AppLayout navigation', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
   });
 
+  it('marks the current destination in mobile navigation', () => {
+    render(
+      <MemoryRouter initialEntries={['/explore']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    const menu = screen.getByRole('navigation', { name: 'Mobile navigation' });
+    expect(within(menu).getByRole('link', { name: 'Explore', current: 'page' })).toBeVisible();
+  });
+
   it('changes theme from mobile navigation without closing the menu', () => {
     render(<AppLayout />, { wrapper: MemoryRouter });
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));

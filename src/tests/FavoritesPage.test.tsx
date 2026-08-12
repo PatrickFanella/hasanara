@@ -277,6 +277,34 @@ describe('FavoritesPage accessibility', () => {
     expect(await screen.findByText('No saved searches yet.')).toBeVisible();
   });
 
+  it('keeps a remote moment visible and retryable when deletion fails', async () => {
+    serviceMocks.user = { id: 'user-1' };
+    const remoteMoment = {
+      id: 'remote-1',
+      video_id: 'video-1',
+      start_ms: 12_000,
+      end_ms: 18_000,
+      text: 'Do not lose this moment',
+    };
+    serviceMocks.listFavorites.mockResolvedValue({ items: [remoteMoment] });
+    serviceMocks.listSavedSearches.mockResolvedValue({ items: [] });
+    serviceMocks.deleteFavorite.mockRejectedValue(new Error('offline'));
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/saved']}>
+        <FavoritesPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Do not lose this moment')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(await screen.findByText('Do not lose this moment')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('It is still saved.');
+    expect(screen.getByRole('button', { name: 'Retry removing saved moment' })).toBeEnabled();
+  });
+
   it('removes synchronized private data from the UI immediately after sign-out', async () => {
     serviceMocks.user = { id: 'user-1' };
     serviceMocks.listFavorites.mockResolvedValue({
@@ -356,6 +384,11 @@ describe('FavoritesPage accessibility', () => {
 
     expect(await screen.findByText('Unsynchronized moment')).toBeVisible();
     expect(screen.getByText('unsynchronized search')).toBeVisible();
+    expect((await screen.findAllByText('Sync error')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Your saved data could not be synchronized.'
+    );
+    expect(screen.getByRole('button', { name: 'Retry synchronization' })).toBeEnabled();
     await waitFor(() => expect(serviceMocks.addFavorite).toHaveBeenCalled());
     await waitFor(() => expect(serviceMocks.createSavedSearch).toHaveBeenCalled());
     expect(serviceMocks.removeFavorite).not.toHaveBeenCalled();

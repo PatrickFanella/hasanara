@@ -433,6 +433,27 @@ describe('ExplorePage', () => {
     expect(screen.getAllByText('A known good archive snapshot.')).not.toHaveLength(0);
   });
 
+  it('reports predefined-period failures independently and offers a retry', async () => {
+    vi.spyOn(api, 'getExploreIntelligence').mockResolvedValue(exploreResponse());
+    vi.spyOn(api, 'getExplorePeriods').mockRejectedValue(new Error('unavailable'));
+
+    render(
+      <MemoryRouter initialEntries={['/explore']}>
+        <ExplorePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Explore the HasanAbi VOD archive' })
+      ).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Weeks' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Predefined archive periods');
+    expect(screen.getByRole('button', { name: 'Retry predefined periods' })).toBeEnabled();
+  });
+
   it('explains an empty period, topic list, source sections, and discovery facets', async () => {
     const emptyPeriod = {
       ...selectedPeriod,
