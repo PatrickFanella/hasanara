@@ -129,6 +129,7 @@ def test_search_youtube_builds_expected_sql_and_params():
     assert "WITH text_hits AS (" in sql
     assert "title_hits AS (" in sql
     assert "ORDER BY title_match DESC, rank DESC, start_ms ASC" in sql
+    assert db.calls[0]["params"]["branch_limit"] == 5
     assert db.calls[0]["params"]["title_q"] == "%caption%"
     assert db.calls[0]["params"]["headline_options"] == POSTGRES_HEADLINE_OPTIONS
 
@@ -170,6 +171,9 @@ def test_search_best_builds_expected_sql_and_preserves_source():
     assert "JOIN LATERAL" in sql
     assert "WHERE v.title ILIKE :title_q" in sql
     assert "ORDER BY duration_seconds ASC NULLS LAST, start_ms ASC" in sql
+    assert "WITH native_text_hits AS (" in sql
+    assert "youtube_title_hits AS (" in sql
+    assert db.calls[0]["params"]["branch_limit"] == 8
     assert db.calls[0]["params"]["headline_options"] == POSTGRES_HEADLINE_OPTIONS
 
 

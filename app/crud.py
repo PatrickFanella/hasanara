@@ -447,11 +447,18 @@ def get_grouped_search(
     sort_by: str = "relevance",
     filters: dict | None = None,
 ):
+    from app.pagination import build_offset_page
     from app.schemas import EpisodeSearchGroup, GroupedSearchResponse, SearchMoment
 
     filters = filters or {}
     start_time = time.time()
-    rows = _search_rows_for_grouping(db, q, source, video_id, limit, offset, sort_by, filters)
+    # Ask the repository for one extra raw moment so pagination stays honest
+    # without a second, expensive count query over the transcript corpus.
+    rows, page_info = build_offset_page(
+        _search_rows_for_grouping(db, q, source, video_id, limit + 1, offset, sort_by, filters),
+        limit=limit,
+        offset=offset,
+    )
     video_ids = []
     for row in rows:
         row_vid = str(row["video_id"])
@@ -494,6 +501,7 @@ def get_grouped_search(
         total_videos=len(groups),
         groups=list(groups.values()),
         query_time_ms=int((time.time() - start_time) * 1000),
+        page_info=page_info,
     )
 
 

@@ -22,6 +22,13 @@ import {
   normalizeTranscriptText,
 } from '../features/videoTranscript/transcript';
 import {
+  buildProgressiveTranscriptChapters,
+  chapterForSegment,
+  filterBlocksForChapters,
+  filterTurnsForChapters,
+  mountedChapterIndexes,
+} from '../features/videoTranscript/progressiveChapters';
+import {
   FormattedTranscriptDocument,
   EpisodeIntelligence,
   PlaybackProgress,
@@ -62,6 +69,8 @@ export default function VideoPage() {
   const [activeSegId, setActiveSegId] = useState<number | null>(null);
   const [activeSentenceId, setActiveSentenceId] = useState<string | null>(null);
   const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
+  const [activeTranscriptChapter, setActiveTranscriptChapter] = useState(0);
+  const [fullTranscript, setFullTranscript] = useState(false);
   const [viewMode, setViewMode] = useState<'standard' | 'theater' | 'reader'>('standard');
   const [isPlayingMatches, setIsPlayingMatches] = useState(false);
   const [autoFollowEnabled, setAutoFollowEnabled] = useState(true);
@@ -186,6 +195,43 @@ export default function VideoPage() {
     }
   }, [user, videoId]);
 
+  const formattedBlocks = useMemo(
+    () => transcript?.blocks?.filter((block) => block.text.trim()) ?? [],
+    [transcript?.blocks]
+  );
+  const hasFormattedBlocks = formattedBlocks.length > 0;
+  const transcriptChapters = useMemo(
+    () => buildProgressiveTranscriptChapters(transcript?.segments ?? [], chapters),
+    [chapters, transcript?.segments]
+  );
+  const mountedTranscriptChapters = useMemo(
+    () =>
+      fullTranscript
+        ? transcriptChapters.map((chapter) => chapter.index)
+        : mountedChapterIndexes(activeTranscriptChapter, transcriptChapters.length),
+    [activeTranscriptChapter, fullTranscript, transcriptChapters]
+  );
+  const visibleFormattedBlocks = useMemo(
+    () => filterBlocksForChapters(formattedBlocks, transcriptChapters, mountedTranscriptChapters),
+    [formattedBlocks, mountedTranscriptChapters, transcriptChapters]
+  );
+
+  const mountSegmentChapter = useCallback(
+    (segmentIndex: number) => {
+      if (fullTranscript) return false;
+      const chapterIndex = chapterForSegment(transcriptChapters, segmentIndex);
+      if (chapterIndex < 0 || chapterIndex === activeTranscriptChapter) return false;
+      setActiveTranscriptChapter(chapterIndex);
+      return true;
+    },
+    [activeTranscriptChapter, fullTranscript, transcriptChapters]
+  );
+
+  useEffect(() => {
+    setActiveTranscriptChapter(0);
+    setFullTranscript(false);
+  }, [videoId]);
+
   useEffect(() => {
     const unlockAutoFollow = () => setAutoFollowEnabled(false);
     const onScroll = () => {
@@ -231,6 +277,7 @@ export default function VideoPage() {
         const sentenceId = sentenceSuffix
           ? `${block?.block_index}-${segId - 1}-s-${sentenceSuffix}`
           : null;
+        if (seg && mountSegmentChapter(segId - 1)) return;
         const el = sentenceSuffix
           ? document.getElementById(`seg-${segId}-s-${sentenceSuffix}`)
           : null;
@@ -251,6 +298,8 @@ export default function VideoPage() {
       if (blockMatch) {
         const blockIndex = Number(blockMatch[1]);
         const block = transcript?.blocks?.find((candidate) => candidate.block_index === blockIndex);
+        const firstSegment = block?.segment_ids[0];
+        if (firstSegment != null && mountSegmentChapter(firstSegment)) return;
         const el = document.getElementById(`block-${blockIndex}`);
         if (block && el) {
           scrollElementIntoView(el, { behavior: 'smooth', block: 'center' });
@@ -274,6 +323,7 @@ export default function VideoPage() {
         (seg) => startMs >= seg.start_ms && startMs < seg.end_ms
       );
       if (segIndex >= 0) {
+        if (mountSegmentChapter(segIndex)) return;
         const block = transcript.blocks?.find((candidate) =>
           candidate.segment_ids.includes(segIndex)
         );
@@ -289,7 +339,13 @@ export default function VideoPage() {
         }
       }
     }
-  }, [scrollElementIntoView, startSeconds, transcript]);
+  }, [
+    activeTranscriptChapter,
+    mountSegmentChapter,
+    scrollElementIntoView,
+    startSeconds,
+    transcript,
+  ]);
 
   const jumpTo = useCallback(
     (ms: number) => {
@@ -306,6 +362,7 @@ export default function VideoPage() {
   );
 
   function onClickSegment(seg: Segment, id: number) {
+    mountSegmentChapter(id - 1);
     setActiveSegId(id);
     setActiveSentenceId(null);
     setActiveBlockIndex(null);
@@ -315,6 +372,7 @@ export default function VideoPage() {
   }
 
   function onClickFormattedSentence(segment: Segment, segIndex: number, sentenceId: string) {
+    mountSegmentChapter(segIndex - 1);
     setActiveSegId(segIndex);
     setActiveSentenceId(sentenceId);
     const blockId = hasFormattedBlocks
@@ -363,25 +421,22 @@ export default function VideoPage() {
       );
     }
   }, [matchIndices, params, startSeconds, transcript]);
-  const formattedBlocks = useMemo(
-    () => transcript?.blocks?.filter((block) => block.text.trim()) ?? [],
-    [transcript?.blocks]
-  );
-  const hasFormattedBlocks = formattedBlocks.length > 0;
-
   function gotoMatch(direction: 1 | -1) {
     if (matchIndices.length === 0) return;
     const next = (matchCursor + direction + matchIndices.length) % matchIndices.length;
     setMatchCursor(next);
     const segId = matchIndices[next];
+    mountSegmentChapter(segId - 1);
     const blockId = hasFormattedBlocks
       ? formattedBlocks.find((candidate) => candidate.segment_ids.includes(segId - 1))?.block_index
       : null;
-    const el =
-      blockId !== null
-        ? document.getElementById(`block-${blockId}`)
-        : document.getElementById(`seg-${segId}`);
-    if (el) scrollElementIntoView(el, { behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => {
+      const el =
+        blockId !== null
+          ? document.getElementById(`block-${blockId}`)
+          : document.getElementById(`seg-${segId}`);
+      if (el) scrollElementIntoView(el, { behavior: 'smooth', block: 'center' });
+    }, 0);
     setActiveSegId(segId);
     setActiveSentenceId(null);
     setActiveBlockIndex(blockId ?? null);
@@ -403,15 +458,18 @@ export default function VideoPage() {
       const next = matchCursor + 1;
       setMatchCursor(next);
       const nextSegId = matchIndices[next];
+      mountSegmentChapter(nextSegId - 1);
       const blockId = hasFormattedBlocks
         ? formattedBlocks.find((candidate) => candidate.segment_ids.includes(nextSegId - 1))
             ?.block_index
         : null;
-      const el =
-        blockId !== null
-          ? document.getElementById(`block-${blockId}`)
-          : document.getElementById(`seg-${nextSegId}`);
-      if (el) scrollElementIntoView(el, { behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => {
+        const el =
+          blockId !== null
+            ? document.getElementById(`block-${blockId}`)
+            : document.getElementById(`seg-${nextSegId}`);
+        if (el) scrollElementIntoView(el, { behavior: 'smooth', block: 'center' });
+      }, 0);
       setActiveSegId(nextSegId);
       setActiveSentenceId(null);
       setActiveBlockIndex(blockId ?? null);
@@ -426,6 +484,7 @@ export default function VideoPage() {
     jumpTo,
     matchCursor,
     matchIndices,
+    mountSegmentChapter,
     scrollElementIntoView,
     transcript,
   ]);
@@ -495,6 +554,10 @@ export default function VideoPage() {
     () => buildTranscriptTurns(transcript?.segments ?? [], hits),
     [transcript?.segments, hits]
   );
+  const visibleTranscriptTurns = useMemo(
+    () => filterTurnsForChapters(transcriptTurns, transcriptChapters, mountedTranscriptChapters),
+    [mountedTranscriptChapters, transcriptChapters, transcriptTurns]
+  );
   const isSavedSegment = useCallback(
     (segment: Segment, segIndex: number) => {
       if (!videoId) return false;
@@ -514,6 +577,10 @@ export default function VideoPage() {
   }, [episodeTitle, video]);
 
   function selectChapter(chapter: VideoChapter) {
+    const segmentIndex = transcript?.segments.findIndex(
+      (segment) => segment.start_ms >= chapter.start_ms
+    );
+    if (segmentIndex != null && segmentIndex >= 0) mountSegmentChapter(segmentIndex);
     jumpTo(chapter.start_ms);
     const evidence = chapter.evidence[0];
     const target = evidence ? document.getElementById(`block-${evidence.block_index}`) : null;
@@ -619,6 +686,12 @@ export default function VideoPage() {
             transcriptKey={`${videoId}:${transcript?.segments.length ?? 0}:${formattedBlocks.length}`}
             autoFollow={autoFollowEnabled}
             onAutoScroll={autoScrollToPlayback}
+            onPlaybackTime={(currentMs) => {
+              const segmentIndex = transcript?.segments.findIndex(
+                (segment) => currentMs >= segment.start_ms && currentMs < segment.end_ms
+              );
+              if (segmentIndex != null && segmentIndex >= 0) mountSegmentChapter(segmentIndex);
+            }}
           />
         </aside>
 
@@ -784,9 +857,59 @@ export default function VideoPage() {
                       sourceLabel={transcript.source_label}
                       blocks={formattedBlocks}
                     />
+                    {transcriptChapters.length > 1 && (
+                      <nav
+                        className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
+                        aria-label="Transcript chapters"
+                      >
+                        <span
+                          className="mr-auto text-sm text-muted"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
+                          <span className="ml-2 text-subtle">
+                            {transcriptChapters[activeTranscriptChapter]?.label}
+                          </span>
+                        </span>
+                        {!fullTranscript && (
+                          <>
+                            <button
+                              type="button"
+                              className="toolbar-button"
+                              disabled={activeTranscriptChapter === 0}
+                              onClick={() =>
+                                setActiveTranscriptChapter((current) => Math.max(0, current - 1))
+                              }
+                            >
+                              Previous chapter
+                            </button>
+                            <button
+                              type="button"
+                              className="toolbar-button"
+                              disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
+                              onClick={() =>
+                                setActiveTranscriptChapter((current) =>
+                                  Math.min(transcriptChapters.length - 1, current + 1)
+                                )
+                              }
+                            >
+                              Next chapter
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="toolbar-button"
+                          onClick={() => setFullTranscript((current) => !current)}
+                        >
+                          {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
+                        </button>
+                      </nav>
+                    )}
                     <FormattedTranscriptDocument
                       source={(transcript.source ?? 'whisper') as TranscriptSource}
-                      blocks={formattedBlocks}
+                      blocks={visibleFormattedBlocks}
                       transcriptSegments={transcript.segments}
                       hits={hits}
                       activeBlockIndex={activeBlockIndex}
@@ -805,8 +928,58 @@ export default function VideoPage() {
                       sourceLabel={transcript.source_label}
                       blocks={[]}
                     />
+                    {transcriptChapters.length > 1 && (
+                      <nav
+                        className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
+                        aria-label="Transcript chapters"
+                      >
+                        <span
+                          className="mr-auto text-sm text-muted"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
+                          <span className="ml-2 text-subtle">
+                            {transcriptChapters[activeTranscriptChapter]?.label}
+                          </span>
+                        </span>
+                        {!fullTranscript && (
+                          <>
+                            <button
+                              type="button"
+                              className="toolbar-button"
+                              disabled={activeTranscriptChapter === 0}
+                              onClick={() =>
+                                setActiveTranscriptChapter((current) => Math.max(0, current - 1))
+                              }
+                            >
+                              Previous chapter
+                            </button>
+                            <button
+                              type="button"
+                              className="toolbar-button"
+                              disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
+                              onClick={() =>
+                                setActiveTranscriptChapter((current) =>
+                                  Math.min(transcriptChapters.length - 1, current + 1)
+                                )
+                              }
+                            >
+                              Next chapter
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="toolbar-button"
+                          onClick={() => setFullTranscript((current) => !current)}
+                        >
+                          {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
+                        </button>
+                      </nav>
+                    )}
                     <PlainTranscriptTurns
-                      turns={transcriptTurns}
+                      turns={visibleTranscriptTurns}
                       source={(transcript.source ?? 'whisper') as TranscriptSource}
                       activeSegId={activeSegId}
                       isSavedSegment={isSavedSegment}

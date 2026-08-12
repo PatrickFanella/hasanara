@@ -11,6 +11,7 @@ type Props = {
   transcriptKey: string;
   autoFollow: boolean;
   onAutoScroll: (element: HTMLElement) => void;
+  onPlaybackTime?: (currentMs: number) => void;
 };
 
 export default function PlaybackProgress({
@@ -20,6 +21,7 @@ export default function PlaybackProgress({
   transcriptKey,
   autoFollow,
   onAutoScroll,
+  onPlaybackTime,
 }: Props) {
   const [currentMs, setCurrentMs] = useState<number | null>(null);
   const currentElementRef = useRef<HTMLElement | null>(null);
@@ -36,6 +38,7 @@ export default function PlaybackProgress({
       if (seconds == null || !Number.isFinite(seconds)) return;
       const nextMs = Math.floor(seconds * 1000);
       setCurrentMs(nextMs);
+      onPlaybackTime?.(nextMs);
 
       let low = 0;
       let high = starts.length - 1;
@@ -73,7 +76,7 @@ export default function PlaybackProgress({
       currentElementRef.current?.removeAttribute('data-current-sentence');
       currentElementRef.current = null;
     };
-  }, [autoFollow, onAutoScroll, playerRef, transcriptKey]);
+  }, [autoFollow, onAutoScroll, onPlaybackTime, playerRef, transcriptKey]);
 
   return <EpisodeOutline chapters={chapters} currentMs={currentMs} onSelect={onSelectChapter} />;
 }

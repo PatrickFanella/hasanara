@@ -555,4 +555,31 @@ describe('VideoPage', () => {
     expect(document.querySelectorAll('#moment-whisper-5956000')).toHaveLength(1);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
+
+  it('progressively mounts transcript chapters and offers a full-document escape hatch', async () => {
+    mockAuth();
+    const longTranscript = {
+      video_id: 'video-1',
+      segments: Array.from({ length: 2_700 }, (_, index) => ({
+        start_ms: index * 10_000,
+        end_ms: (index + 1) * 10_000,
+        text: `Sentence ${index + 1}.`,
+      })),
+    };
+    mockEpisode(longTranscript);
+    window.location.hash = '#seg-251';
+    renderVideo('/v/video-1?t=2500');
+
+    await waitFor(() => expect(document.getElementById('seg-251')).not.toBeNull());
+    expect(screen.getByText(/Chapter 3 of 30/)).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(270);
+    expect(document.querySelectorAll('*').length).toBeLessThanOrEqual(1_500);
+    expect(document.getElementById('seg-1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load full transcript' }));
+    await waitFor(() =>
+      expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(2_700)
+    );
+    expect(screen.getByRole('button', { name: 'Use progressive transcript' })).toBeInTheDocument();
+  });
 });

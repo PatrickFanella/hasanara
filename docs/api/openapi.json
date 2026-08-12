@@ -727,6 +727,17 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "page_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OffsetPageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offset pagination metadata"
           }
         },
         "title": "ArchiveNamedPeriodAdminListResponse",
@@ -3085,6 +3096,17 @@
             ],
             "title": "Indexed At"
           },
+          "page_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OffsetPageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offset pagination metadata"
+          },
           "query_time_ms": {
             "anyOf": [
               {
@@ -3732,6 +3754,66 @@
           "total_videos"
         ],
         "title": "MentionMap",
+        "type": "object"
+      },
+      "OffsetPageInfo": {
+        "properties": {
+          "has_next_page": {
+            "description": "Whether another page is available",
+            "title": "Has Next Page",
+            "type": "boolean"
+          },
+          "has_previous_page": {
+            "description": "Whether a previous page is available",
+            "title": "Has Previous Page",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Requested page size",
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offset for the next page",
+            "title": "Next Offset"
+          },
+          "offset": {
+            "description": "Offset of the current page",
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "previous_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offset for the previous page",
+            "title": "Previous Offset"
+          }
+        },
+        "required": [
+          "limit",
+          "offset",
+          "has_next_page",
+          "has_previous_page"
+        ],
+        "title": "OffsetPageInfo",
         "type": "object"
       },
       "OkResponse": {
@@ -7453,7 +7535,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 200,
+              "default": 25,
               "description": "Maximum number of periods to include",
               "maximum": 500,
               "minimum": 1,
@@ -8120,7 +8202,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 100,
+              "default": 25,
               "title": "Limit",
               "type": "integer"
             }
@@ -8604,7 +8686,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
+              "default": 25,
               "description": "Maximum number of users to return",
               "maximum": 100,
               "minimum": 1,
@@ -10083,7 +10165,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
+              "default": 20,
               "description": "Maximum number of results to return",
               "maximum": 200,
               "minimum": 1,
@@ -10649,7 +10731,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
+              "default": 20,
               "description": "Maximum number of results to return",
               "maximum": 200,
               "minimum": 1,

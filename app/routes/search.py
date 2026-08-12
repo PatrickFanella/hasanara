@@ -132,7 +132,7 @@ def search(
     q: str = Query(..., min_length=1, max_length=500, description="Search query text"),
     source: str = Query("best", description="Search source: 'best', 'native', or 'youtube'"),
     video_id: uuid.UUID | None = Query(None, description="Filter results to specific video"),
-    limit: int = Query(50, ge=1, le=200, description="Maximum number of results to return"),
+    limit: int = Query(20, ge=1, le=200, description="Maximum number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip for pagination"),
     # Advanced filters
     date_from: str | None = Query(None, description="Filter videos uploaded after this date (ISO format)"),
@@ -408,7 +408,7 @@ def search_grouped(
     q: str = Query(..., min_length=1, max_length=500, description="Search query text"),
     source: str = Query("best", description="Search source: 'best', 'native', or 'youtube'"),
     video_id: uuid.UUID | None = Query(None, description="Filter results to specific video"),
-    limit: int = Query(50, ge=1, le=200, description="Maximum number of results to return"),
+    limit: int = Query(20, ge=1, le=200, description="Maximum number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip for pagination"),
     date_from: str | None = Query(None, description="Filter videos uploaded after this date (ISO format)"),
     date_to: str | None = Query(None, description="Filter videos uploaded before this date (ISO format)"),
