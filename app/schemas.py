@@ -6,6 +6,15 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 
+class OffsetPageInfo(BaseModel):
+    limit: int = Field(..., ge=1, description="Requested page size")
+    offset: int = Field(..., ge=0, description="Offset of the current page")
+    has_next_page: bool = Field(..., description="Whether another page is available")
+    has_previous_page: bool = Field(..., description="Whether a previous page is available")
+    next_offset: Optional[int] = Field(None, ge=0, description="Offset for the next page")
+    previous_offset: Optional[int] = Field(None, ge=0, description="Offset for the previous page")
+
+
 class QualitySettingsInput(BaseModel):
     """Quality settings for transcription."""
 
@@ -305,6 +314,7 @@ class GroupedSearchResponse(BaseModel):
     degraded: bool = Field(default=False)
     indexed_at: Optional[datetime] = Field(default=None)
     index_lag_seconds: Optional[int] = Field(default=None, ge=0)
+    page_info: Optional[OffsetPageInfo] = Field(default=None, description="Offset pagination metadata")
 
 
 class MentionMap(BaseModel):
@@ -513,6 +523,7 @@ class ArchiveNamedPeriodAdminResponse(ArchiveNamedPeriod):
 
 class ArchiveNamedPeriodAdminListResponse(BaseModel):
     items: List[ArchiveNamedPeriodAdminResponse] = Field(default_factory=list, description="Named archive periods")
+    page_info: Optional[OffsetPageInfo] = Field(default=None, description="Offset pagination metadata")
 
 
 class ArchivePerson(BaseModel):

@@ -186,8 +186,10 @@ class TestAuthorizationFlow:
 
         assert response.status_code == 200
         data = response.json()
-        assert set(data.keys()) == {"items"}
+        assert set(data.keys()) == {"items", "page_info"}
         assert len(data["items"]) == 1
+        assert data["page_info"]["limit"] == 1
+        assert data["page_info"]["offset"] == 1
         assert data["items"][0]["email"] == "another@example.com"
         assert set(data["items"][0].keys()) == {
             "id",

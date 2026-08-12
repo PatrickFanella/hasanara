@@ -30,12 +30,24 @@ export default function AdminArchivePeriods() {
     kind: 'all' as 'all' | PeriodKind,
     status: 'all' as 'all' | PeriodStatus,
   });
+  const [offset, setOffset] = useState(0);
+  const [pageInfo, setPageInfo] = useState<{
+    limit: number;
+    offset: number;
+    has_next_page: boolean;
+    has_previous_page: boolean;
+    next_offset: number | null;
+    previous_offset: number | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshingSlug, setRefreshingSlug] = useState('');
   const [seeding, setSeeding] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [compact, setCompact] = useState(
+    () => window.matchMedia?.('(max-width: 767px)').matches ?? false
+  );
 
   const fetchPeriods = useCallback(async () => {
     setLoading(true);
@@ -45,24 +57,40 @@ export default function AdminArchivePeriods() {
       if (appliedFilters.q) params.set('q', appliedFilters.q);
       if (appliedFilters.kind !== 'all') params.set('kind', appliedFilters.kind);
       if (appliedFilters.status !== 'all') params.set('status', appliedFilters.status);
-      params.set('limit', '100');
-      params.set('offset', '0');
+      params.set('limit', '25');
+      params.set('offset', String(offset));
 
-      const response = await http
-        .get('admin/archive/periods', { searchParams: params })
-        .json<{ items: ArchiveNamedPeriodAdminResponse[] }>();
+      const response = await http.get('admin/archive/periods', { searchParams: params }).json<{
+        items: ArchiveNamedPeriodAdminResponse[];
+        page_info?: {
+          limit: number;
+          offset: number;
+          has_next_page: boolean;
+          has_previous_page: boolean;
+          next_offset: number | null;
+          previous_offset: number | null;
+        };
+      }>();
       setItems(response.items ?? []);
+      setPageInfo(response.page_info ?? null);
     } catch (fetchError) {
       console.error('Failed to load archive periods', fetchError);
       setError('Failed to load archive periods.');
     } finally {
       setLoading(false);
     }
-  }, [appliedFilters]);
+  }, [appliedFilters, offset]);
 
   useEffect(() => {
     void fetchPeriods();
   }, [fetchPeriods]);
+  useEffect(() => {
+    const media = window.matchMedia?.('(max-width: 767px)');
+    if (!media) return;
+    const change = () => setCompact(media.matches);
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, []);
 
   const beginEdit = (row: ArchiveNamedPeriodAdminResponse) => {
     setEditingSlug(row.slug);
@@ -92,6 +120,7 @@ export default function AdminArchivePeriods() {
   }, [fetchPeriods]);
 
   const applyFilters = () => {
+    setOffset(0);
     setAppliedFilters({ q: q.trim(), kind, status });
   };
 
@@ -233,7 +262,7 @@ export default function AdminArchivePeriods() {
 
       <div className="surface-card space-y-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-sm font-medium text-ink" htmlFor="period-q">
               Search
             </label>
@@ -241,11 +270,11 @@ export default function AdminArchivePeriods() {
               id="period-q"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="form-control min-w-72"
+              className="form-control w-full min-w-0 sm:min-w-72"
               placeholder="Label, slug, description"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="mb-1 block text-sm font-medium text-ink" htmlFor="period-kind">
               Kind
             </label>
@@ -253,7 +282,7 @@ export default function AdminArchivePeriods() {
               id="period-kind"
               value={kind}
               onChange={(e) => setKind(e.target.value as 'all' | PeriodKind)}
-              className="form-control min-w-48"
+              className="form-control w-full min-w-0 sm:min-w-48"
             >
               {periodKinds.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -262,7 +291,7 @@ export default function AdminArchivePeriods() {
               ))}
             </select>
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="mb-1 block text-sm font-medium text-ink" htmlFor="period-status">
               Status
             </label>
@@ -270,7 +299,7 @@ export default function AdminArchivePeriods() {
               id="period-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as 'all' | PeriodStatus)}
-              className="form-control min-w-44"
+              className="form-control w-full min-w-0 sm:min-w-44"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -503,78 +532,154 @@ export default function AdminArchivePeriods() {
           {loading && <div className="text-sm text-muted">Loading…</div>}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-muted">
-                <th className="px-2 py-2 text-left">Label</th>
-                <th className="px-2 py-2 text-left">Slug</th>
-                <th className="px-2 py-2 text-left">Kind</th>
-                <th className="px-2 py-2 text-left">Dates</th>
-                <th className="px-2 py-2 text-left">Status</th>
-                <th className="px-2 py-2 text-left">Videos</th>
-                <th className="px-2 py-2 text-left">Duration</th>
-                <th className="px-2 py-2 text-left">Summary</th>
-                <th className="px-2 py-2 text-left">Calculated</th>
-                <th className="px-2 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((row) => (
-                <tr key={row.id} className="border-b border-border align-top">
-                  <td className="px-2 py-2 font-medium">{row.label}</td>
-                  <td className="px-2 py-2 font-mono text-xs">{row.slug}</td>
-                  <td className="px-2 py-2">{row.kind}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{formatDateRange(row)}</td>
-                  <td className="px-2 py-2">{row.status}</td>
-                  <td className="px-2 py-2">{row.video_count}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    {formatDuration(row.total_duration_seconds)}
-                  </td>
-                  <td className="px-2 py-2 max-w-md text-muted">
-                    {row.summary || row.description || '—'}
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
-                    {formatDateTime(row.calculated_at)}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => beginEdit(row)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => void recalculate(row)}
-                        disabled={refreshingSlug === row.slug}
-                      >
-                        {refreshingSlug === row.slug ? 'Recalculating…' : 'Recalculate'}
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => void toggleStatus(row)}
-                      >
-                        {row.status === 'hidden' ? 'Publish' : 'Hide'}
-                      </button>
-                    </div>
-                  </td>
+        {compact && (
+          <div className="divide-y divide-border">
+            {items.map((row) => (
+              <article key={row.id} className="space-y-2 p-4">
+                <div>
+                  <h3 className="font-semibold">{row.label}</h3>
+                  <p className="font-mono text-xs text-muted">{row.slug}</p>
+                </div>
+                <p className="text-sm text-muted">
+                  {row.kind} · {formatDateRange(row)} · {row.status}
+                </p>
+                <p className="text-sm">
+                  {row.video_count} videos · {formatDuration(row.total_duration_seconds)}
+                </p>
+                <p className="text-sm text-muted">{row.summary || row.description || '—'}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => beginEdit(row)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => void recalculate(row)}
+                    disabled={refreshingSlug === row.slug}
+                  >
+                    {refreshingSlug === row.slug ? 'Recalculating…' : 'Recalculate'}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => void toggleStatus(row)}
+                  >
+                    {row.status === 'hidden' ? 'Publish' : 'Hide'}
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!loading && items.length === 0 && (
+              <p className="p-6 text-center text-muted">No periods found.</p>
+            )}
+          </div>
+        )}
+        {!compact && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface-muted">
+                  <th className="px-2 py-2 text-left">Label</th>
+                  <th className="px-2 py-2 text-left">Slug</th>
+                  <th className="px-2 py-2 text-left">Kind</th>
+                  <th className="px-2 py-2 text-left">Dates</th>
+                  <th className="px-2 py-2 text-left">Status</th>
+                  <th className="px-2 py-2 text-left">Videos</th>
+                  <th className="px-2 py-2 text-left">Duration</th>
+                  <th className="px-2 py-2 text-left">Summary</th>
+                  <th className="px-2 py-2 text-left">Calculated</th>
+                  <th className="px-2 py-2 text-left">Actions</th>
                 </tr>
-              ))}
-              {!loading && items.length === 0 && (
-                <tr>
-                  <td className="px-2 py-6 text-center text-muted" colSpan={10}>
-                    No periods found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id} className="border-b border-border align-top">
+                    <td className="px-2 py-2 font-medium">{row.label}</td>
+                    <td className="px-2 py-2 font-mono text-xs">{row.slug}</td>
+                    <td className="px-2 py-2">{row.kind}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">{formatDateRange(row)}</td>
+                    <td className="px-2 py-2">{row.status}</td>
+                    <td className="px-2 py-2">{row.video_count}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">
+                      {formatDuration(row.total_duration_seconds)}
+                    </td>
+                    <td className="px-2 py-2 max-w-md text-muted">
+                      {row.summary || row.description || '—'}
+                    </td>
+                    <td className="px-2 py-2 whitespace-nowrap">
+                      {formatDateTime(row.calculated_at)}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className="btn btn-secondary"
+                          type="button"
+                          onClick={() => beginEdit(row)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          type="button"
+                          onClick={() => void recalculate(row)}
+                          disabled={refreshingSlug === row.slug}
+                        >
+                          {refreshingSlug === row.slug ? 'Recalculating…' : 'Recalculate'}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          type="button"
+                          onClick={() => void toggleStatus(row)}
+                        >
+                          {row.status === 'hidden' ? 'Publish' : 'Hide'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && items.length === 0 && (
+                  <tr>
+                    <td className="px-2 py-6 text-center text-muted" colSpan={10}>
+                      No periods found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {pageInfo && !error && (
+          <nav
+            aria-label="Archive period pages"
+            className="flex items-center gap-3 border-t border-border px-4 py-3"
+          >
+            <span className="text-sm text-muted">
+              Showing {pageInfo.offset + 1}–{pageInfo.offset + items.length}
+            </span>
+            <button
+              className="btn-secondary"
+              type="button"
+              disabled={loading || !pageInfo.has_previous_page}
+              onClick={() =>
+                pageInfo.previous_offset != null && setOffset(pageInfo.previous_offset)
+              }
+            >
+              Previous
+            </button>
+            <button
+              className="btn-secondary"
+              type="button"
+              disabled={loading || !pageInfo.has_next_page}
+              onClick={() => pageInfo.next_offset != null && setOffset(pageInfo.next_offset)}
+            >
+              Next
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );

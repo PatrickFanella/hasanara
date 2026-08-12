@@ -239,7 +239,15 @@ def test_admin_event_json_and_csv_do_not_select_or_expose_session_token(monkeypa
     response = admin.admin_events(_request(), json_db, user={"role": "admin"})
     statement, _ = json_db.calls[0]
     assert "session_token" not in str(statement)
-    assert response == {"items": [row]}
+    assert response["items"] == [row]
+    assert response["page_info"] == {
+        "limit": 25,
+        "offset": 0,
+        "has_next_page": False,
+        "has_previous_page": False,
+        "next_offset": None,
+        "previous_offset": None,
+    }
     assert "session_token" not in response["items"][0]
 
     csv_db = FakeDB([(1, "2026-07-10T00:00:00Z", None, "d" * 64, "search", {})])

@@ -37,6 +37,7 @@ from ..archive.video_metadata_repository import (
 from ..cache import invalidate_cache_pattern, invalidate_video_data
 from ..db import get_db
 from ..exceptions import NotFoundError, ValidationError
+from ..pagination import build_offset_page
 from ..schemas import (
     ArchiveIntelligenceResponse,
     ArchiveLabelAssignmentListResponse,
@@ -552,12 +553,16 @@ def admin_archive_periods(
     kind: str | None = Query(None, description="Optional period kind filter"),
     status: str | None = Query(None, description="Optional period status filter"),
     q: str | None = Query(None, description="Search slug, label, or description"),
-    limit: int = Query(200, ge=1, le=500, description="Maximum number of periods to include"),
+    limit: int = Query(25, ge=1, le=500, description="Maximum number of periods to include"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     db=Depends(get_db),
     user=Depends(require_role(ROLE_ADMIN)),
 ):
-    return list_named_periods_admin(db, kind=kind, status=status, q=q, limit=limit, offset=offset)
+    # The repository is also used by unpaginated admin lookups. Keep its API
+    # intact and turn its limit+1 result into the public pagination contract here.
+    response = list_named_periods_admin(db, kind=kind, status=status, q=q, limit=limit + 1, offset=offset)
+    items, page_info = build_offset_page(response.items, limit=limit, offset=offset)
+    return ArchiveNamedPeriodAdminListResponse(items=items, page_info=page_info)
 
 
 @router.post(

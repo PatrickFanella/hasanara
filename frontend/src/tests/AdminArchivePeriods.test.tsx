@@ -256,7 +256,7 @@ describe('AdminArchivePeriods', () => {
         q: 'launch',
         kind: 'event',
         status: 'published',
-        limit: '100',
+        limit: '25',
         offset: '0',
       });
     });

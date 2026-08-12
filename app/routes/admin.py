@@ -14,6 +14,7 @@ from ..common.session import is_admin as _is_admin
 from ..csv_export import render_csv
 from ..db import get_db
 from ..exceptions import AuthorizationError, NotFoundError, ValidationError
+from ..pagination import build_offset_page
 from ..security import ROLE_ADMIN, require_role
 
 router = APIRouter(prefix="", tags=["Admin"])
@@ -50,12 +51,12 @@ def admin_users(
     db=Depends(get_db),
     user=Depends(require_role(ROLE_ADMIN)),
     q: str | None = Query(None, description="Search email or name"),
-    limit: int = Query(50, ge=1, le=100, description="Maximum number of users to return"),
+    limit: int = Query(25, ge=1, le=100, description="Maximum number of users to return"),
     offset: int = Query(0, ge=0, description="Number of users to skip"),
 ):
     """List users with search and pagination (admin only)."""
     where: list[str] = []
-    params: dict = {"limit": limit, "offset": offset}
+    params: dict = {"limit": limit + 1, "offset": offset}
     if q:
         where.append("(email ILIKE :q OR COALESCE(name, '') ILIKE :q)")
         params["q"] = f"%{q}%"
@@ -64,8 +65,9 @@ def admin_users(
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset"
-    rows = db.execute(_text(sql), params).mappings().all()
-    return {"items": [dict(row) for row in rows]}
+    rows = [dict(row) for row in db.execute(_text(sql), params).mappings().all()]
+    items, page_info = build_offset_page(rows, limit=limit, offset=offset)
+    return {"items": items, "page_info": page_info.model_dump()}
 
 
 @router.get(
@@ -96,7 +98,7 @@ def admin_events(
     user_email: str | None = None,
     start: str | None = None,
     end: str | None = None,
-    limit: int = 100,
+    limit: int = 25,
     offset: int = 0,
 ):
     """List events with filtering (admin only)."""
@@ -118,10 +120,11 @@ def admin_events(
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY id DESC LIMIT :limit OFFSET :offset"
-    params["limit"] = limit
+    params["limit"] = limit + 1
     params["offset"] = offset
-    rows = db.execute(_text(sql), params).mappings().all()
-    return {"items": rows}
+    rows = [dict(row) for row in db.execute(_text(sql), params).mappings().all()]
+    items, page_info = build_offset_page(rows, limit=limit, offset=offset)
+    return {"items": items, "page_info": page_info.model_dump()}
 
 
 @router.get(
