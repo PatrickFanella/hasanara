@@ -9,6 +9,7 @@ import {
   formatTimestamp,
 } from '../features/archive/format';
 import { VideoMetadataChips } from '../components/archive';
+import { AsyncError } from '../components/async/AsyncFeedback';
 import {
   evidenceHref,
   facetHref,
@@ -44,6 +45,8 @@ export default function ExplorePage() {
     Partial<Record<Exclude<PeriodKind, 'latest'>, ArchivePeriodOption[]>>
   >({});
   const [periodOptionsLoading, setPeriodOptionsLoading] = useState(false);
+  const [periodOptionsError, setPeriodOptionsError] = useState<string | null>(null);
+  const [periodOptionsRetry, setPeriodOptionsRetry] = useState(0);
   const cachedPeriodOptions = periodKind === 'latest' ? undefined : periodOptionsByKind[periodKind];
 
   const loadIntelligence = async (queryPeriod?: string | null, initial = false) => {
@@ -138,10 +141,12 @@ export default function ExplorePage() {
   useEffect(() => {
     if (periodKind === 'latest' || cachedPeriodOptions !== undefined) {
       setPeriodOptionsLoading(false);
+      setPeriodOptionsError(null);
       return;
     }
     let cancelled = false;
     setPeriodOptionsLoading(true);
+    setPeriodOptionsError(null);
     void api
       .getExplorePeriods({ kind: periodKind, limit: PERIOD_OPTION_FETCH_LIMIT })
       .then((response) => {
@@ -152,7 +157,10 @@ export default function ExplorePage() {
           }));
       })
       .catch((err: unknown) => {
-        if (!cancelled) console.error('Failed to load predefined periods', err);
+        if (!cancelled) {
+          console.error('Failed to load predefined periods', err);
+          setPeriodOptionsError('Predefined archive periods could not be loaded.');
+        }
       })
       .finally(() => {
         if (!cancelled) setPeriodOptionsLoading(false);
@@ -160,7 +168,7 @@ export default function ExplorePage() {
     return () => {
       cancelled = true;
     };
-  }, [cachedPeriodOptions, periodKind]);
+  }, [cachedPeriodOptions, periodKind, periodOptionsRetry]);
 
   const selectPeriodKind = (kind: PeriodKind) => {
     setPeriodKind(kind);
@@ -203,7 +211,12 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="archive-masthead min-h-[34rem] animate-pulse p-8" role="status">
+      <div
+        className="archive-masthead min-h-[34rem] animate-pulse p-8"
+        role="status"
+        aria-live="polite"
+      >
+        <h1 className="sr-only">Explore the HasanAbi VOD archive</h1>
         <div className="h-5 w-28 rounded bg-surface-muted" />
         <div className="mt-7 h-14 max-w-3xl rounded bg-surface-muted" />
         <div className="mt-5 h-5 max-w-xl rounded bg-surface-muted" />
@@ -215,16 +228,30 @@ export default function ExplorePage() {
   if (!data)
     return (
       <div className="archive-section text-center text-muted">
-        Archive intelligence is not available yet.
+        <h1 className="page-title">Explore the HasanAbi VOD archive</h1>
+        <p className="mt-3">Archive intelligence is not available yet.</p>
+        {error ? (
+          <div className="mt-4">
+            <AsyncError
+              onRetry={() => void loadIntelligence(urlParams.get('period'), true)}
+              retryLabel="Retry archive intelligence"
+            >
+              Archive intelligence could not be loaded.
+            </AsyncError>
+          </div>
+        ) : null}
       </div>
     );
 
   return (
     <div className="space-y-5 lg:space-y-7">
       {error && (
-        <div className="alert-warning" role="alert">
+        <AsyncError
+          onRetry={() => void loadIntelligence(selectedPeriodSlug ?? urlParams.get('period'))}
+          retryLabel="Retry archive intelligence"
+        >
           {error}
-        </div>
+        </AsyncError>
       )}
 
       <section className="archive-masthead">
@@ -347,6 +374,16 @@ export default function ExplorePage() {
             </p>
           </div>
           <div className="max-h-[32rem] overflow-y-auto">
+            {periodOptionsError && (
+              <div className="border-b border-border p-4">
+                <AsyncError
+                  onRetry={() => setPeriodOptionsRetry((value) => value + 1)}
+                  retryLabel="Retry predefined periods"
+                >
+                  {periodOptionsError}
+                </AsyncError>
+              </div>
+            )}
             {filteredPeriodOptions.length > 0 ? (
               filteredPeriodOptions.map((option) => {
                 const active = option.slug === (currentPeriod?.slug ?? data.selected_period?.slug);
@@ -375,7 +412,9 @@ export default function ExplorePage() {
               <div className="p-4 text-sm leading-6 text-muted">
                 {periodOptionsLoading
                   ? 'Loading predefined periods…'
-                  : 'No predefined periods are available for this kind yet.'}
+                  : periodOptionsError
+                    ? 'Predefined periods are temporarily unavailable.'
+                    : 'No predefined periods are available for this kind yet.'}
               </div>
             )}
           </div>
