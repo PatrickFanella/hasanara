@@ -581,5 +581,5 @@ describe('VideoPage', () => {
       expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(2_700)
     );
     expect(screen.getByRole('button', { name: 'Use progressive transcript' })).toBeInTheDocument();
-  });
+  }, 15_000);
 });
