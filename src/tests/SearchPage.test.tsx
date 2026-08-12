@@ -123,14 +123,11 @@ describe('SearchPage', () => {
       expect(searchGroupedMock).toHaveBeenCalledWith(
         'rent',
         expect.objectContaining({
-          source: undefined,
-          category: undefined,
-          min_duration: undefined,
-          max_duration: undefined,
           sort_by: 'date_desc',
           video_id: 'video-1',
-          limit: 25,
-          offset: 50,
+          match_mode: 'topic',
+          limit: 20,
+          offset: 0,
         }),
         expect.any(AbortSignal)
       );
@@ -179,11 +176,10 @@ describe('SearchPage', () => {
       expect(searchGroupedMock).toHaveBeenCalledWith(
         'rent',
         expect.objectContaining({
-          source: undefined,
-          category: undefined,
           video_id: undefined,
-          limit: undefined,
-          offset: undefined,
+          match_mode: 'topic',
+          limit: 20,
+          offset: 0,
         }),
         expect.any(AbortSignal)
       );
@@ -289,6 +285,48 @@ describe('SearchPage', () => {
       await screen.findByRole('heading', { name: 'No transcript matches' })
     ).toBeInTheDocument();
     expect(screen.getByText(/Try fewer words, remove the date range/)).toBeInTheDocument();
+  });
+
+  it('loads the next raw-moment page without replacing visible VOD groups', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    const searchGrouped = vi
+      .spyOn(api, 'searchGrouped')
+      .mockResolvedValueOnce({
+        ...groupedResult,
+        page_info: {
+          limit: 20,
+          offset: 0,
+          has_next_page: true,
+          has_previous_page: false,
+          next_offset: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        ...groupedResult,
+        groups: [
+          {
+            ...groupedResult.groups[0],
+            moments: [
+              { ...groupedResult.groups[0].moments[0], id: 2, start_ms: 40_000, end_ms: 46_000 },
+            ],
+          },
+        ],
+        page_info: { limit: 20, offset: 20, has_next_page: false, has_previous_page: true },
+      } as never);
+
+    renderWithProviders(<SearchPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Load 20 more' }));
+
+    await waitFor(() =>
+      expect(searchGrouped).toHaveBeenLastCalledWith(
+        'rent',
+        expect.objectContaining({ limit: 20, offset: 20 }),
+        expect.any(AbortSignal)
+      )
+    );
+    expect(await screen.findByText('Showing 2 moments in 1 VODs')).toBeInTheDocument();
+    expect(screen.getByText('00:00:12')).toBeInTheDocument();
   });
 
   it('announces clipboard success and failure for result actions', async () => {

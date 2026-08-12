@@ -2467,6 +2467,8 @@ export interface components {
        * @description Named archive periods
        */
       items?: components['schemas']['ArchiveNamedPeriodAdminResponse'][];
+      /** @description Offset pagination metadata */
+      page_info?: components['schemas']['OffsetPageInfo'] | null;
     };
     /** ArchiveNamedPeriodAdminResponse */
     ArchiveNamedPeriodAdminResponse: {
@@ -3856,6 +3858,8 @@ export interface components {
       index_lag_seconds?: number | null;
       /** Indexed At */
       indexed_at?: string | null;
+      /** @description Offset pagination metadata */
+      page_info?: components['schemas']['OffsetPageInfo'] | null;
       /**
        * Query Time Ms
        * @description Time taken to execute the query in milliseconds
@@ -4165,6 +4169,39 @@ export interface components {
        * @description Number of videos with at least one mention
        */
       total_videos: number;
+    };
+    /** OffsetPageInfo */
+    OffsetPageInfo: {
+      /**
+       * Has Next Page
+       * @description Whether another page is available
+       */
+      has_next_page: boolean;
+      /**
+       * Has Previous Page
+       * @description Whether a previous page is available
+       */
+      has_previous_page: boolean;
+      /**
+       * Limit
+       * @description Requested page size
+       */
+      limit: number;
+      /**
+       * Next Offset
+       * @description Offset for the next page
+       */
+      next_offset?: number | null;
+      /**
+       * Offset
+       * @description Offset of the current page
+       */
+      offset: number;
+      /**
+       * Previous Offset
+       * @description Offset for the previous page
+       */
+      previous_offset?: number | null;
     };
     /** OkResponse */
     OkResponse: {
