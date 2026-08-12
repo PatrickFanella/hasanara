@@ -271,10 +271,12 @@ describe('FavoritesPage accessibility', () => {
     await user.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(serviceMocks.deleteFavorite).toHaveBeenCalledWith('remote-1'));
     expect(await screen.findByText('No saved moments yet.')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('Saved moment removed.');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(serviceMocks.deleteSavedSearch).toHaveBeenCalledWith('search-1'));
     expect(await screen.findByText('No saved searches yet.')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('Saved search removed.');
   });
 
   it('keeps a remote moment visible and retryable when deletion fails', async () => {
