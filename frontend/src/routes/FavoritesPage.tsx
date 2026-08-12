@@ -167,8 +167,7 @@ export default function FavoritesPage() {
   async function removeRemoteFavorite(id: string) {
     try {
       await apiDeleteFavorite(id);
-      const next = await apiListFavorites();
-      setRemote(next.items);
+      setRemote((current) => current?.filter((item) => item.id !== id) ?? current);
       setFeedback('Saved moment removed.');
       setRetryMutation(null);
     } catch {
@@ -183,8 +182,7 @@ export default function FavoritesPage() {
   async function removeRemoteSavedSearch(id: string) {
     try {
       await apiDeleteSavedSearch(id);
-      const next = await apiListSavedSearches();
-      setSavedSearches(next.items);
+      setSavedSearches((current) => current?.filter((item) => item.id !== id) ?? current);
       setFeedback('Saved search removed.');
       setRetryMutation(null);
     } catch {
