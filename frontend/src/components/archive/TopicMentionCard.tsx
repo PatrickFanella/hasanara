@@ -20,7 +20,7 @@ export default function TopicMentionCard({ label, moment }: TopicMentionCardProp
         {videoId && (
           <Link
             className="action-link"
-            to={buildTimestampLink(videoId, moment.start_ms, moment.id)}
+            to={buildTimestampLink(videoId, moment.start_ms, moment.source)}
           >
             Open cited moment
           </Link>

@@ -186,6 +186,7 @@ export default function SearchPage() {
           startMs: moment.start_ms,
           endMs: moment.end_ms,
           text,
+          source: moment.source,
         });
       setSavedKeys((current) => new Set([...current, key]));
       setOperationFeedback('Moment saved.');
@@ -199,7 +200,7 @@ export default function SearchPage() {
   async function copyMomentTimestamp(videoId: string, moment: SearchHit) {
     try {
       await copyText(
-        `${window.location.origin}${buildTimestampLink(videoId, moment.start_ms, moment.id)}`
+        `${window.location.origin}${buildTimestampLink(videoId, moment.start_ms, moment.source)}`
       );
       setOperationFeedback('Timestamp link copied.');
     } catch {

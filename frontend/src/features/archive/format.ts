@@ -98,11 +98,12 @@ export function buildTimestampLink(
   sourceOrSegmentId?: TranscriptSource | number
 ) {
   const seconds = Math.max(0, Math.floor(startMs / 1000));
-  if (typeof sourceOrSegmentId === 'number') {
-    return `/v/${videoId}?t=${seconds}#seg-${sourceOrSegmentId}`;
-  }
   const params = new URLSearchParams({ t: String(seconds) });
-  if (sourceOrSegmentId) params.set('source', sourceOrSegmentId);
+  if (typeof sourceOrSegmentId === 'string') params.set('source', sourceOrSegmentId);
+  if (startMs % 1000 !== 0) params.set('t_ms', String(Math.max(0, Math.floor(startMs))));
+  if (typeof sourceOrSegmentId === 'number') {
+    return `/v/${videoId}?${params.toString()}#seg-${sourceOrSegmentId}`;
+  }
   return `/v/${videoId}?${params.toString()}${
     sourceOrSegmentId ? `#${canonicalMomentId(sourceOrSegmentId, startMs)}` : ''
   }`;

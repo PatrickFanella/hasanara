@@ -148,7 +148,7 @@ describe('SearchPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Play all matches' })).toHaveAttribute(
       'href',
-      '/v/video-1?t=12&q=rent&play=matches#seg-1'
+      '/v/video-1?t=12&source=whisper&q=rent&play=matches#moment-whisper-12000'
     );
 
     expect(screen.getByRole('link', { name: 'gaza' })).toHaveAttribute('href', '/search?q=gaza');
@@ -344,7 +344,10 @@ describe('SearchPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Copy link' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Timestamp link copied.');
-    expect(writeText).toHaveBeenNthCalledWith(1, expect.stringContaining('/v/video-1?t=12#seg-1'));
+    expect(writeText).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/v/video-1?t=12&source=whisper#moment-whisper-12000')
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Copy quote' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Quote copied.');
@@ -366,7 +369,12 @@ describe('SearchPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Save moment' }));
 
     expect(toggle).toHaveBeenCalledWith(
-      expect.objectContaining({ videoId: 'video-1', startMs: 12000, endMs: 18000 })
+      expect.objectContaining({
+        videoId: 'video-1',
+        startMs: 12000,
+        endMs: 18000,
+        source: 'whisper',
+      })
     );
     expect(await screen.findByRole('status')).toHaveTextContent('Moment saved.');
     expect(screen.getByRole('button', { name: 'Saved moment' })).toBeDisabled();

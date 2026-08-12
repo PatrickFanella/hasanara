@@ -284,7 +284,7 @@ export const api = {
 
     return http.get('archive/intelligence/periods').json<ArchivePeriodOptionsResponse>();
   },
-  async getTranscript(videoId: string, source: 'best' | 'whisper' | 'youtube' = 'best') {
+  async getTranscript(videoId: string, source: 'best' | 'merged' | 'whisper' | 'youtube' = 'best') {
     return http
       .get(`videos/${videoId}/transcript`, {
         searchParams: { mode: 'formatted', source },

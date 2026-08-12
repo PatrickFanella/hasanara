@@ -1,5 +1,12 @@
+import type { TranscriptSource } from '../features/archive/format';
+
 type FavoriteKey = { videoId: string; segIndex: number };
-export type FavoriteItem = FavoriteKey & { startMs: number; endMs: number; text: string };
+export type FavoriteItem = FavoriteKey & {
+  startMs: number;
+  endMs: number;
+  text: string;
+  source?: TranscriptSource;
+};
 
 const KEY = 'favorites:v1';
 
