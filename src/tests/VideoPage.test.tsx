@@ -189,6 +189,16 @@ describe('VideoPage', () => {
     expect(api.getTranscript).toHaveBeenCalledWith('video-1', 'whisper');
   });
 
+  it('loads the transcript source named by a canonical moment URL', async () => {
+    mockAuth();
+    mockEpisode({ video_id: 'video-1', source: 'youtube', segments: [] });
+    window.location.hash = '#moment-youtube-12000';
+
+    renderVideo('/v/video-1?t=12#moment-youtube-12000');
+
+    await waitFor(() => expect(api.getTranscript).toHaveBeenCalledWith('video-1', 'youtube'));
+  });
+
   it('distinguishes a missing video from a temporary transcript failure', async () => {
     vi.spyOn(http, 'get').mockImplementation(((path: string) => {
       if (path === 'auth/me') return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
@@ -554,6 +564,63 @@ describe('VideoPage', () => {
     expect(citedMoment?.parentElement).toHaveTextContent('The cited sentence.');
     expect(document.querySelectorAll('#moment-whisper-5956000')).toHaveLength(1);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+  });
+
+  it('mounts a progressive chapter from an exact canonical moment after a transcript gap', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+    window.location.hash = `#moment-whisper-${target.start_ms}`;
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&source=whisper`);
+
+    await waitFor(() =>
+      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+    expect(document.getElementById('moment-whisper-140')).toBeNull();
+  });
+
+  it('mounts a source-neutral saved moment using its exact millisecond timestamp', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&t_ms=${target.start_ms}`);
+
+    await waitFor(() =>
+      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+  });
+
+  it('recovers a legacy database-id fragment from its floored timestamp', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+    window.location.hash = '#seg-4864024';
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}`);
+
+    await waitFor(() =>
+      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
   });
 
   it('progressively mounts transcript chapters and offers a full-document escape hatch', async () => {

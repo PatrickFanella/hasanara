@@ -8,6 +8,13 @@ describe('archive moment links', () => {
     );
   });
 
+  it('preserves exact milliseconds for moments that begin after a transcript gap', () => {
+    expect(buildTimestampLink('video-1', 16_518_140, 'whisper')).toBe(
+      '/v/video-1?t=16518&source=whisper&t_ms=16518140#moment-whisper-16518140'
+    );
+    expect(buildTimestampLink('video-1', 16_518_140)).toBe('/v/video-1?t=16518&t_ms=16518140');
+  });
+
   it('uses an intentional date treatment for missing or dangling titles', () => {
     expect(formatVideoTitle('HasanAbi broadcast —', '2026-08-07T00:00:00Z')).toBe(
       'HasanAbi broadcast'

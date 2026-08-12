@@ -19,10 +19,10 @@ import {
 } from '../components/archive';
 import type { OpinionHistoryItem } from '../types/api';
 import HighlightedSnippet from '../components/HighlightedSnippet';
-import { plainTextFromSnippet } from '../features/search/moments';
+import { buildPlayMatchesLink, plainTextFromSnippet } from '../features/search/moments';
 
 function mentionLink(videoId: string, moment: SearchHit) {
-  return buildTimestampLink(videoId, moment.start_ms, moment.id);
+  return buildTimestampLink(videoId, moment.start_ms, moment.source);
 }
 
 async function copyText(text: string) {
@@ -31,17 +31,8 @@ async function copyText(text: string) {
 }
 
 function quoteText(videoId: string, moment: SearchHit, title: string) {
-  const url = `${window.location.origin}${buildTimestampLink(videoId, moment.start_ms, moment.id)}`;
+  const url = `${window.location.origin}${buildTimestampLink(videoId, moment.start_ms, moment.source)}`;
   return `“${plainTextFromSnippet(moment.snippet, moment.highlights)}”\n\n— ${title}, ${formatTimestamp(moment.start_ms)}\n${url}`;
-}
-
-function buildPlayMatchesLink(videoId: string, moment: SearchHit, query: string) {
-  const params = new URLSearchParams({
-    t: String(Math.floor(moment.start_ms / 1000)),
-    q: query,
-    play: 'matches',
-  });
-  return `/v/${videoId}?${params.toString()}#seg-${moment.id}`;
 }
 
 export default function TopicPage() {
@@ -147,6 +138,7 @@ export default function TopicPage() {
           startMs: moment.start_ms,
           endMs: moment.end_ms,
           text,
+          source: moment.source,
         });
       }
       setSavedKeys((current) => new Set([...current, key]));

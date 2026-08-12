@@ -78,10 +78,24 @@ export default function VideoPage() {
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
   const autoFollowScrollTimeoutRef = useRef<number | null>(null);
 
-  const startSeconds = useMemo(() => {
+  const startMilliseconds = useMemo(() => {
+    const exact = params.get('t_ms');
+    if (exact) {
+      const parsed = Number(exact);
+      if (Number.isFinite(parsed) && parsed >= 0) return Math.floor(parsed);
+    }
     const tStr = params.get('t');
-    const t = tStr ? parseInt(tStr, 10) : 0;
-    return Number.isFinite(t) ? t : 0;
+    const t = tStr ? Number(tStr) : 0;
+    return Number.isFinite(t) && t >= 0 ? Math.floor(t * 1000) : 0;
+  }, [params]);
+  const startSeconds = Math.floor(startMilliseconds / 1000);
+  const requestedTranscriptSource = useMemo(() => {
+    const source = params.get('source');
+    if (source === 'whisper' || source === 'youtube' || source === 'merged') return source;
+    const hashSource = window.location.hash.match(/^#moment-(whisper|youtube|merged)-\d+$/)?.[1];
+    return hashSource === 'whisper' || hashSource === 'youtube' || hashSource === 'merged'
+      ? hashSource
+      : null;
   }, [params]);
   const transcriptQuery = useMemo(() => params.get('q') ?? '', [params]);
 
@@ -118,7 +132,7 @@ export default function VideoPage() {
   );
 
   const loadTranscript = useCallback(
-    async (id: string, source: 'best' | 'whisper' | 'youtube' = 'best') => {
+    async (id: string, source: 'best' | TranscriptSource = 'best') => {
       setTranscript(null);
       setTranscriptStatus('loading');
       try {
@@ -143,7 +157,10 @@ export default function VideoPage() {
       .then((response) => {
         setVideo(response);
         setVideoStatus('ready');
-        void loadTranscript(videoId, response.has_whisper_transcript ? 'whisper' : 'best');
+        void loadTranscript(
+          videoId,
+          requestedTranscriptSource ?? (response.has_whisper_transcript ? 'whisper' : 'best')
+        );
       })
       .catch((error: unknown) => {
         setVideo(null);
@@ -158,7 +175,7 @@ export default function VideoPage() {
       .getVideoChapters(videoId)
       .then((response) => setChapters(response.chapters ?? []))
       .catch(() => setChapters([]));
-  }, [loadTranscript, videoId]);
+  }, [loadTranscript, requestedTranscriptSource, videoId]);
 
   useEffect(() => {
     if (!video) return;
@@ -266,6 +283,22 @@ export default function VideoPage() {
   useEffect(() => {
     const hash = window.location.hash;
     if (hash) {
+      const canonicalMatch = hash.match(/^#moment-(whisper|youtube|merged)-(\d+)$/);
+      if (canonicalMatch && transcript) {
+        const targetMs = Number(canonicalMatch[2]);
+        const segIndex = transcript.segments.findIndex((seg) => seg.start_ms === targetMs);
+        if (segIndex >= 0) {
+          if (mountSegmentChapter(segIndex)) return;
+          const target = document.getElementById(hash.slice(1));
+          if (target) {
+            scrollElementIntoView(target, { behavior: 'smooth', block: 'center' });
+            setActiveSegId(segIndex + 1);
+            setActiveSentenceId(null);
+            return;
+          }
+        }
+      }
+
       const segMatch = hash.match(/^#seg-(\d+)(?:-s-(.+))?$/);
       if (segMatch) {
         const segId = Number(segMatch[1]);
@@ -317,11 +350,16 @@ export default function VideoPage() {
       }
     }
 
-    if (transcript && startSeconds > 0) {
-      const startMs = startSeconds * 1000;
-      const segIndex = transcript.segments.findIndex(
+    if (transcript && startMilliseconds > 0) {
+      const startMs = startMilliseconds;
+      let segIndex = transcript.segments.findIndex(
         (seg) => startMs >= seg.start_ms && startMs < seg.end_ms
       );
+      if (segIndex < 0) {
+        segIndex = transcript.segments.findIndex(
+          (seg) => seg.start_ms >= startMs && seg.start_ms < startMs + 1000
+        );
+      }
       if (segIndex >= 0) {
         if (mountSegmentChapter(segIndex)) return;
         const block = transcript.blocks?.find((candidate) =>
@@ -343,7 +381,7 @@ export default function VideoPage() {
     activeTranscriptChapter,
     mountSegmentChapter,
     scrollElementIntoView,
-    startSeconds,
+    startMilliseconds,
     transcript,
   ]);
 
@@ -353,6 +391,8 @@ export default function VideoPage() {
       setParams((prev: URLSearchParams) => {
         const p = new URLSearchParams(prev as unknown as string);
         p.set('t', String(s));
+        if (ms % 1000 !== 0) p.set('t_ms', String(Math.max(0, Math.floor(ms))));
+        else p.delete('t_ms');
         return p;
       });
       playerRef.current?.seekTo(s, { play: true });
@@ -406,7 +446,7 @@ export default function VideoPage() {
 
   useEffect(() => {
     if (params.get('play') !== 'matches' || matchIndices.length === 0 || !transcript) return;
-    const startMs = startSeconds * 1000;
+    const startMs = startMilliseconds;
     const startIndex = matchIndices.findIndex(
       (segId) => transcript.segments[segId - 1]?.start_ms >= startMs
     );
@@ -420,7 +460,7 @@ export default function VideoPage() {
         0
       );
     }
-  }, [matchIndices, params, startSeconds, transcript]);
+  }, [matchIndices, params, startMilliseconds, transcript]);
   function gotoMatch(direction: 1 | -1) {
     if (matchIndices.length === 0) return;
     const next = (matchCursor + direction + matchIndices.length) % matchIndices.length;
@@ -521,6 +561,7 @@ export default function VideoPage() {
           startMs: segment.start_ms,
           endMs: segment.end_ms,
           text,
+          source: transcript?.source,
         });
         track({
           type: wasSaved ? 'favorite_remove' : 'favorite_add',
@@ -840,7 +881,8 @@ export default function VideoPage() {
                       videoId &&
                       void loadTranscript(
                         videoId,
-                        video?.has_whisper_transcript ? 'whisper' : 'best'
+                        requestedTranscriptSource ??
+                          (video?.has_whisper_transcript ? 'whisper' : 'best')
                       )
                     }
                   >

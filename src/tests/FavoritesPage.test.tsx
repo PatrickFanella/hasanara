@@ -229,7 +229,7 @@ describe('FavoritesPage accessibility', () => {
     const remoteMoment = {
       id: 'remote-1',
       video_id: 'video-1',
-      start_ms: 12_000,
+      start_ms: 12_140,
       end_ms: 18_000,
       text: 'Remote moment',
     };
@@ -260,7 +260,7 @@ describe('FavoritesPage accessibility', () => {
     expect(await screen.findByText('Remote moment')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open moment' })).toHaveAttribute(
       'href',
-      '/v/video-1?t=12'
+      '/v/video-1?t=12&t_ms=12140'
     );
     expect(await screen.findByText('housing')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Reopen search' })).toHaveAttribute(
