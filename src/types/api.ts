@@ -3,6 +3,20 @@ export type UUID = string;
 export type OAuthProvider = 'google' | 'twitch';
 export type UserRole = 'user' | 'moderator' | 'admin';
 
+export interface OffsetPageInfo {
+  limit: number;
+  offset: number;
+  has_next_page: boolean;
+  has_previous_page: boolean;
+  next_offset?: number | null;
+  previous_offset?: number | null;
+}
+
+export interface OffsetPageResponse<T> {
+  items: T[];
+  page_info: OffsetPageInfo;
+}
+
 export interface AccountUser {
   id: UUID;
   email?: string | null;
@@ -86,6 +100,7 @@ export interface GroupedSearchResponse {
   total_videos: number;
   groups: EpisodeSearchGroup[];
   query_time_ms?: number | null;
+  page_info?: OffsetPageInfo | null;
 }
 
 export interface MentionMapResponse {

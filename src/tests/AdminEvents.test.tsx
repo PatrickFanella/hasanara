@@ -61,6 +61,8 @@ describe('AdminEvents', () => {
       user_email: 'person@example.com',
       start: '2026-08-01T00:00',
       end: '2026-08-06T23:59',
+      limit: '25',
+      offset: '0',
     });
 
     const exportUrl = new URL(

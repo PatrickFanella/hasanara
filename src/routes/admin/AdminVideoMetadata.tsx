@@ -49,6 +49,12 @@ function chipList(items: Array<ArchivePerson | ArchiveVideoTag>, emptyLabel: str
 export default function AdminVideoMetadata() {
   const [people, setPeople] = useState<ArchivePersonAdminResponse[]>([]);
   const [tags, setTags] = useState<ArchiveVideoTagAdminResponse[]>([]);
+  const [peopleQuery, setPeopleQuery] = useState('');
+  const [tagsQuery, setTagsQuery] = useState('');
+  const [peopleStatus, setPeopleStatus] = useState<'all' | MetadataStatus>('all');
+  const [tagsStatus, setTagsStatus] = useState<'all' | MetadataStatus>('all');
+  const [peoplePage, setPeoplePage] = useState(0);
+  const [tagsPage, setTagsPage] = useState(0);
   const [personForm, setPersonForm] = useState<PersonFormState>(emptyPersonForm);
   const [tagForm, setTagForm] = useState<TagFormState>(emptyTagForm);
   const [editingPersonSlug, setEditingPersonSlug] = useState('');
@@ -293,6 +299,30 @@ export default function AdminVideoMetadata() {
 
   const availablePeople = useMemo(() => people, [people]);
   const availableTags = useMemo(() => tags, [tags]);
+  const filteredPeople = useMemo(
+    () =>
+      people.filter(
+        (person) =>
+          (peopleStatus === 'all' || person.status === peopleStatus) &&
+          `${person.display_name} ${person.slug} ${(person.aliases ?? []).join(' ')} ${person.description ?? ''}`
+            .toLowerCase()
+            .includes(peopleQuery.trim().toLowerCase())
+      ),
+    [people, peopleQuery, peopleStatus]
+  );
+  const filteredTags = useMemo(
+    () =>
+      tags.filter(
+        (tag) =>
+          (tagsStatus === 'all' || tag.status === tagsStatus) &&
+          `${tag.label} ${tag.slug} ${tag.kind} ${tag.description ?? ''}`
+            .toLowerCase()
+            .includes(tagsQuery.trim().toLowerCase())
+      ),
+    [tags, tagsQuery, tagsStatus]
+  );
+  const pagedPeople = filteredPeople.slice(peoplePage * 25, peoplePage * 25 + 25);
+  const pagedTags = filteredTags.slice(tagsPage * 25, tagsPage * 25 + 25);
 
   useEffect(() => {
     void loadPeople();
@@ -480,6 +510,37 @@ export default function AdminVideoMetadata() {
           </div>
         </form>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            Search people
+            <input
+              aria-label="Search people"
+              className="form-control mt-1 w-full"
+              value={peopleQuery}
+              onChange={(event) => {
+                setPeopleQuery(event.target.value);
+                setPeoplePage(0);
+              }}
+            />
+          </label>
+          <label className="text-sm">
+            People status
+            <select
+              aria-label="Filter people status"
+              className="form-control mt-1 w-full"
+              value={peopleStatus}
+              onChange={(event) => {
+                setPeopleStatus(event.target.value as 'all' | MetadataStatus);
+                setPeoplePage(0);
+              }}
+            >
+              <option value="all">All statuses</option>
+              <option value="published">Published</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </label>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -494,7 +555,7 @@ export default function AdminVideoMetadata() {
               </tr>
             </thead>
             <tbody>
-              {people.map((row) => (
+              {pagedPeople.map((row) => (
                 <tr key={row.id} className="border-b border-border align-top">
                   <td className="px-2 py-2 font-medium">{row.display_name}</td>
                   <td className="px-2 py-2 font-mono text-xs">{row.slug}</td>
@@ -515,7 +576,7 @@ export default function AdminVideoMetadata() {
                   </td>
                 </tr>
               ))}
-              {!peopleLoading && people.length === 0 && (
+              {!peopleLoading && filteredPeople.length === 0 && (
                 <tr>
                   <td className="px-2 py-6 text-center text-muted" colSpan={7}>
                     No people found.
@@ -525,6 +586,28 @@ export default function AdminVideoMetadata() {
             </tbody>
           </table>
         </div>
+        <nav aria-label="People pages" className="flex items-center gap-3 text-sm text-muted">
+          <span>
+            Showing {filteredPeople.length ? peoplePage * 25 + 1 : 0}–
+            {Math.min((peoplePage + 1) * 25, filteredPeople.length)}
+          </span>
+          <button
+            className="btn-secondary"
+            type="button"
+            disabled={peoplePage === 0}
+            onClick={() => setPeoplePage((page) => page - 1)}
+          >
+            Previous
+          </button>
+          <button
+            className="btn-secondary"
+            type="button"
+            disabled={(peoplePage + 1) * 25 >= filteredPeople.length}
+            onClick={() => setPeoplePage((page) => page + 1)}
+          >
+            Next
+          </button>
+        </nav>
       </section>
 
       <section className="surface-card space-y-4">
@@ -659,6 +742,37 @@ export default function AdminVideoMetadata() {
           </div>
         </form>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            Search tags
+            <input
+              aria-label="Search tags"
+              className="form-control mt-1 w-full"
+              value={tagsQuery}
+              onChange={(event) => {
+                setTagsQuery(event.target.value);
+                setTagsPage(0);
+              }}
+            />
+          </label>
+          <label className="text-sm">
+            Tags status
+            <select
+              aria-label="Filter tags status"
+              className="form-control mt-1 w-full"
+              value={tagsStatus}
+              onChange={(event) => {
+                setTagsStatus(event.target.value as 'all' | MetadataStatus);
+                setTagsPage(0);
+              }}
+            >
+              <option value="all">All statuses</option>
+              <option value="published">Published</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </label>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -673,7 +787,7 @@ export default function AdminVideoMetadata() {
               </tr>
             </thead>
             <tbody>
-              {tags.map((row) => (
+              {pagedTags.map((row) => (
                 <tr key={row.id} className="border-b border-border align-top">
                   <td className="px-2 py-2 font-medium">{row.label}</td>
                   <td className="px-2 py-2 font-mono text-xs">{row.slug}</td>
@@ -692,7 +806,7 @@ export default function AdminVideoMetadata() {
                   </td>
                 </tr>
               ))}
-              {!tagsLoading && tags.length === 0 && (
+              {!tagsLoading && filteredTags.length === 0 && (
                 <tr>
                   <td className="px-2 py-6 text-center text-muted" colSpan={7}>
                     No tags found.
@@ -702,6 +816,28 @@ export default function AdminVideoMetadata() {
             </tbody>
           </table>
         </div>
+        <nav aria-label="Tag pages" className="flex items-center gap-3 text-sm text-muted">
+          <span>
+            Showing {filteredTags.length ? tagsPage * 25 + 1 : 0}–
+            {Math.min((tagsPage + 1) * 25, filteredTags.length)}
+          </span>
+          <button
+            className="btn-secondary"
+            type="button"
+            disabled={tagsPage === 0}
+            onClick={() => setTagsPage((page) => page - 1)}
+          >
+            Previous
+          </button>
+          <button
+            className="btn-secondary"
+            type="button"
+            disabled={(tagsPage + 1) * 25 >= filteredTags.length}
+            onClick={() => setTagsPage((page) => page + 1)}
+          >
+            Next
+          </button>
+        </nav>
       </section>
 
       <section className="surface-card space-y-4">

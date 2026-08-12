@@ -165,9 +165,20 @@ export const api = {
       .delete('account', { json: { confirmation: 'DELETE' } })
       .json<{ deleted: boolean }>();
   },
-  async listAdminUsers(query?: string, signal?: AbortSignal) {
-    const searchParams = query ? { q: query } : undefined;
-    return http.get('admin/users', { searchParams, signal }).json<{ items: AdminUser[] }>();
+  async listAdminUsers(query?: string, signal?: AbortSignal, offset = 0) {
+    const searchParams: Record<string, string> = { limit: '25', offset: String(offset) };
+    if (query) searchParams.q = query;
+    return http.get('admin/users', { searchParams, signal }).json<{
+      items: AdminUser[];
+      page_info?: {
+        limit: number;
+        offset: number;
+        has_next_page: boolean;
+        has_previous_page: boolean;
+        next_offset: number | null;
+        previous_offset: number | null;
+      };
+    }>();
   },
   async updateAdminUserRole(userId: string, role: UserRole) {
     return http
