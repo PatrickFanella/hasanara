@@ -194,9 +194,9 @@ case "$command" in
             fi
             run_preflight
             if (($# == 5)); then
-                compose exec -T api python scripts/recover_attention_backlog.py --cohort "$2" --limit "$3" --confirm RECOVER
+                compose exec -T api python -m scripts.recover_attention_backlog --cohort "$2" --limit "$3" --confirm RECOVER
             else
-                compose exec -T api python scripts/recover_attention_backlog.py --cohort "$2" --limit "$3"
+                compose exec -T api python -m scripts.recover_attention_backlog --cohort "$2" --limit "$3"
             fi
             exit $?
         fi
