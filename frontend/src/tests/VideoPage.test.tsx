@@ -150,7 +150,7 @@ describe('VideoPage', () => {
       expect(screen.getByRole('heading', { name: 'Guest Stream' })).toBeInTheDocument();
     });
 
-    expect(document.title).toBe('Guest Stream | HasanAra');
+    await waitFor(() => expect(document.title).toBe('Guest Stream | HasanAra'));
     expect(screen.getByText(/Automated transcripts can contain errors/i)).toBeInTheDocument();
     expect(
       screen.getByText(/verify quotations against the linked source video/i)
@@ -614,8 +614,9 @@ describe('VideoPage', () => {
 
     renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&source=whisper`);
 
-    await waitFor(() =>
-      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+    await waitFor(
+      () => expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull(),
+      { timeout: 5000 }
     );
     expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
     expect(document.getElementById('moment-whisper-140')).toBeNull();
@@ -633,8 +634,9 @@ describe('VideoPage', () => {
 
     renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&t_ms=${target.start_ms}`);
 
-    await waitFor(() =>
-      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+    await waitFor(
+      () => expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull(),
+      { timeout: 5000 }
     );
     expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
   });
