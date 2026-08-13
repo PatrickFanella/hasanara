@@ -426,17 +426,20 @@ describe('api service', () => {
       });
 
       expect(result).toEqual(mockResponse);
-      expect(getMock).toHaveBeenCalledWith('videos', {
-        searchParams: {
-          limit: '24',
-          offset: '48',
-          completed_only: 'true',
-          q: 'hasan',
-          category: 'interview',
-          date_field: 'uploaded_at',
-          date_from: '2026-05-01',
-          date_to: '2026-05-31',
-        },
+      const options = getMock.mock.calls[0]?.[1] as { searchParams: URLSearchParams };
+      expect(getMock).toHaveBeenCalledWith(
+        'videos',
+        expect.objectContaining({ signal: undefined })
+      );
+      expect(Object.fromEntries(options.searchParams)).toEqual({
+        limit: '24',
+        offset: '48',
+        completed_only: 'true',
+        q: 'hasan',
+        category: 'interview',
+        date_field: 'uploaded_at',
+        date_from: '2026-05-01',
+        date_to: '2026-05-31',
       });
     });
 

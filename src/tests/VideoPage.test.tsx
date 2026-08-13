@@ -90,6 +90,14 @@ describe('VideoPage', () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     window.location.hash = '';
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
     Object.defineProperty(Element.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(),
@@ -187,6 +195,33 @@ describe('VideoPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(api.getTranscript).toHaveBeenCalledWith('video-1', 'whisper');
+  });
+
+  it('provides an accessible three-position mobile transcript sheet', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    mockAuth();
+    mockEpisode();
+    renderVideo();
+
+    const sheet = await screen.findByLabelText('half episode reader');
+    expect(sheet).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.keyDown(screen.getByRole('button', { name: /half transcript sheet/i }), {
+      key: 'ArrowUp',
+    });
+    expect(await screen.findByLabelText('expanded episode reader')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(await screen.findByLabelText('collapsed episode reader')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Chapters' })).toBeInTheDocument();
   });
 
   it('loads the transcript source named by a canonical moment URL', async () => {

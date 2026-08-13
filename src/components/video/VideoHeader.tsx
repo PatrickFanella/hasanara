@@ -33,7 +33,12 @@ export default function VideoHeader({ title, actions, children }: Props) {
           <div className="flex shrink-0 flex-wrap items-center gap-2 text-sm">{actions}</div>
         )}
       </div>
-      {children && <div className="mt-6 border-t border-border/70 pt-5">{children}</div>}
+      {children && (
+        <details className="episode-details" open>
+          <summary>Episode details</summary>
+          <div>{children}</div>
+        </details>
+      )}
     </header>
   );
 }

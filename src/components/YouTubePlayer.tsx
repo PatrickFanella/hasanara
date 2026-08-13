@@ -18,7 +18,7 @@ type YouTubePlayerConstructor = {
       width: string;
       videoId: string;
       playerVars: { start: number; autoplay: number };
-      events: { onReady: () => void };
+      events: { onReady: () => void; onError: (event: { data?: number }) => void };
     }
   ): YouTubePlayer;
 };
@@ -56,6 +56,7 @@ export default forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer(
   const pendingSeekRef = useRef<{ seconds: number; play: boolean } | null>(null);
   const [ready, setReady] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const seek = useCallback(
     (seconds: number, play = false) => {
@@ -91,6 +92,10 @@ export default forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer(
             onReady: () => {
               if (active) setReady(true);
             },
+            onError: (event) => {
+              if (active)
+                setScriptError(`YouTube player error${event.data ? ` (${event.data})` : ''}`);
+            },
           },
         });
       })
@@ -106,7 +111,7 @@ export default forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer(
       }
       playerRef.current = null;
     };
-  }, [videoId]);
+  }, [attempt, videoId]);
 
   useEffect(() => {
     const changed = previousStartRef.current !== start;
@@ -166,10 +171,28 @@ export default forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer(
       )}
       {scriptError && (
         <div
-          className="absolute inset-0 grid place-items-center bg-black/80 p-6 text-white"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 p-6 text-center text-white"
           role="alert"
         >
-          {scriptError}
+          <strong>Source player unavailable</strong>
+          <span className="text-sm text-white/75">{scriptError}</span>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              className="min-h-11 rounded-lg bg-white px-4 font-semibold text-black"
+              onClick={() => setAttempt((value) => value + 1)}
+            >
+              Retry
+            </button>
+            <a
+              className="inline-flex min-h-11 items-center rounded-lg border border-white/50 px-4 font-semibold text-white"
+              href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.max(0, Math.floor(start))}s`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open on YouTube
+            </a>
+          </div>
         </div>
       )}
     </div>

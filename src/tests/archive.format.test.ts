@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimestampLink, formatVideoTitle } from '../features/archive/format';
+import {
+  buildTimestampLink,
+  formatAggregateDuration,
+  formatVideoTitle,
+} from '../features/archive/format';
 
 describe('archive moment links', () => {
   it('uses the transcript source and start time as the canonical rendered anchor', () => {
@@ -23,5 +27,9 @@ describe('archive moment links', () => {
     expect(formatVideoTitle('HasanAbi July 10, 2026 –', null)).toBe(
       'HasanAbi broadcast — July 10, 2026'
     );
+  });
+
+  it('formats archive-scale runtime for humans', () => {
+    expect(formatAggregateDuration(16_378.6 * 3600)).toMatch(/^16\.4k hours$/);
   });
 });

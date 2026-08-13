@@ -271,7 +271,7 @@ export default function FavoritesPage() {
           )}
         </div>
 
-        <aside className="space-y-6">
+        <section aria-label="Saved search tools" className="space-y-6">
           <div className="surface-card space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="section-title">Saved searches</h2>
@@ -321,7 +321,7 @@ export default function FavoritesPage() {
               {!user && <p className="text-sm text-muted">Sign in to synchronize local saves.</p>}
             </>
           </div>
-        </aside>
+        </section>
       </section>
     </div>
   );

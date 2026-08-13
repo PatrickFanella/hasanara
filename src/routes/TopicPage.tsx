@@ -48,6 +48,7 @@ export default function TopicPage() {
   const [error, setError] = useState<string | null>(null);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [evidenceLimit, setEvidenceLimit] = useState(3);
   const { user, capabilities } = useAuth();
   const queryClient = useQueryClient();
   const timeline = useQuery({
@@ -91,6 +92,18 @@ export default function TopicPage() {
     const next = new URLSearchParams(timelineParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    setTimelineParams(next);
+  }
+
+  function selectTimelinePeriod(period: string) {
+    const month = period.match(/^(\d{4})-(\d{2})$/);
+    if (!month) return;
+    const year = Number(month[1]);
+    const monthIndex = Number(month[2]);
+    const end = new Date(Date.UTC(year, monthIndex, 0)).toISOString().slice(0, 10);
+    const next = new URLSearchParams(timelineParams);
+    next.set('date_from', `${month[1]}-${month[2]}-01`);
+    next.set('date_to', end);
     setTimelineParams(next);
   }
 
@@ -214,6 +227,23 @@ export default function TopicPage() {
           />
         </label>
       </section>
+      {timelineBuckets.length > 0 && (
+        <div
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden"
+          aria-label="Recent topic periods"
+        >
+          {timelineBuckets.slice(-8).map((bucket) => (
+            <button
+              key={bucket.period}
+              type="button"
+              className="btn-secondary shrink-0"
+              onClick={() => selectTimelinePeriod(bucket.period)}
+            >
+              {bucket.label}
+            </button>
+          ))}
+        </div>
+      )}
       {timeline.isLoading && (
         <div className="surface-card text-muted" role="status">
           Loading topic timeline…
@@ -344,7 +374,7 @@ export default function TopicPage() {
         </div>
         {grouped?.groups?.length ? (
           <div className="space-y-4">
-            {grouped.groups.map((group) => (
+            {grouped.groups.slice(0, evidenceLimit).map((group) => (
               <div
                 key={group.video.id}
                 className="rounded-xl border border-border bg-surface-muted p-4"
@@ -364,7 +394,7 @@ export default function TopicPage() {
                   <div className="text-sm text-muted">{group.moments.length} moments</div>
                 </div>
                 <div className="mt-3 space-y-2">
-                  {group.moments.map((moment) => (
+                  {group.moments.slice(0, 3).map((moment) => (
                     <div key={moment.id} className="rounded-lg border border-border bg-surface p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-subtle">
                         <span>{formatTimestamp(moment.start_ms)}</span>
@@ -421,6 +451,15 @@ export default function TopicPage() {
           </div>
         ) : (
           <div className="text-muted">{loading ? 'Loading moments…' : 'No grouped results.'}</div>
+        )}
+        {(grouped?.groups?.length ?? 0) > evidenceLimit && (
+          <button
+            type="button"
+            className="btn-secondary w-full"
+            onClick={() => setEvidenceLimit((value) => value + 3)}
+          >
+            Show more evidence
+          </button>
         )}
       </section>
     </div>

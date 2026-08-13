@@ -8,14 +8,15 @@ export type EventPayload = {
     | 'favorite_add'
     | 'favorite_remove'
     | 'video_open'
-    | 'export_click';
+    | 'export_click'
+    | 'web_vital';
   payload?: Record<string, unknown>;
 };
 
 const queue: EventPayload[] = [];
 const SAMPLE: Partial<Record<EventPayload['type'], number>> = {
   // e.g., seek: 0.5 means 50% sampled
-  // seek: 0.5,
+  web_vital: 0.1,
 };
 let timer: number | undefined;
 
