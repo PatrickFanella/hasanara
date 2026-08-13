@@ -229,7 +229,7 @@ describe('FavoritesPage accessibility', () => {
     const remoteMoment = {
       id: 'remote-1',
       video_id: 'video-1',
-      start_ms: 12_000,
+      start_ms: 12_140,
       end_ms: 18_000,
       text: 'Remote moment',
     };
@@ -260,21 +260,51 @@ describe('FavoritesPage accessibility', () => {
     expect(await screen.findByText('Remote moment')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open moment' })).toHaveAttribute(
       'href',
-      '/v/video-1?t=12'
+      '/v/video-1?t=12&t_ms=12140#moment-12140'
     );
     expect(await screen.findByText('housing')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Reopen search' })).toHaveAttribute(
       'href',
-      '/search?q=housing&source=best&category=politics'
+      '/search?q=housing&category=politics'
     );
 
     await user.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(serviceMocks.deleteFavorite).toHaveBeenCalledWith('remote-1'));
     expect(await screen.findByText('No saved moments yet.')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('Saved moment removed.');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(serviceMocks.deleteSavedSearch).toHaveBeenCalledWith('search-1'));
     expect(await screen.findByText('No saved searches yet.')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('Saved search removed.');
+  });
+
+  it('keeps a remote moment visible and retryable when deletion fails', async () => {
+    serviceMocks.user = { id: 'user-1' };
+    const remoteMoment = {
+      id: 'remote-1',
+      video_id: 'video-1',
+      start_ms: 12_000,
+      end_ms: 18_000,
+      text: 'Do not lose this moment',
+    };
+    serviceMocks.listFavorites.mockResolvedValue({ items: [remoteMoment] });
+    serviceMocks.listSavedSearches.mockResolvedValue({ items: [] });
+    serviceMocks.deleteFavorite.mockRejectedValue(new Error('offline'));
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/saved']}>
+        <FavoritesPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Do not lose this moment')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(await screen.findByText('Do not lose this moment')).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('It is still saved.');
+    expect(screen.getByRole('button', { name: 'Retry removing saved moment' })).toBeEnabled();
   });
 
   it('removes synchronized private data from the UI immediately after sign-out', async () => {
@@ -356,6 +386,11 @@ describe('FavoritesPage accessibility', () => {
 
     expect(await screen.findByText('Unsynchronized moment')).toBeVisible();
     expect(screen.getByText('unsynchronized search')).toBeVisible();
+    expect((await screen.findAllByText('Sync error')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Your saved data could not be synchronized.'
+    );
+    expect(screen.getByRole('button', { name: 'Retry synchronization' })).toBeEnabled();
     await waitFor(() => expect(serviceMocks.addFavorite).toHaveBeenCalled());
     await waitFor(() => expect(serviceMocks.createSavedSearch).toHaveBeenCalled());
     expect(serviceMocks.removeFavorite).not.toHaveBeenCalled();

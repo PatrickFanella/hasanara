@@ -90,6 +90,14 @@ describe('VideoPage', () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     window.location.hash = '';
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
     Object.defineProperty(Element.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(),
@@ -142,7 +150,7 @@ describe('VideoPage', () => {
       expect(screen.getByRole('heading', { name: 'Guest Stream' })).toBeInTheDocument();
     });
 
-    expect(document.title).toBe('Guest Stream | HasanAra');
+    await waitFor(() => expect(document.title).toBe('Guest Stream | HasanAra'));
     expect(screen.getByText(/Automated transcripts can contain errors/i)).toBeInTheDocument();
     expect(
       screen.getByText(/verify quotations against the linked source video/i)
@@ -187,6 +195,43 @@ describe('VideoPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(api.getTranscript).toHaveBeenCalledWith('video-1', 'whisper');
+  });
+
+  it('provides an accessible three-position mobile transcript sheet', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    mockAuth();
+    mockEpisode();
+    renderVideo();
+
+    const sheet = await screen.findByLabelText('half episode reader');
+    expect(sheet).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.keyDown(screen.getByRole('button', { name: /half transcript sheet/i }), {
+      key: 'ArrowUp',
+    });
+    expect(await screen.findByLabelText('expanded episode reader')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(await screen.findByLabelText('collapsed episode reader')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Chapters' })).toBeInTheDocument();
+  });
+
+  it('accepts the transcript source named by a legacy moment URL', async () => {
+    mockAuth();
+    mockEpisode({ video_id: 'video-1', source: 'youtube', segments: [] });
+    window.location.hash = '#moment-youtube-12000';
+
+    renderVideo('/v/video-1?t=12#moment-youtube-12000');
+
+    await waitFor(() => expect(api.getTranscript).toHaveBeenCalledWith('video-1', 'youtube'));
   });
 
   it('distinguishes a missing video from a temporary transcript failure', async () => {
@@ -549,10 +594,96 @@ describe('VideoPage', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(document.getElementById('moment-whisper-5956000')).not.toBeNull());
-    const citedMoment = document.getElementById('moment-whisper-5956000');
+    await waitFor(() => expect(document.getElementById('moment-5956000')).not.toBeNull());
+    const citedMoment = document.getElementById('moment-5956000');
     expect(citedMoment?.parentElement).toHaveTextContent('The cited sentence.');
-    expect(document.querySelectorAll('#moment-whisper-5956000')).toHaveLength(1);
+    expect(document.querySelectorAll('#moment-5956000')).toHaveLength(1);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
+
+  it('mounts a progressive chapter from an exact canonical moment after a transcript gap', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+    window.location.hash = `#moment-whisper-${target.start_ms}`;
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&source=whisper`);
+
+    await waitFor(
+      () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
+      { timeout: 5000 }
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+    expect(document.getElementById('moment-140')).toBeNull();
+  });
+
+  it('mounts a source-neutral saved moment using its exact millisecond timestamp', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&t_ms=${target.start_ms}`);
+
+    await waitFor(
+      () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
+      { timeout: 5000 }
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+  });
+
+  it('recovers a legacy database-id fragment from its floored timestamp', async () => {
+    mockAuth();
+    const segments = Array.from({ length: 600 }, (_, index) => ({
+      start_ms: index * 10_000 + 140,
+      end_ms: index * 10_000 + 3_140,
+      text: `Sentence ${index + 1}.`,
+    }));
+    const target = segments[500];
+    mockEpisode({ video_id: 'video-1', source: 'whisper', segments });
+    window.location.hash = '#seg-4864024';
+
+    renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}`);
+
+    await waitFor(() =>
+      expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull()
+    );
+    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+  });
+
+  it('progressively mounts transcript chapters and offers a full-document escape hatch', async () => {
+    mockAuth();
+    const longTranscript = {
+      video_id: 'video-1',
+      segments: Array.from({ length: 2_700 }, (_, index) => ({
+        start_ms: index * 10_000,
+        end_ms: (index + 1) * 10_000,
+        text: `Sentence ${index + 1}.`,
+      })),
+    };
+    mockEpisode(longTranscript);
+    window.location.hash = '#seg-251';
+    renderVideo('/v/video-1?t=2500');
+
+    await waitFor(() => expect(document.getElementById('seg-251')).not.toBeNull());
+    expect(screen.getByText(/Chapter 3 of 30/)).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(270);
+    expect(document.querySelectorAll('*').length).toBeLessThanOrEqual(1_500);
+    expect(document.getElementById('seg-1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load full transcript' }));
+    await waitFor(() =>
+      expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(2_700)
+    );
+    expect(screen.getByRole('button', { name: 'Use progressive transcript' })).toBeInTheDocument();
+  }, 15_000);
 });

@@ -1,5 +1,5 @@
 import type { HighlightRange, SearchHit } from '../../types/api';
-import { buildTimestampLink, formatTimestamp } from '../archive/format';
+import { buildTimestampLink, canonicalMomentId, formatTimestamp } from '../archive/format';
 import { parseLegacyHighlightedSnippet } from './highlights';
 
 export function plainTextFromSnippet(snippet: string, highlights?: HighlightRange[] | null) {
@@ -19,6 +19,11 @@ export function buildQuoteText(
 
 export function buildPlayMatchesLink(videoId: string, moment: SearchHit, query: string) {
   const seconds = Math.floor(moment.start_ms / 1000);
-  const params = new URLSearchParams({ t: String(seconds), q: query, play: 'matches' });
-  return `/v/${videoId}?${params.toString()}#seg-${moment.id}`;
+  const params = new URLSearchParams({
+    t: String(seconds),
+    q: query,
+    play: 'matches',
+  });
+  if (moment.start_ms % 1000 !== 0) params.set('t_ms', String(moment.start_ms));
+  return `/v/${videoId}?${params.toString()}#${canonicalMomentId('whisper', moment.start_ms)}`;
 }

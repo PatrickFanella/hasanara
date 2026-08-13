@@ -64,7 +64,7 @@ describe('HomePage', () => {
 
     expect(screen.getByPlaceholderText('A topic, quote, guest, or phrase…')).toBeInTheDocument();
     expect(screen.getByLabelText('Search the HasanAbi archive')).toBeInTheDocument();
-    expect(screen.getByText('Archived VODs')).toBeInTheDocument();
+    expect(screen.getByText('Searchable VODs')).toBeInTheDocument();
     expect(screen.getAllByText('Newest VOD').length).toBeGreaterThan(0);
     expect(screen.getByRole('group', { name: 'VOD metadata' })).toBeInTheDocument();
     expect(screen.getByText('Guest One')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('HomePage', () => {
     );
     expect(screen.getByRole('link', { name: /Newest transcript/ })).toHaveAttribute(
       'href',
-      '/v/video-1?t=0'
+      '/v/video-1?t=0#moment-0'
     );
 
     const input = screen.getByPlaceholderText('A topic, quote, guest, or phrase…');
@@ -130,7 +130,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/search?q=rent%20control');
   });
 
-  it('leaves useful non-loading fallbacks when archive summary is unavailable', async () => {
+  it('explains an unavailable archive summary and offers a retry instead of an empty-state claim', async () => {
     vi.spyOn(http, 'get').mockImplementation(((path: string) => {
       if (path === 'auth/me') {
         return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
@@ -141,12 +141,8 @@ describe('HomePage', () => {
 
     renderWithProviders(<HomePage />);
 
-    expect(
-      await screen.findByText('Recent VODs will appear when the archive summary is available.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Search activity will surface useful starting points here.')
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Archive summary is unavailable.');
+    expect(screen.getByRole('button', { name: 'Retry archive summary' })).toBeEnabled();
     expect(screen.queryByText('Loading recent VODs…')).not.toBeInTheDocument();
   });
 

@@ -6,6 +6,10 @@ Use additive Alembic migrations first. Verify the full history on an empty Postg
 
 Deploy additive schema, then compatible API/frontend/worker images, backfills, and finally deferred destructive cleanup in a later release. Historical billing columns remain dormant compatibility fields; they do not imply a billing contract.
 
+## 20260813_multi_provider_ids: multiple identities per provider
+
+This migration removes the per-user/per-provider uniqueness constraint while retaining global uniqueness for each provider subject. Its downgrade is valid only before any user links a second identity from the same provider. The downgrade checks for such rows and fails closed before restoring the rc.8 constraint. Confirm the duplicate-provider query returns no rows before attempting an rc.8 rollback.
+
 ## 20260714_0300: native search outbox update scope
 
 `20260714_0300` is the current head. It retains native segment INSERT and DELETE

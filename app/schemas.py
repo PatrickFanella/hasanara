@@ -6,6 +6,15 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 
+class OffsetPageInfo(BaseModel):
+    limit: int = Field(..., ge=1, description="Requested page size")
+    offset: int = Field(..., ge=0, description="Offset of the current page")
+    has_next_page: bool = Field(..., description="Whether another page is available")
+    has_previous_page: bool = Field(..., description="Whether a previous page is available")
+    next_offset: Optional[int] = Field(None, ge=0, description="Offset for the next page")
+    previous_offset: Optional[int] = Field(None, ge=0, description="Offset for the previous page")
+
+
 class QualitySettingsInput(BaseModel):
     """Quality settings for transcription."""
 
@@ -305,6 +314,7 @@ class GroupedSearchResponse(BaseModel):
     degraded: bool = Field(default=False)
     indexed_at: Optional[datetime] = Field(default=None)
     index_lag_seconds: Optional[int] = Field(default=None, ge=0)
+    page_info: Optional[OffsetPageInfo] = Field(default=None, description="Offset pagination metadata")
 
 
 class MentionMap(BaseModel):
@@ -458,6 +468,25 @@ class ArchiveTopicCard(BaseModel):
     evidence: List[ArchiveEvidenceMoment] = Field(default_factory=list, description="Timestamped evidence moments")
 
 
+class ArchiveTopicDiscoveryItem(BaseModel):
+    kind: Literal["topic"] = "topic"
+    topic: ArchiveTopicCard
+
+
+class ArchiveMomentDiscoveryItem(BaseModel):
+    kind: Literal["moment"] = "moment"
+    video: "VideoInfo"
+    start_ms: int = Field(ge=0)
+    end_ms: int = Field(ge=0)
+    snippet: str = Field(max_length=500)
+    topic: Optional[str] = None
+
+
+class ArchiveDiscoveryResponse(BaseModel):
+    items: List[ArchiveTopicDiscoveryItem | ArchiveMomentDiscoveryItem] = Field(default_factory=list)
+    page_info: "PageInfo"
+
+
 class ArchiveTrendingSearch(BaseModel):
     term: str = Field(..., description="Trending or popular public search term")
     frequency: int = Field(0, description="Search frequency from suggestion analytics")
@@ -513,6 +542,7 @@ class ArchiveNamedPeriodAdminResponse(ArchiveNamedPeriod):
 
 class ArchiveNamedPeriodAdminListResponse(BaseModel):
     items: List[ArchiveNamedPeriodAdminResponse] = Field(default_factory=list, description="Named archive periods")
+    page_info: Optional[OffsetPageInfo] = Field(default=None, description="Offset pagination metadata")
 
 
 class ArchivePerson(BaseModel):

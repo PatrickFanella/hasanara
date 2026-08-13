@@ -935,3 +935,28 @@ def test_native_search_outbox_update_scope_downgrades_to_broad_trigger(alembic_c
                 text("SELECT tgattr::text FROM pg_trigger WHERE tgname = 'segments_search_outbox'")
             )
             assert updated_columns.scalar_one() == ""
+
+
+def test_multi_provider_identity_migration_upgrades_and_downgrades_before_duplicates(
+    alembic_config, clean_db, test_db_url
+):
+    command.upgrade(alembic_config, "20260813_feed_keysets")
+    command.upgrade(alembic_config, "20260813_multi_provider_ids")
+    with get_engine(test_db_url) as engine:
+        with engine.connect() as conn:
+            unique = conn.execute(text("""
+                SELECT indisunique
+                FROM pg_index i
+                JOIN pg_class c ON c.oid = i.indexrelid
+                WHERE c.relname = 'user_identities_user_provider_idx'
+            """)).scalar_one()
+            assert unique is False
+
+    command.downgrade(alembic_config, "20260813_feed_keysets")
+    with get_engine(test_db_url) as engine:
+        with engine.connect() as conn:
+            constraint = conn.execute(text("""
+                SELECT count(*) FROM pg_constraint
+                WHERE conname = 'user_identities_user_id_provider_key'
+            """)).scalar_one()
+            assert constraint == 1

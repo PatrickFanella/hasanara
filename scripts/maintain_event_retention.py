@@ -30,6 +30,7 @@ FROM (
                 'favorite_remove',
                 'video_open',
                 'export_click',
+                'web_vital',
                 'export',
                 'search_api'
             ) THEN type

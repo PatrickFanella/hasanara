@@ -34,10 +34,6 @@ export default function VideoCard({ video }: VideoCardProps) {
         <span className="timestamp-pill absolute bottom-3 left-3">
           {formatDuration(video.duration_seconds)}
         </span>
-        <span
-          className={`absolute right-3 top-3 h-2.5 w-2.5 rounded-full ring-4 ring-black/35 ${video.has_whisper_transcript ? 'bg-accent' : 'bg-warning'}`}
-          aria-hidden="true"
-        />
       </div>
 
       <div className="p-4">

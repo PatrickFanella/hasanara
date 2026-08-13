@@ -3,6 +3,20 @@ export type UUID = string;
 export type OAuthProvider = 'google' | 'twitch';
 export type UserRole = 'user' | 'moderator' | 'admin';
 
+export interface OffsetPageInfo {
+  limit: number;
+  offset: number;
+  has_next_page: boolean;
+  has_previous_page: boolean;
+  next_offset?: number | null;
+  previous_offset?: number | null;
+}
+
+export interface OffsetPageResponse<T> {
+  items: T[];
+  page_info: OffsetPageInfo;
+}
+
 export interface AccountUser {
   id: UUID;
   email?: string | null;
@@ -86,6 +100,7 @@ export interface GroupedSearchResponse {
   total_videos: number;
   groups: EpisodeSearchGroup[];
   query_time_ms?: number | null;
+  page_info?: OffsetPageInfo | null;
 }
 
 export interface MentionMapResponse {
@@ -563,12 +578,33 @@ export interface PaginatedVideos {
 export interface StreamLibraryFilters {
   limit?: number;
   offset?: number;
+  cursor?: string;
+  sort?: 'latest' | 'relevance' | 'longest';
   completed_only?: boolean;
   q?: string;
   date_field?: 'uploaded_at' | 'created_at' | 'updated_at';
   date_from?: string;
   date_to?: string;
   category?: string;
+  people?: string[];
+  tags?: string[];
+  min_duration?: number;
+  max_duration?: number;
+  transcript_source?: 'any' | 'whisper' | 'youtube' | 'both';
+}
+
+export interface TopicDiscoveryItem {
+  kind: 'topic';
+  topic: ArchiveTopicCard;
+}
+
+export interface MomentDiscoveryItem extends ArchiveEvidenceMoment {
+  kind: 'moment';
+}
+
+export interface ArchiveDiscoveryResponse {
+  items: Array<TopicDiscoveryItem | MomentDiscoveryItem>;
+  page_info: PageInfo;
 }
 
 export interface ArchiveSearchFilters {

@@ -159,6 +159,9 @@ class SearchRepository:
             "q": q,
             "limit": limit,
             "offset": offset,
+            # Each branch is bounded before a UNION so a common query cannot
+            # force a full-corpus sort just to produce one page.
+            "branch_limit": limit + offset + 1,
             "title_q": f"%{q.strip()}%",
             "headline_options": POSTGRES_HEADLINE_OPTIONS,
         }
@@ -238,7 +241,9 @@ class SearchRepository:
                 JOIN youtube_transcripts yt ON yt.id = ys.youtube_transcript_id
                 JOIN videos v ON yt.video_id = v.id
                 WHERE {' AND '.join(text_where)}
-            ), title_hits AS (
+                ORDER BY {order_by}
+                LIMIT :branch_limit
+            ), title_candidates AS (
                 SELECT DISTINCT ON (yt.video_id)
                     ys.id,
                     yt.video_id,
@@ -256,6 +261,10 @@ class SearchRepository:
                 JOIN youtube_segments ys ON ys.youtube_transcript_id = yt.id
                 WHERE {' AND '.join(title_where)}
                 ORDER BY yt.video_id, ys.start_ms ASC
+            ), title_hits AS (
+                SELECT * FROM title_candidates
+                ORDER BY {order_by}
+                LIMIT :branch_limit
             )
             SELECT id, video_id, start_ms, end_ms, snippet, rank, title_match,
                    uploaded_at, duration_seconds, video_title, channel_name
@@ -288,6 +297,7 @@ class SearchRepository:
             "q": q,
             "limit": limit,
             "offset": offset,
+            "branch_limit": limit + offset + 1,
             "title_q": f"%{q.strip()}%",
             "headline_options": POSTGRES_HEADLINE_OPTIONS,
         }
@@ -371,9 +381,7 @@ class SearchRepository:
             order_by = "rank DESC, title_match DESC, start_ms ASC"
 
         sql = f"""
-            SELECT id, video_id, start_ms, end_ms, snippet, source, rank, title_match,
-                   uploaded_at, duration_seconds, video_title, channel_name
-            FROM (
+            WITH native_text_hits AS (
                 SELECT
                     s.id,
                     s.video_id,
@@ -393,9 +401,9 @@ class SearchRepository:
                 FROM segments s
                 JOIN videos v ON s.video_id = v.id
                 WHERE {' AND '.join(native_where)}
-
-                UNION ALL
-
+                ORDER BY {order_by}
+                LIMIT :branch_limit
+            ), native_title_hits AS (
                 SELECT
                     s.id,
                     v.id AS video_id,
@@ -418,9 +426,9 @@ class SearchRepository:
                     LIMIT 1
                 ) s ON true
                 WHERE {' AND '.join(native_title_where)}
-
-                UNION ALL
-
+                ORDER BY {order_by}
+                LIMIT :branch_limit
+            ), youtube_text_hits AS (
                 SELECT
                     ys.id,
                     yt.video_id,
@@ -441,9 +449,9 @@ class SearchRepository:
                 JOIN youtube_transcripts yt ON yt.id = ys.youtube_transcript_id
                 JOIN videos v ON yt.video_id = v.id
                 WHERE {' AND '.join(youtube_where)}
-
-                UNION ALL
-
+                ORDER BY {order_by}
+                LIMIT :branch_limit
+            ), youtube_title_candidates AS (
                 SELECT DISTINCT ON (yt.video_id)
                     ys.id,
                     yt.video_id,
@@ -462,6 +470,21 @@ class SearchRepository:
                 JOIN youtube_segments ys ON ys.youtube_transcript_id = yt.id
                 WHERE {' AND '.join(youtube_title_where)}
                 ORDER BY video_id, start_ms ASC
+            ), youtube_title_hits AS (
+                SELECT * FROM youtube_title_candidates
+                ORDER BY {order_by}
+                LIMIT :branch_limit
+            )
+            SELECT id, video_id, start_ms, end_ms, snippet, source, rank, title_match,
+                   uploaded_at, duration_seconds, video_title, channel_name
+            FROM (
+                SELECT * FROM native_text_hits
+                UNION ALL
+                SELECT * FROM native_title_hits
+                UNION ALL
+                SELECT * FROM youtube_text_hits
+                UNION ALL
+                SELECT * FROM youtube_title_hits
             ) best_hits
             ORDER BY {order_by}
             LIMIT :limit OFFSET :offset

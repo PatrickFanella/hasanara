@@ -876,6 +876,9 @@ def test_config_safe_selectors_are_exact_and_maintenance_is_fixed() -> None:
     assert "SELECT pg_switch_wal();" in helper
     assert "SELECT archived_count, failed_count, last_archived_wal" in helper
     assert "run_compose exec backup wal-g backup-list" in helper
+    assert "recover-attention-backlog requires cohort alignment|yt-dlp, limit 1..5" in helper
+    assert "scripts/recover_attention_backlog.py --cohort \"$2\" --limit \"$3\"" in helper
+    assert "--confirm RECOVER" in helper
     canary = helper.split("run_diarization_canary() {", 1)[1].split("\n}\n\nassert_exact_token_container_absent", 1)[0]
     assert "compose() {" in helper and 'exec "${CLEAN_ENV[@]}" "${COMPOSE[@]}" "$@"' in helper
     assert "run_compose" not in canary
@@ -908,6 +911,9 @@ def test_config_safe_selectors_are_exact_and_maintenance_is_fixed() -> None:
         ("maintenance", "session-token-contract-migration", "--approved", "extra"),
         ("maintenance", "retire-disabled-profiles", "--approved", "extra"),
         ("maintenance", "retire-disabled-profiles", "not-approved"),
+        ("maintenance", "recover-attention-backlog", "alignment", "6"),
+        ("maintenance", "recover-attention-backlog", "unknown", "1"),
+        ("maintenance", "recover-attention-backlog", "yt-dlp", "1", "--confirm", "wrong"),
     ):
         result = subprocess.run(
             ["bash", str(script), *arguments], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True

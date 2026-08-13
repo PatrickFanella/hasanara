@@ -31,6 +31,15 @@ export function formatShortDuration(seconds?: number | null) {
   return `${minutes}m`;
 }
 
+export function formatAggregateDuration(seconds?: number | null) {
+  if (seconds == null || Number.isNaN(seconds)) return '—';
+  const hours = Math.max(0, seconds) / 3600;
+  if (hours >= 1000)
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(hours / 1000)}k hours`;
+  if (hours >= 100) return `${Math.round(hours).toLocaleString()} hours`;
+  return formatShortDuration(seconds);
+}
+
 export function formatDate(value?: string | null) {
   if (!value) return '—';
   const date = new Date(value);
@@ -88,24 +97,20 @@ export function buildMonthRange(year: number, month: number) {
 
 export type TranscriptSource = 'whisper' | 'youtube' | 'merged';
 
-export function canonicalMomentId(source: TranscriptSource, startMs: number) {
-  return `moment-${source}-${Math.max(0, Math.floor(startMs))}`;
+export function canonicalMomentId(_source: TranscriptSource, startMs: number) {
+  return `moment-${Math.max(0, Math.floor(startMs))}`;
 }
 
 export function buildTimestampLink(
   videoId: string,
   startMs: number,
-  sourceOrSegmentId?: TranscriptSource | number
+  _sourceOrSegmentId?: TranscriptSource | number
 ) {
+  void _sourceOrSegmentId;
   const seconds = Math.max(0, Math.floor(startMs / 1000));
-  if (typeof sourceOrSegmentId === 'number') {
-    return `/v/${videoId}?t=${seconds}#seg-${sourceOrSegmentId}`;
-  }
   const params = new URLSearchParams({ t: String(seconds) });
-  if (sourceOrSegmentId) params.set('source', sourceOrSegmentId);
-  return `/v/${videoId}?${params.toString()}${
-    sourceOrSegmentId ? `#${canonicalMomentId(sourceOrSegmentId, startMs)}` : ''
-  }`;
+  if (startMs % 1000 !== 0) params.set('t_ms', String(Math.max(0, Math.floor(startMs))));
+  return `/v/${videoId}?${params.toString()}#moment-${Math.max(0, Math.floor(startMs))}`;
 }
 
 export function titleCase(value: string) {
@@ -114,10 +119,4 @@ export function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-export function sourceLabel(source?: 'whisper' | 'youtube' | 'merged' | 'best' | 'native') {
-  if (source === 'youtube') return 'YouTube captions';
-  if (source === 'merged' || source === 'best') return 'Best available transcript';
-  return 'Whisper transcript';
 }

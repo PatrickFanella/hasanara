@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal, Union
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import text
 
 from .. import crud
@@ -10,6 +10,7 @@ from ..archive.video_chapters import build_grounded_chapters
 from ..audit import ACTION_USER_DATA_DELETION, write_audit_from_request
 from ..db import get_db
 from ..exceptions import AuthorizationError, TranscriptNotReadyError, VideoNotFoundError
+from ..feed_cursor import CursorError, FeedCursor, decode_cursor, encode_cursor, filter_fingerprint
 from ..schemas import (
     CleanedTranscriptResponse,
     CleanupConfig,
@@ -489,7 +490,11 @@ def get_video_chapters(video_id: uuid.UUID, db=Depends(get_db)):
 )
 def list_videos(
     limit: int = Query(50, ge=1, le=100, description="Maximum number of videos to return"),
-    offset: int = Query(0, ge=0, description="Number of videos to skip for pagination"),
+    cursor: str | None = Query(None, description="Opaque cursor returned by the previous page"),
+    sort: Literal["latest", "relevance", "longest"] = Query("latest", description="Stable feed ordering"),
+    offset: int | None = Query(
+        None, ge=0, deprecated=True, description="Deprecated offset pagination; use cursor instead"
+    ),
     q: str | None = Query(None, description="Search query for title, youtube ID, or channel name"),
     date_field: Literal["uploaded_at", "created_at", "updated_at"] = Query(
         "uploaded_at", description="Date field used for date filtering"
@@ -498,37 +503,90 @@ def list_videos(
     date_to: str | None = Query(None, description="Inclusive YYYY-MM-DD date upper bound"),
     completed_only: bool = Query(False, description="Only include completed videos that have transcript segments"),
     category: str | None = Query(None, description="Filter by video category/type"),
+    people: list[str] = Query(default=[], description="Published person slugs; may be repeated"),
+    tags: list[str] = Query(default=[], description="Published tag slugs; may be repeated"),
+    min_duration: int | None = Query(None, ge=0, description="Minimum duration in seconds"),
+    max_duration: int | None = Query(None, ge=0, description="Maximum duration in seconds"),
+    transcript_source: Literal["any", "whisper", "youtube", "both"] = Query(
+        "any", description="Required transcript source"
+    ),
     db=Depends(get_db),
 ):
     """List all videos with pagination."""
-    rows = crud.list_videos(
-        db,
-        limit=limit,
-        offset=offset,
-        q=q,
-        date_field=date_field,
-        date_from=date_from,
-        date_to=date_to,
-        completed_only=completed_only,
-        category=category,
-    )
+    if cursor and offset is not None:
+        raise HTTPException(status_code=422, detail="cursor and deprecated offset cannot be combined")
+    if sort == "relevance" and not (q and q.strip()):
+        raise HTTPException(status_code=422, detail="relevance sort requires a non-empty query")
+    if min_duration is not None and max_duration is not None and min_duration > max_duration:
+        raise HTTPException(status_code=422, detail="min_duration cannot exceed max_duration")
+    filters = {
+        "q": q.strip() if q else None,
+        "date_field": date_field,
+        "date_from": date_from,
+        "date_to": date_to,
+        "completed_only": completed_only,
+        "category": category,
+        "people": sorted(set(people)),
+        "tags": sorted(set(tags)),
+        "min_duration": min_duration,
+        "max_duration": max_duration,
+        "transcript_source": transcript_source,
+    }
+    fingerprint = filter_fingerprint({"sort": sort, **filters})
+    decoded = None
+    if cursor:
+        try:
+            decoded = decode_cursor(cursor, expected_sort=sort, expected_fingerprint=fingerprint)
+        except CursorError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    if offset is not None:
+        rows = crud.list_videos(
+            db,
+            limit=limit,
+            offset=offset,
+            **{key: filters[key] for key in ("q", "date_field", "date_from", "date_to", "completed_only", "category")},
+        )
+    else:
+        rows = crud.list_video_feed(
+            db,
+            limit=limit,
+            sort=sort,
+            cursor_primary=decoded.primary if decoded else None,
+            cursor_secondary=decoded.secondary if decoded else None,
+            cursor_id=decoded.video_id if decoded else None,
+            **filters,
+        )
     total_count = crud.count_videos(
         db,
-        q=q,
-        date_field=date_field,
-        date_from=date_from,
-        date_to=date_to,
-        completed_only=completed_only,
-        category=category,
+        **filters,
     )
-    items = [VideoInfo(**dict(r)) for r in rows]
+    has_next = len(rows) > limit if offset is None else offset + len(rows) < total_count
+    page_rows = rows[:limit]
+    items = [VideoInfo(**dict(r)) for r in page_rows]
+    next_cursor = None
+    if has_next and offset is None and page_rows:
+        last = page_rows[-1]
+        primary = last["feed_primary"]
+        secondary = last.get("feed_secondary")
+        next_cursor = encode_cursor(
+            FeedCursor(
+                sort=sort,
+                fingerprint=fingerprint,
+                video_id=last["id"],
+                primary=primary.isoformat() if hasattr(primary, "isoformat") else primary,
+                secondary=secondary.isoformat() if hasattr(secondary, "isoformat") else secondary,
+            )
+        )
+    elif has_next and offset is not None:
+        next_cursor = str(offset + limit)
     return PaginatedVideos(
         items=items,
         page_info=PageInfo(
-            has_next_page=offset + len(items) < total_count,
-            has_previous_page=offset > 0,
-            next_cursor=str(offset + limit) if offset + len(items) < total_count else None,
-            previous_cursor=str(max(0, offset - limit)) if offset > 0 else None,
+            has_next_page=has_next,
+            has_previous_page=bool(cursor) if offset is None else offset > 0,
+            next_cursor=next_cursor,
+            previous_cursor=str(max(0, offset - limit)) if offset else None,
             total_count=total_count,
         ),
     )

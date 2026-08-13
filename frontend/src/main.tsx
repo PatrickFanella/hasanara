@@ -1,12 +1,15 @@
 import { lazy, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import AppLayout from './routes/AppLayout';
 import { AuthProvider, queryClient, ThemeProvider } from './services';
 import { NotFoundPage, PageSuspense as Page, RouteErrorPage } from './routes/RouteStates';
 import RootErrorBoundary from './components/RootErrorBoundary';
+import { registerWebVitals } from './services/webVitals';
+
+registerWebVitals();
 
 const HomePage = lazy(() => import('./routes/HomePage'));
 const SearchPage = lazy(() => import('./routes/SearchPage'));
@@ -136,6 +139,7 @@ const router = createBrowserRouter([
           </Page>
         ),
         children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
           {
             path: 'dashboard',
             element: (

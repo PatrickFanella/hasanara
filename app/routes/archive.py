@@ -3,15 +3,17 @@ import uuid
 from datetime import date
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from .. import crud
+from ..archive.discovery import build_discovery_page
 from ..archive.intelligence import get_archive_intelligence, get_archive_period_options
 from ..archive.intelligence_repository import (
     create_named_period,
     list_named_periods_admin,
+    published_label_cards_for_period,
     refresh_named_period_stats,
     refresh_named_period_stats_for_slug,
     seed_named_periods,
@@ -37,7 +39,10 @@ from ..archive.video_metadata_repository import (
 from ..cache import invalidate_cache_pattern, invalidate_video_data
 from ..db import get_db
 from ..exceptions import NotFoundError, ValidationError
+from ..feed_cursor import CursorError
+from ..pagination import build_offset_page
 from ..schemas import (
+    ArchiveDiscoveryResponse,
     ArchiveIntelligenceResponse,
     ArchiveLabelAssignmentListResponse,
     ArchiveLabelAssignmentResponse,
@@ -501,6 +506,25 @@ def archive_timeline(
 
 
 @router.get(
+    "/archive/discovery",
+    response_model=ArchiveDiscoveryResponse,
+    summary="Browse deterministic topic or transcript-moment discovery",
+    description="Published archive intelligence ordered without visitor behavior or personalization.",
+)
+def archive_discovery(
+    kind: Literal["topics", "moments"] = Query(...),
+    limit: int = Query(12, ge=1, le=50),
+    cursor: str | None = Query(None, description="Opaque cursor returned by the previous page"),
+    db=Depends(get_db),
+):
+    cards = published_label_cards_for_period(db, limit=101)
+    try:
+        return build_discovery_page(cards, kind=kind, limit=limit, cursor=cursor)
+    except CursorError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
     "/archive/intelligence",
     response_model=ArchiveIntelligenceResponse,
     summary="Get archive intelligence",
@@ -552,12 +576,16 @@ def admin_archive_periods(
     kind: str | None = Query(None, description="Optional period kind filter"),
     status: str | None = Query(None, description="Optional period status filter"),
     q: str | None = Query(None, description="Search slug, label, or description"),
-    limit: int = Query(200, ge=1, le=500, description="Maximum number of periods to include"),
+    limit: int = Query(25, ge=1, le=500, description="Maximum number of periods to include"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     db=Depends(get_db),
     user=Depends(require_role(ROLE_ADMIN)),
 ):
-    return list_named_periods_admin(db, kind=kind, status=status, q=q, limit=limit, offset=offset)
+    # The repository is also used by unpaginated admin lookups. Keep its API
+    # intact and turn its limit+1 result into the public pagination contract here.
+    response = list_named_periods_admin(db, kind=kind, status=status, q=q, limit=limit + 1, offset=offset)
+    items, page_info = build_offset_page(response.items, limit=limit, offset=offset)
+    return ArchiveNamedPeriodAdminListResponse(items=items, page_info=page_info)
 
 
 @router.post(

@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
+from app.accounts import link_identity
+from app.auth.providers import ProviderProfile
 from app.csrf import csrf_token
 from app.settings import settings
 
@@ -38,6 +40,14 @@ def _auth_client(client, db_session):
 
 def _headers(token):
     return {"origin": settings.FRONTEND_ORIGIN, "x-csrf-token": csrf_token(token)}
+
+
+def google_profile(subject: str, email: str) -> ProviderProfile:
+    return ProviderProfile("google", subject, email, True, "Google Person", None)
+
+
+def twitch_profile(subject: str, email: str) -> ProviderProfile:
+    return ProviderProfile("twitch", subject, email, True, "Twitch Person", None)
 
 
 def test_get_account_returns_safe_profile_identities_and_sessions(client, db_session):
@@ -366,10 +376,38 @@ def test_identity_merge_returns_url_and_persists_merge_binding(client, db_sessio
 
 
 def test_unlink_last_identity_is_rejected(client, db_session):
-    _, token = _auth_client(client, db_session)
-    response = client.delete("/account/identities/google", headers=_headers(token))
+    user_id, token = _auth_client(client, db_session)
+    identity_id = db_session.execute(
+        text("SELECT id FROM user_identities WHERE user_id=:user_id"), {"user_id": str(user_id)}
+    ).scalar_one()
+    response = client.delete(f"/account/identities/by-id/{identity_id}", headers=_headers(token))
     assert response.status_code == 409
     assert response.json()["error"] == "last_identity"
+
+
+def test_unlink_by_id_removes_only_the_owned_identity(client, db_session):
+    user_id, token = _auth_client(client, db_session)
+    secondary = link_identity(db_session, user_id, twitch_profile("unlink-twitch", "twitch@example.com"))
+    db_session.commit()
+
+    response = client.delete(f"/account/identities/by-id/{secondary['id']}", headers=_headers(token))
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    assert db_session.execute(
+        text("SELECT count(*) FROM user_identities WHERE id=:id"), {"id": str(secondary["id"])}
+    ).scalar_one() == 0
+
+
+def test_provider_unlink_requires_selection_when_multiple_are_linked(client, db_session):
+    user_id, token = _auth_client(client, db_session)
+    link_identity(db_session, user_id, google_profile("second-google", "second@example.com"))
+    db_session.commit()
+
+    response = client.delete("/account/identities/google", headers=_headers(token))
+
+    assert response.status_code == 409
+    assert response.json()["error"] == "identity_selection_required"
 
 
 def test_delete_account_requires_exact_confirmation_and_revokes_access(client, db_session):

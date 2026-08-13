@@ -50,4 +50,17 @@ describe('search filters helpers', () => {
       }).toString()
     ).toBe('q=topic&sort_by=relevance&video_id=video-1&limit=25&offset=50');
   });
+
+  it('keeps non-default matching modes in the URL and omits the topic default', () => {
+    expect(serializeFilters({ q: 'housing', match_mode: 'topic' }).toString()).toBe('q=housing');
+    expect(serializeFilters({ q: 'housing', match_mode: 'whole_word' }).toString()).toBe(
+      'q=housing&match_mode=whole_word'
+    );
+    expect(readFilters(new URLSearchParams('q=housing&match_mode=exact_phrase')).match_mode).toBe(
+      'exact_phrase'
+    );
+    expect(readFilters(new URLSearchParams('q=housing&match_mode=invalid')).match_mode).toBe(
+      'topic'
+    );
+  });
 });
