@@ -29,6 +29,12 @@ const twitchIdentity = {
   created_at: '2026-01-02T00:00:00Z',
   last_login_at: '2026-01-03T00:00:00Z',
 };
+const secondGoogleIdentity = {
+  ...googleIdentity,
+  id: 'identity-google-secondary',
+  email: 'other@example.com',
+  name: 'Other Google Person',
+};
 const currentSession = {
   id: 'session-current',
   user_agent: 'Current Browser',
@@ -48,7 +54,7 @@ const otherSession = {
 
 type Account = {
   user: typeof user;
-  identities: Array<typeof googleIdentity | typeof twitchIdentity>;
+  identities: Array<typeof googleIdentity | typeof twitchIdentity | typeof secondGoogleIdentity>;
   sessions: Array<typeof currentSession | typeof otherSession>;
 };
 
@@ -344,7 +350,10 @@ describe('AccountPage', () => {
       if (path.endsWith('/account') && request.method === 'GET') return json(account);
       if (path.endsWith('/account/identities/twitch/link'))
         return json({ authorization_url: 'https://twitch.example/authorize' });
-      if (path.endsWith('/account/identities/google') && request.method === 'DELETE') {
+      if (
+        path.endsWith('/account/identities/by-id/identity-google') &&
+        request.method === 'DELETE'
+      ) {
         unlinkAttempts += 1;
         return json({ error: 'last_identity' }, 409);
       }
@@ -371,10 +380,49 @@ describe('AccountPage', () => {
     const unlink = screen.getByRole('button', { name: 'Unlink' });
     const explanation = screen.getByText('Keep at least one sign-in identity linked.');
     expect(explanation).toBeVisible();
-    expect(explanation).toHaveAttribute('id', 'unlink-help-google');
+    expect(explanation).toHaveAttribute('id', 'unlink-help-identity-google');
     expect(unlink).toBeDisabled();
-    expect(unlink).toHaveAttribute('aria-describedby', 'unlink-help-google');
+    expect(unlink).toHaveAttribute('aria-describedby', 'unlink-help-identity-google');
     expect(unlinkAttempts).toBe(0);
+  });
+
+  it('renders and unlinks multiple identities from one provider independently', async () => {
+    const requests: Request[] = [];
+    account = {
+      ...account,
+      identities: [googleIdentity, secondGoogleIdentity, twitchIdentity],
+    };
+    installApi((request) => {
+      requests.push(request);
+      const path = new URL(request.url).pathname;
+      if (path.endsWith('/auth/me')) return json({ user, role: 'moderator', capabilities: [] });
+      if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
+      if (path.endsWith('/account') && request.method === 'GET') return json(account);
+      if (
+        path.endsWith('/account/identities/by-id/identity-google-secondary') &&
+        request.method === 'DELETE'
+      ) {
+        account = { ...account, identities: [googleIdentity, twitchIdentity] };
+        return json({ ok: true });
+      }
+      return json({ error: 'unexpected' }, 500);
+    });
+    const events = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findAllByText('Google')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Link another Google account' })).toBeVisible();
+    await events.click(
+      screen.getByRole('button', { name: 'Unlink Google identity other@example.com' })
+    );
+    await events.click(screen.getByRole('button', { name: 'Confirm unlink other@example.com' }));
+
+    expect(await screen.findByText('Google identity unlinked.')).toBeVisible();
+    expect(
+      requests.some((request) =>
+        request.url.endsWith('/account/identities/by-id/identity-google-secondary')
+      )
+    ).toBe(true);
   });
 
   it('redirects unauthenticated direct account access to sign in', async () => {
@@ -475,7 +523,8 @@ describe('AccountPage', () => {
       if (path.endsWith('/auth/me')) return json({ user, role: 'moderator', capabilities: [] });
       if (path.endsWith('/auth/csrf')) return json({ csrf_token: 'csrf-token' });
       if (path.endsWith('/account') && request.method === 'GET') return json(account);
-      if (path.endsWith('/account/identities/google')) return json({ error: 'last_identity' }, 409);
+      if (path.endsWith('/account/identities/by-id/identity-google'))
+        return json({ error: 'last_identity' }, 409);
       return json({ error: 'unexpected' }, 500);
     });
     const events = userEvent.setup();
@@ -483,9 +532,9 @@ describe('AccountPage', () => {
     await screen.findByText('Google');
 
     await events.click(screen.getAllByRole('button', { name: 'Unlink' })[0]);
-    expect(screen.getByText('Unlink Google?')).toBeVisible();
+    expect(screen.getByText('Unlink person@example.com?')).toBeVisible();
     await events.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByText('Unlink Google?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unlink person@example.com?')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm unlink' })).not.toBeInTheDocument();
 
     await events.click(screen.getAllByRole('button', { name: 'Unlink' })[0]);

@@ -150,6 +150,11 @@ export const api = {
   async unlinkProvider(provider: OAuthProvider) {
     return http.delete(`account/identities/${provider}`).json<{ ok: boolean }>();
   },
+  async unlinkIdentity(identityId: string) {
+    return http
+      .delete(`account/identities/by-id/${encodeURIComponent(identityId)}`)
+      .json<{ ok: boolean }>();
+  },
   async listSessions() {
     return http.get('account/sessions').json<{ sessions: ActiveSession[] }>();
   },
