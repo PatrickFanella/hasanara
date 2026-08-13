@@ -64,7 +64,7 @@ describe('HomePage', () => {
 
     expect(screen.getByPlaceholderText('A topic, quote, guest, or phrase…')).toBeInTheDocument();
     expect(screen.getByLabelText('Search the HasanAbi archive')).toBeInTheDocument();
-    expect(screen.getByText('Archived VODs')).toBeInTheDocument();
+    expect(screen.getByText('Searchable VODs')).toBeInTheDocument();
     expect(screen.getAllByText('Newest VOD').length).toBeGreaterThan(0);
     expect(screen.getByRole('group', { name: 'VOD metadata' })).toBeInTheDocument();
     expect(screen.getByText('Guest One')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('HomePage', () => {
     );
     expect(screen.getByRole('link', { name: /Newest transcript/ })).toHaveAttribute(
       'href',
-      '/v/video-1?t=0'
+      '/v/video-1?t=0#moment-0'
     );
 
     const input = screen.getByPlaceholderText('A topic, quote, guest, or phrase…');

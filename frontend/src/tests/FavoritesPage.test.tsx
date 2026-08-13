@@ -260,12 +260,12 @@ describe('FavoritesPage accessibility', () => {
     expect(await screen.findByText('Remote moment')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open moment' })).toHaveAttribute(
       'href',
-      '/v/video-1?t=12&t_ms=12140'
+      '/v/video-1?t=12&t_ms=12140#moment-12140'
     );
     expect(await screen.findByText('housing')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Reopen search' })).toHaveAttribute(
       'href',
-      '/search?q=housing&source=best&category=politics'
+      '/search?q=housing&category=politics'
     );
 
     await user.click(screen.getByRole('button', { name: 'Remove' }));

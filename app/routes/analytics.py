@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 
+from worker.state_model import VideoState, pending_video_eligibility_sql
+
 from ..db import get_db
 from ..security import ROLE_ADMIN, require_role
 
@@ -451,6 +453,8 @@ def get_search_analytics(
                         },
                         "queue": {
                             "pending": 12,
+                            "eligible": 4,
+                            "needs_attention": 8,
                             "oldest_pending_minutes": 15,
                         },
                     }
@@ -520,6 +524,19 @@ def get_system_health(
 
     # Queue metrics
     pending = db.execute(text("SELECT COUNT(*) FROM videos WHERE state = 'pending'")).scalar() or 0
+    eligible = (
+        db.execute(
+            text(f"SELECT COUNT(*) {pending_video_eligibility_sql()}"),
+            {"pending_state": VideoState.PENDING.value},
+        ).scalar()
+        or 0
+    )
+    needs_attention = db.execute(text("""
+        SELECT COUNT(*)
+        FROM videos v
+        JOIN jobs j ON j.id = v.job_id
+        WHERE v.state = 'pending' AND j.state = 'needs_attention'
+    """)).scalar() or 0
 
     oldest_pending_result = db.execute(text("""
             SELECT EXTRACT(EPOCH FROM (NOW() - MIN(created_at))) / 60
@@ -541,6 +558,8 @@ def get_system_health(
         },
         "queue": {
             "pending": pending,
+            "eligible": eligible,
+            "needs_attention": needs_attention,
             "oldest_pending_minutes": oldest_pending_minutes,
         },
     }

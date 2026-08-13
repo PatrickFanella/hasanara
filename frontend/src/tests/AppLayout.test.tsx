@@ -68,7 +68,7 @@ describe('AppLayout navigation', () => {
     ).toHaveAttribute('href', '/account');
   });
 
-  it('marks the current destination and exposes a working skip link', () => {
+  it('marks the current destination and moves keyboard focus with the skip link', () => {
     render(
       <MemoryRouter initialEntries={['/search']}>
         <AppLayout />
@@ -83,6 +83,13 @@ describe('AppLayout navigation', () => {
       '#main-content'
     );
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+    fireEvent.click(screen.getByRole('link', { name: 'Skip to main content' }));
+    return new Promise<void>((resolve) =>
+      requestAnimationFrame(() => {
+        expect(screen.getByRole('main')).toHaveFocus();
+        resolve();
+      })
+    );
   });
 
   it('marks the current destination in mobile navigation', () => {

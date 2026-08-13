@@ -1,12 +1,67 @@
 """Tests for CRUD operations."""
 
 import uuid
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from app import crud
+from app.schemas import EpisodeSearchGroup, GroupedSearchResponse, SearchMoment, VideoInfo
+
+
+def test_mention_map_uses_complete_matches_and_effective_video_date(monkeypatch):
+    old_id = uuid.uuid4()
+    recent_id = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    old_video = VideoInfo(
+        id=old_id,
+        youtube_id="old-video-1",
+        created_at=datetime(2020, 4, 2, tzinfo=timezone.utc),
+    )
+    recent_video = VideoInfo(
+        id=recent_id,
+        youtube_id="new-video-1",
+        uploaded_at=now - timedelta(days=89),
+        created_at=datetime(2019, 1, 1, tzinfo=timezone.utc),
+    )
+
+    def moment(index, video):
+        return SearchMoment(
+            id=index + 1,
+            video_id=video.id,
+            start_ms=index * 1000,
+            end_ms=index * 1000 + 500,
+            snippet="topic context",
+            source="whisper",
+        )
+
+    pages = {
+        0: GroupedSearchResponse(
+            total_moments=500,
+            total_videos=1,
+            groups=[EpisodeSearchGroup(video=recent_video, moments=[moment(i, recent_video) for i in range(500)])],
+            query_time_ms=2,
+        ),
+        500: GroupedSearchResponse(
+            total_moments=1,
+            total_videos=1,
+            groups=[EpisodeSearchGroup(video=old_video, moments=[moment(900, old_video)])],
+            query_time_ms=3,
+        ),
+    }
+    monkeypatch.setattr(crud, "get_grouped_search", lambda *_args, **kwargs: pages[kwargs["offset"]])
+
+    result = crud.get_mention_map(MagicMock(), q="topic", limit=10)
+
+    assert result.total_moments == 501
+    assert result.total_videos == 2
+    assert result.recent_mentions_90d == 500
+    assert result.first_mentioned_year == 2020
+    assert result.first_mention.video_id == old_id
+    assert result.latest_mention.video_id == recent_id
+    assert result.query_time_ms == 5
 
 
 class TestJobCrud:

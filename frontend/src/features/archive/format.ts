@@ -97,25 +97,20 @@ export function buildMonthRange(year: number, month: number) {
 
 export type TranscriptSource = 'whisper' | 'youtube' | 'merged';
 
-export function canonicalMomentId(source: TranscriptSource, startMs: number) {
-  return `moment-${source}-${Math.max(0, Math.floor(startMs))}`;
+export function canonicalMomentId(_source: TranscriptSource, startMs: number) {
+  return `moment-${Math.max(0, Math.floor(startMs))}`;
 }
 
 export function buildTimestampLink(
   videoId: string,
   startMs: number,
-  sourceOrSegmentId?: TranscriptSource | number
+  _sourceOrSegmentId?: TranscriptSource | number
 ) {
+  void _sourceOrSegmentId;
   const seconds = Math.max(0, Math.floor(startMs / 1000));
   const params = new URLSearchParams({ t: String(seconds) });
-  if (typeof sourceOrSegmentId === 'string') params.set('source', sourceOrSegmentId);
   if (startMs % 1000 !== 0) params.set('t_ms', String(Math.max(0, Math.floor(startMs))));
-  if (typeof sourceOrSegmentId === 'number') {
-    return `/v/${videoId}?${params.toString()}#seg-${sourceOrSegmentId}`;
-  }
-  return `/v/${videoId}?${params.toString()}${
-    sourceOrSegmentId ? `#${canonicalMomentId(sourceOrSegmentId, startMs)}` : ''
-  }`;
+  return `/v/${videoId}?${params.toString()}#moment-${Math.max(0, Math.floor(startMs))}`;
 }
 
 export function titleCase(value: string) {
@@ -124,10 +119,4 @@ export function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-export function sourceLabel(source?: 'whisper' | 'youtube' | 'merged' | 'best' | 'native') {
-  if (source === 'youtube') return 'YouTube captions';
-  if (source === 'merged' || source === 'best') return 'Best available transcript';
-  return 'Whisper transcript';
 }

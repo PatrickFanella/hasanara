@@ -129,6 +129,15 @@ export default function VideoPage() {
       ? hashSource
       : null;
   }, [params]);
+  const normalizeMomentUrl = useCallback((startMs: number) => {
+    const url = new URL(window.location.href, 'http://localhost');
+    url.searchParams.delete('source');
+    url.searchParams.set('t', String(Math.floor(startMs / 1000)));
+    if (startMs % 1000) url.searchParams.set('t_ms', String(startMs));
+    else url.searchParams.delete('t_ms');
+    url.hash = `moment-${startMs}`;
+    history.replaceState(null, '', `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
+  }, []);
   const transcriptQuery = useMemo(() => params.get('q') ?? '', [params]);
 
   const scrollElementIntoView = useCallback(
@@ -315,7 +324,7 @@ export default function VideoPage() {
   useEffect(() => {
     const hash = window.location.hash;
     if (hash) {
-      const canonicalMatch = hash.match(/^#moment-(whisper|youtube|merged)-(\d+)$/);
+      const canonicalMatch = hash.match(/^#moment-(?:(whisper|youtube|merged)-)?(\d+)$/);
       if (canonicalMatch && transcript) {
         const targetMs = Number(canonicalMatch[2]);
         const segIndex = transcript.segments.findIndex((seg) => seg.start_ms === targetMs);
@@ -326,6 +335,7 @@ export default function VideoPage() {
             scrollElementIntoView(target, { behavior: 'smooth', block: 'center' });
             setActiveSegId(segIndex + 1);
             setActiveSentenceId(null);
+            if (canonicalMatch[1] || params.has('source')) normalizeMomentUrl(targetMs);
             return;
           }
         }
@@ -355,6 +365,7 @@ export default function VideoPage() {
           setActiveSegId(segId);
           setActiveSentenceId(sentenceId);
           setActiveBlockIndex(block?.block_index ?? null);
+          if (!sentenceSuffix) normalizeMomentUrl(seg.start_ms);
           return;
         }
       }
@@ -405,6 +416,7 @@ export default function VideoPage() {
           setActiveSegId(segIndex + 1);
           setActiveSentenceId(null);
           setActiveBlockIndex(block?.block_index ?? null);
+          if (params.has('source')) normalizeMomentUrl(transcript.segments[segIndex].start_ms);
           return;
         }
       }
@@ -412,6 +424,8 @@ export default function VideoPage() {
   }, [
     activeTranscriptChapter,
     mountSegmentChapter,
+    normalizeMomentUrl,
+    params,
     scrollElementIntoView,
     startMilliseconds,
     transcript,

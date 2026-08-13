@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { StreamCard } from '../components/archive';
@@ -40,65 +40,46 @@ export default function StreamsPage() {
       ? params.get('sort')!
       : 'latest';
   const [searchDraft, setSearchDraft] = useState(q);
+  const [dateFromDraft, setDateFromDraft] = useState(params.get('date_from') ?? '');
+  const [dateToDraft, setDateToDraft] = useState(params.get('date_to') ?? '');
   const [feeds, setFeeds] = useState<Record<FeedTab, FeedState>>({
     latest: emptyFeed(),
     topics: emptyFeed(),
     moments: emptyFeed(),
   });
-  const [filterOpen, setFilterOpen] = useState(false);
   const [requestVersion, setRequestVersion] = useState(0);
-  const filterButton = useRef<HTMLButtonElement>(null);
-  const filterSheet = useRef<HTMLElement>(null);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === 'undefined' ? false : window.matchMedia?.('(max-width: 639px)').matches
+  );
   const sentinel = useRef<HTMLDivElement>(null);
   const tabScrollPositions = useRef<Record<FeedTab, number>>({ latest: 0, topics: 0, moments: 0 });
   const loadedVersion = useRef<Record<FeedTab, number>>({ latest: -1, topics: -1, moments: -1 });
   const active = feeds[tab];
 
-  const filters = useMemo(
-    () => ({
-      date_from: params.get('date_from') ?? '',
-      date_to: params.get('date_to') ?? '',
-      min_duration: params.get('min_duration') ?? '',
-      max_duration: params.get('max_duration') ?? '',
-      transcript_source: params.get('transcript_source') ?? 'any',
-    }),
-    [params]
-  );
+  const dateFrom = params.get('date_from') ?? '';
+  const dateTo = params.get('date_to') ?? '';
 
   useEffect(() => setSearchDraft(q), [q]);
+  useEffect(() => setDateFromDraft(dateFrom), [dateFrom]);
+  useEffect(() => setDateToDraft(dateTo), [dateTo]);
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 639px)');
+    if (!query) return;
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+  useEffect(() => {
+    const retired = ['min_duration', 'max_duration', 'transcript_source'];
+    if (!retired.some((name) => params.has(name))) return;
+    const next = new URLSearchParams(params);
+    retired.forEach((name) => next.delete(name));
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   useEffect(() => {
     window.requestAnimationFrame(() => window.scrollTo({ top: tabScrollPositions.current[tab] }));
   }, [tab]);
-  useEffect(() => {
-    if (!filterOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setFilterOpen(false);
-        filterButton.current?.focus();
-      }
-      if (event.key === 'Tab') {
-        const controls = [
-          ...(filterSheet.current?.querySelectorAll<HTMLElement>(
-            'button, input, select, [href], [tabindex]:not([tabindex="-1"])'
-          ) ?? []),
-        ].filter((item) => !item.hasAttribute('disabled'));
-        const first = controls[0];
-        const last = controls.at(-1);
-        if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    filterSheet.current?.querySelector<HTMLElement>('button, input, select')?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [filterOpen]);
-
   const load = useCallback(
     async (target: FeedTab, append: boolean, signal?: AbortSignal) => {
       const current = feeds[target];
@@ -117,15 +98,8 @@ export default function StreamsPage() {
                   sort: sort as 'latest' | 'relevance' | 'longest',
                   q: q || undefined,
                   date_field: 'uploaded_at',
-                  date_from: filters.date_from || undefined,
-                  date_to: filters.date_to || undefined,
-                  min_duration: filters.min_duration ? Number(filters.min_duration) : undefined,
-                  max_duration: filters.max_duration ? Number(filters.max_duration) : undefined,
-                  transcript_source: filters.transcript_source as
-                    | 'any'
-                    | 'whisper'
-                    | 'youtube'
-                    | 'both',
+                  date_from: dateFrom || undefined,
+                  date_to: dateTo || undefined,
                 },
                 signal
               )
@@ -153,7 +127,7 @@ export default function StreamsPage() {
         }));
       }
     },
-    [feeds, filters, q, sort]
+    [dateFrom, dateTo, feeds, q, sort]
   );
 
   useEffect(() => {
@@ -206,13 +180,61 @@ export default function StreamsPage() {
     setParams(next, { replace: true });
   }
 
-  function applyFilters() {
-    setFilterOpen(false);
+  function applyDates() {
+    const next = new URLSearchParams(params);
+    if (dateFromDraft) next.set('date_from', dateFromDraft);
+    else next.delete('date_from');
+    if (dateToDraft) next.set('date_to', dateToDraft);
+    else next.delete('date_to');
+    setParams(next, { replace: true });
     setRequestVersion((value) => value + 1);
-    filterButton.current?.focus();
   }
 
-  const applied = Object.entries(filters).filter(([, value]) => value && value !== 'any');
+  function clearDates() {
+    setDateFromDraft('');
+    setDateToDraft('');
+    const next = new URLSearchParams(params);
+    next.delete('date_from');
+    next.delete('date_to');
+    setParams(next, { replace: true });
+    setRequestVersion((value) => value + 1);
+  }
+
+  function dateRangeControls(prefix: string) {
+    return (
+      <fieldset className="feed-date-range">
+        <legend className="sr-only">VOD date range</legend>
+        <label htmlFor={`${prefix}-date-from`}>
+          <span>From</span>
+          <input
+            id={`${prefix}-date-from`}
+            type="date"
+            className="form-control"
+            value={dateFromDraft}
+            onChange={(event) => setDateFromDraft(event.target.value)}
+          />
+        </label>
+        <label htmlFor={`${prefix}-date-to`}>
+          <span>To</span>
+          <input
+            id={`${prefix}-date-to`}
+            type="date"
+            className="form-control"
+            value={dateToDraft}
+            onChange={(event) => setDateToDraft(event.target.value)}
+          />
+        </label>
+        <button type="button" className="btn-secondary" onClick={applyDates}>
+          Apply dates
+        </button>
+        {(dateFrom || dateTo) && (
+          <button type="button" className="btn-ghost" onClick={clearDates}>
+            Clear dates
+          </button>
+        )}
+      </fieldset>
+    );
+  }
 
   return (
     <div className="feed-shell">
@@ -227,7 +249,7 @@ export default function StreamsPage() {
           <p className="feed-count">
             {active.page?.total_count == null
               ? 'Citation-backed discovery'
-              : `${active.page.total_count.toLocaleString()} ${tab === 'latest' ? 'library records' : tab}`}
+              : `${active.page.total_count.toLocaleString()} ${tab === 'latest' ? 'All VOD records' : tab}`}
           </p>
         </div>
 
@@ -272,35 +294,18 @@ export default function StreamsPage() {
               </option>
               <option value="longest">Longest</option>
             </select>
-            <button
-              ref={filterButton}
-              type="button"
-              className="btn-secondary"
-              onClick={() => setFilterOpen(true)}
-            >
-              Filters{applied.length ? ` (${applied.length})` : ''}
-            </button>
             <button type="submit" className="btn-primary">
               Search
             </button>
+            {isMobile ? (
+              <details className="feed-date-mobile">
+                <summary>Date range</summary>
+                {dateRangeControls('mobile')}
+              </details>
+            ) : (
+              <div className="feed-date-desktop">{dateRangeControls('desktop')}</div>
+            )}
           </form>
-        )}
-
-        {applied.length > 0 && tab === 'latest' && (
-          <div className="feed-chips" aria-label="Applied filters">
-            {applied.map(([name, value]) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => {
-                  updateFilter(name, '');
-                  setRequestVersion((v) => v + 1);
-                }}
-              >
-                {name.replaceAll('_', ' ')}: {value} <span aria-hidden="true">×</span>
-              </button>
-            ))}
-          </div>
         )}
       </header>
 
@@ -384,107 +389,6 @@ export default function StreamsPage() {
           </button>
         )}
       </div>
-
-      {filterOpen && (
-        <div
-          className="sheet-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setFilterOpen(false);
-          }}
-        >
-          <section
-            ref={filterSheet}
-            className="filter-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="feed-filter-title"
-          >
-            <div className="sheet-handle" aria-hidden="true" />
-            <div className="flex items-center justify-between">
-              <h2 id="feed-filter-title" className="section-title">
-                Filter the archive
-              </h2>
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="Close filters"
-                onClick={() => {
-                  setFilterOpen(false);
-                  filterButton.current?.focus();
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div className="filter-sheet-grid">
-              <label>
-                From
-                <input
-                  type="date"
-                  className="form-control"
-                  value={filters.date_from}
-                  onChange={(e) => updateFilter('date_from', e.target.value)}
-                />
-              </label>
-              <label>
-                To
-                <input
-                  type="date"
-                  className="form-control"
-                  value={filters.date_to}
-                  onChange={(e) => updateFilter('date_to', e.target.value)}
-                />
-              </label>
-              <label>
-                Minimum minutes
-                <input
-                  type="number"
-                  min="0"
-                  className="form-control"
-                  value={filters.min_duration ? Number(filters.min_duration) / 60 : ''}
-                  onChange={(e) =>
-                    updateFilter(
-                      'min_duration',
-                      e.target.value ? String(Number(e.target.value) * 60) : ''
-                    )
-                  }
-                />
-              </label>
-              <label>
-                Maximum minutes
-                <input
-                  type="number"
-                  min="0"
-                  className="form-control"
-                  value={filters.max_duration ? Number(filters.max_duration) / 60 : ''}
-                  onChange={(e) =>
-                    updateFilter(
-                      'max_duration',
-                      e.target.value ? String(Number(e.target.value) * 60) : ''
-                    )
-                  }
-                />
-              </label>
-              <label>
-                Transcript source
-                <select
-                  className="form-control"
-                  value={filters.transcript_source}
-                  onChange={(e) => updateFilter('transcript_source', e.target.value)}
-                >
-                  <option value="any">Any source</option>
-                  <option value="whisper">HasanAra transcript</option>
-                  <option value="youtube">YouTube captions</option>
-                  <option value="both">Both sources</option>
-                </select>
-              </label>
-            </div>
-            <button type="button" className="btn-primary w-full" onClick={applyFilters}>
-              Show results
-            </button>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

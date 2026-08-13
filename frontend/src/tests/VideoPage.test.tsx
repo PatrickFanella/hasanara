@@ -224,7 +224,7 @@ describe('VideoPage', () => {
     expect(screen.getByRole('tab', { name: 'Chapters' })).toBeInTheDocument();
   });
 
-  it('loads the transcript source named by a canonical moment URL', async () => {
+  it('accepts the transcript source named by a legacy moment URL', async () => {
     mockAuth();
     mockEpisode({ video_id: 'video-1', source: 'youtube', segments: [] });
     window.location.hash = '#moment-youtube-12000';
@@ -594,10 +594,10 @@ describe('VideoPage', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(document.getElementById('moment-whisper-5956000')).not.toBeNull());
-    const citedMoment = document.getElementById('moment-whisper-5956000');
+    await waitFor(() => expect(document.getElementById('moment-5956000')).not.toBeNull());
+    const citedMoment = document.getElementById('moment-5956000');
     expect(citedMoment?.parentElement).toHaveTextContent('The cited sentence.');
-    expect(document.querySelectorAll('#moment-whisper-5956000')).toHaveLength(1);
+    expect(document.querySelectorAll('#moment-5956000')).toHaveLength(1);
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
 
@@ -615,11 +615,11 @@ describe('VideoPage', () => {
     renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&source=whisper`);
 
     await waitFor(
-      () => expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull(),
+      () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
       { timeout: 5000 }
     );
     expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
-    expect(document.getElementById('moment-whisper-140')).toBeNull();
+    expect(document.getElementById('moment-140')).toBeNull();
   });
 
   it('mounts a source-neutral saved moment using its exact millisecond timestamp', async () => {
@@ -635,7 +635,7 @@ describe('VideoPage', () => {
     renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}&t_ms=${target.start_ms}`);
 
     await waitFor(
-      () => expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull(),
+      () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
       { timeout: 5000 }
     );
     expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
@@ -655,7 +655,7 @@ describe('VideoPage', () => {
     renderVideo(`/v/video-1?t=${Math.floor(target.start_ms / 1000)}`);
 
     await waitFor(() =>
-      expect(document.getElementById(`moment-whisper-${target.start_ms}`)).not.toBeNull()
+      expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull()
     );
     expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
   });

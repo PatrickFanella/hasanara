@@ -139,6 +139,9 @@ export default function AppLayout() {
       <RouteTransitionManager />
       <a
         href="#main-content"
+        onClick={() =>
+          window.requestAnimationFrame(() => document.getElementById('main-content')?.focus())
+        }
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:min-h-[44px] focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast"
       >
         Skip to main content
@@ -452,6 +455,7 @@ export default function AppLayout() {
 
       <main
         id="main-content"
+        tabIndex={-1}
         className="mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-[100rem] flex-1 px-4 py-6 lg:px-6 lg:py-8"
         role="main"
       >

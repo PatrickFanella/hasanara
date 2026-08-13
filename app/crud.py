@@ -648,12 +648,39 @@ def get_mention_map(
     import re
     from datetime import datetime, timedelta, timezone
 
-    from app.schemas import MentionMap
+    from app.schemas import EpisodeSearchGroup, MentionMap
 
-    grouped = get_grouped_search(
-        db, q=q, source=source, video_id=video_id, limit=limit, offset=offset, sort_by=sort_by, filters=filters
-    )
-    moments = [moment for group in grouped.groups for moment in group.moments]
+    # Mention-map statistics describe the complete canonical result set, not
+    # the relevance page used to render a compact search result list.
+    groups_by_video: dict[str, EpisodeSearchGroup] = {}
+    scan_offset = 0
+    query_time_ms = 0
+    while True:
+        page = get_grouped_search(
+            db,
+            q=q,
+            source=source,
+            video_id=video_id,
+            limit=500,
+            offset=scan_offset,
+            sort_by=sort_by,
+            filters=filters,
+        )
+        query_time_ms += page.query_time_ms or 0
+        for group in page.groups:
+            effective_date = group.video.uploaded_at or group.video.created_at
+            normalized = [moment.model_copy(update={"uploaded_at": effective_date}) for moment in group.moments]
+            existing = groups_by_video.get(str(group.video.id))
+            if existing is None:
+                groups_by_video[str(group.video.id)] = group.model_copy(update={"moments": normalized})
+            else:
+                existing.moments.extend(normalized)
+        if page.total_moments < 500:
+            break
+        scan_offset += 500
+
+    complete_groups = list(groups_by_video.values())
+    moments = [moment for group in complete_groups for moment in group.moments]
 
     baseline = datetime.min.replace(tzinfo=timezone.utc)
 
@@ -749,14 +776,14 @@ def get_mention_map(
     related_topics = [term for term, _count in sorted(term_counts.items(), key=lambda item: (-item[1], item[0]))[:5]]
 
     top_episodes = sorted(
-        grouped.groups,
+        complete_groups,
         key=lambda group: (-len(group.moments), group.video.uploaded_at or baseline, str(group.video.id)),
     )[:top_limit]
 
     return MentionMap(
         query=q,
-        total_moments=grouped.total_moments,
-        total_videos=grouped.total_videos,
+        total_moments=len(moments),
+        total_videos=len(complete_groups),
         first_mentioned_year=first_mentioned_year,
         most_discussed_period=most_discussed_period,
         most_discussed_count=most_discussed_count,
@@ -766,7 +793,7 @@ def get_mention_map(
         first_mention=first_mention,
         latest_mention=latest_mention,
         top_episodes=top_episodes,
-        query_time_ms=grouped.query_time_ms,
+        query_time_ms=query_time_ms,
     )
 
 

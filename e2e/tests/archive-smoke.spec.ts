@@ -385,7 +385,7 @@ test("anonymous visitors can browse the seeded VOD library", async ({
 }) => {
   await page.goto("/episodes");
   await expect(page.getByText("Seeded archive episode")).toBeVisible();
-  await expect(page.getByText("1 library records")).toBeVisible();
+  await expect(page.getByText("1 All VOD records")).toBeVisible();
 });
 
 test("legacy library and saved links render their current destinations", async ({
@@ -528,7 +528,7 @@ test("visitors can read, save, remove, and reopen a transcript moment", async ({
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open moment" })).toHaveAttribute(
     "href",
-    `/v/${seededVideo.id}?t=12&source=whisper#moment-whisper-12000`,
+    `/v/${seededVideo.id}?t=12#moment-12000`,
   );
 
   await page.getByRole("link", { name: "Open moment" }).click();
@@ -651,9 +651,7 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
   await openMoment.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(
-    new RegExp(
-      `/v/${seededVideo.id}\\?t=12&source=whisper.*#moment-whisper-12000$`,
-    ),
+    new RegExp(`/v/${seededVideo.id}\\?t=12.*#moment-12000$`),
   );
 
   const sentence = page.getByRole("button", {
@@ -684,7 +682,7 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
   await page.keyboard.press("ControlOrMeta+A");
   await page.keyboard.type("rights");
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\?t=12&source=whisper&q=rights(?:&play=matches)?$/);
+  await expect(page).toHaveURL(/\?t=12&q=rights(?:&play=matches)?$/);
   await expect(
     page.getByRole("button", { name: "Go to next match" }),
   ).toBeVisible();
@@ -704,7 +702,9 @@ test("keyboard-only visitors can cite, verify, search within, and recover", asyn
       .focus();
   }
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "Search the record." })).toBeFocused();
+  await expect(
+    page.getByRole("heading", { name: "Search the record." }),
+  ).toBeFocused();
   const query = page.getByRole("searchbox", { name: "Search query" });
   await query.fill("no-such-archive-phrase");
   await page.keyboard.press("Enter");
@@ -1052,7 +1052,8 @@ test("release viewport matrix preserves feed density and the mobile player-reade
     uploaded_at: `2026-06-${String(28 - index).padStart(2, "0")}T12:00:00Z`,
   }));
   await page.route("**/api/videos**", (route) => {
-    if (new URL(route.request().url()).pathname !== "/api/videos") return route.fallback();
+    if (new URL(route.request().url()).pathname !== "/api/videos")
+      return route.fallback();
     return route.fulfill({
       status: 200,
       contentType: "application/json",

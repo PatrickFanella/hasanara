@@ -32,7 +32,7 @@ describe('EpisodeIntelligence', () => {
     expect(screen.getByText('Shared tag: Politics')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /quoted 3 times/ })).toHaveAttribute(
       'href',
-      '/v/video-1?t=12'
+      '/v/video-1?t=12#moment-12000'
     );
   });
 
