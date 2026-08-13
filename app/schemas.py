@@ -468,6 +468,25 @@ class ArchiveTopicCard(BaseModel):
     evidence: List[ArchiveEvidenceMoment] = Field(default_factory=list, description="Timestamped evidence moments")
 
 
+class ArchiveTopicDiscoveryItem(BaseModel):
+    kind: Literal["topic"] = "topic"
+    topic: ArchiveTopicCard
+
+
+class ArchiveMomentDiscoveryItem(BaseModel):
+    kind: Literal["moment"] = "moment"
+    video: "VideoInfo"
+    start_ms: int = Field(ge=0)
+    end_ms: int = Field(ge=0)
+    snippet: str = Field(max_length=500)
+    topic: Optional[str] = None
+
+
+class ArchiveDiscoveryResponse(BaseModel):
+    items: List[ArchiveTopicDiscoveryItem | ArchiveMomentDiscoveryItem] = Field(default_factory=list)
+    page_info: "PageInfo"
+
+
 class ArchiveTrendingSearch(BaseModel):
     term: str = Field(..., description="Trending or popular public search term")
     frequency: int = Field(0, description="Search frequency from suggestion analytics")

@@ -31,6 +31,15 @@ export function formatShortDuration(seconds?: number | null) {
   return `${minutes}m`;
 }
 
+export function formatAggregateDuration(seconds?: number | null) {
+  if (seconds == null || Number.isNaN(seconds)) return '—';
+  const hours = Math.max(0, seconds) / 3600;
+  if (hours >= 1000)
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(hours / 1000)}k hours`;
+  if (hours >= 100) return `${Math.round(hours).toLocaleString()} hours`;
+  return formatShortDuration(seconds);
+}
+
 export function formatDate(value?: string | null) {
   if (!value) return '—';
   const date = new Date(value);

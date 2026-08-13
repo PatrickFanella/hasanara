@@ -4,7 +4,7 @@ import { api } from '../services';
 import type { ArchivePeriodOption, ExploreIntelligenceResponse } from '../types/api';
 import {
   formatDate,
-  formatDuration,
+  formatAggregateDuration,
   formatNumber,
   formatTimestamp,
 } from '../features/archive/format';
@@ -47,6 +47,9 @@ export default function ExplorePage() {
   const [periodOptionsLoading, setPeriodOptionsLoading] = useState(false);
   const [periodOptionsError, setPeriodOptionsError] = useState<string | null>(null);
   const [periodOptionsRetry, setPeriodOptionsRetry] = useState(0);
+  const [periodSearch, setPeriodSearch] = useState('');
+  const [topicLimit, setTopicLimit] = useState(6);
+  const [evidenceLimit, setEvidenceLimit] = useState(3);
   const cachedPeriodOptions = periodKind === 'latest' ? undefined : periodOptionsByKind[periodKind];
 
   const loadIntelligence = async (queryPeriod?: string | null, initial = false) => {
@@ -91,6 +94,14 @@ export default function ExplorePage() {
         : periodOptions.filter((option) => normalizePeriodKind(option.kind) === periodKind),
     [periodKind, periodOptions]
   );
+  const searchedPeriodOptions = useMemo(() => {
+    const needle = periodSearch.trim().toLocaleLowerCase();
+    return needle
+      ? filteredPeriodOptions.filter((option) =>
+          `${option.label} ${option.description ?? ''}`.toLocaleLowerCase().includes(needle)
+        )
+      : filteredPeriodOptions;
+  }, [filteredPeriodOptions, periodSearch]);
   const currentPeriod = useMemo(() => {
     const slug = selectedPeriodSlug ?? data?.selected_period?.slug ?? null;
     if (!slug) return data?.selected_period ?? null;
@@ -370,8 +381,19 @@ export default function ExplorePage() {
             <p className="mt-3 text-sm leading-6 text-muted">
               {periodOptionsLoading
                 ? 'Loading periods…'
-                : `${filteredPeriodOptions.length} ${selectedPeriodKindLabel.toLowerCase()} windows`}
+                : `${searchedPeriodOptions.length} ${selectedPeriodKindLabel.toLowerCase()} windows`}
             </p>
+            <label className="sr-only" htmlFor="period-search">
+              Search periods
+            </label>
+            <input
+              id="period-search"
+              className="form-control mt-3"
+              type="search"
+              value={periodSearch}
+              onChange={(event) => setPeriodSearch(event.target.value)}
+              placeholder="Search periods"
+            />
           </div>
           <div className="max-h-[32rem] overflow-y-auto">
             {periodOptionsError && (
@@ -384,8 +406,8 @@ export default function ExplorePage() {
                 </AsyncError>
               </div>
             )}
-            {filteredPeriodOptions.length > 0 ? (
-              filteredPeriodOptions.map((option) => {
+            {searchedPeriodOptions.length > 0 ? (
+              searchedPeriodOptions.map((option) => {
                 const active = option.slug === (currentPeriod?.slug ?? data.selected_period?.slug);
                 return (
                   <button
@@ -441,7 +463,7 @@ export default function ExplorePage() {
               <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border">
                 {[
                   ['VODs', formatNumber(selectedPeriodVods)],
-                  ['Runtime', formatDuration(selectedPeriodDuration)],
+                  ['Runtime', formatAggregateDuration(selectedPeriodDuration)],
                   ['Labels', formatNumber(data.topic_cards.length)],
                   ['Evidence', formatNumber(selectedPeriodEvidence.length)],
                 ].map(([label, value]) => (
@@ -472,7 +494,7 @@ export default function ExplorePage() {
 
             {data.topic_cards.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {data.topic_cards.map((topic, index) => (
+                {data.topic_cards.slice(0, topicLimit).map((topic, index) => (
                   <Link
                     key={topic.slug}
                     to={topicHref(topic.label)}
@@ -525,6 +547,15 @@ export default function ExplorePage() {
               <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
                 No topic cards are available for this window yet.
               </div>
+            )}
+            {data.topic_cards.length > topicLimit && (
+              <button
+                type="button"
+                className="btn-secondary w-full"
+                onClick={() => setTopicLimit((value) => value + 6)}
+              >
+                Load more topics
+              </button>
             )}
           </section>
 
@@ -591,7 +622,7 @@ export default function ExplorePage() {
                     <div className="archive-rule-title">Cited moments</div>
                   </div>
                   {selectedPeriodEvidence.length > 0 ? (
-                    selectedPeriodEvidence.map((moment, index) => (
+                    selectedPeriodEvidence.slice(0, evidenceLimit).map((moment, index) => (
                       <Link
                         key={`${moment.video.id}-${moment.start_ms}`}
                         to={evidenceHref(moment)}
@@ -620,6 +651,15 @@ export default function ExplorePage() {
                     <div className="p-5 text-sm leading-6 text-muted">
                       No cited moments are available for this selected period yet.
                     </div>
+                  )}
+                  {selectedPeriodEvidence.length > evidenceLimit && (
+                    <button
+                      type="button"
+                      className="btn-secondary m-3 w-[calc(100%-1.5rem)]"
+                      onClick={() => setEvidenceLimit((value) => value + 5)}
+                    >
+                      Show more evidence
+                    </button>
                   )}
                 </div>
               </div>

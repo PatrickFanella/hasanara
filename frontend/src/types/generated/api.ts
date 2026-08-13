@@ -926,6 +926,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/archive/discovery': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Browse deterministic topic or transcript-moment discovery
+     * @description Published archive intelligence ordered without visitor behavior or personalization.
+     */
+    get: operations['archive_discovery_archive_discovery_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/archive/intelligence': {
     parameters: {
       query?: never;
@@ -2203,6 +2223,15 @@ export interface components {
       /** Type */
       type: string;
     };
+    /** ArchiveDiscoveryResponse */
+    ArchiveDiscoveryResponse: {
+      /** Items */
+      items?: (
+        | components['schemas']['ArchiveTopicDiscoveryItem']
+        | components['schemas']['ArchiveMomentDiscoveryItem']
+      )[];
+      page_info: components['schemas']['PageInfo'];
+    };
     /** ArchiveEvidenceMoment */
     ArchiveEvidenceMoment: {
       /**
@@ -2459,6 +2488,24 @@ export interface components {
        * @description Target label identifier for merges
        */
       target_label_id?: string | null;
+    };
+    /** ArchiveMomentDiscoveryItem */
+    ArchiveMomentDiscoveryItem: {
+      /** End Ms */
+      end_ms: number;
+      /**
+       * Kind
+       * @default moment
+       * @constant
+       */
+      kind: 'moment';
+      /** Snippet */
+      snippet: string;
+      /** Start Ms */
+      start_ms: number;
+      /** Topic */
+      topic?: string | null;
+      video: components['schemas']['VideoInfo'];
     };
     /** ArchiveNamedPeriodAdminListResponse */
     ArchiveNamedPeriodAdminListResponse: {
@@ -3085,6 +3132,16 @@ export interface components {
        * @default 0
        */
       trend_score: number;
+    };
+    /** ArchiveTopicDiscoveryItem */
+    ArchiveTopicDiscoveryItem: {
+      /**
+       * Kind
+       * @default topic
+       * @constant
+       */
+      kind: 'topic';
+      topic: components['schemas']['ArchiveTopicCard'];
     };
     /** ArchiveTrendingSearch */
     ArchiveTrendingSearch: {
@@ -7342,6 +7399,40 @@ export interface operations {
       };
     };
   };
+  archive_discovery_archive_discovery_get: {
+    parameters: {
+      query: {
+        kind: 'topics' | 'moments';
+        limit?: number;
+        /** @description Opaque cursor returned by the previous page */
+        cursor?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchiveDiscoveryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   archive_intelligence_archive_intelligence_get: {
     parameters: {
       query?: {
@@ -8888,8 +8979,15 @@ export interface operations {
       query?: {
         /** @description Maximum number of videos to return */
         limit?: number;
-        /** @description Number of videos to skip for pagination */
-        offset?: number;
+        /** @description Opaque cursor returned by the previous page */
+        cursor?: string | null;
+        /** @description Stable feed ordering */
+        sort?: 'latest' | 'relevance' | 'longest';
+        /**
+         * @deprecated
+         * @description Deprecated offset pagination; use cursor instead
+         */
+        offset?: number | null;
         /** @description Search query for title, youtube ID, or channel name */
         q?: string | null;
         /** @description Date field used for date filtering */
@@ -8902,6 +9000,16 @@ export interface operations {
         completed_only?: boolean;
         /** @description Filter by video category/type */
         category?: string | null;
+        /** @description Published person slugs; may be repeated */
+        people?: string[];
+        /** @description Published tag slugs; may be repeated */
+        tags?: string[];
+        /** @description Minimum duration in seconds */
+        min_duration?: number | null;
+        /** @description Maximum duration in seconds */
+        max_duration?: number | null;
+        /** @description Required transcript source */
+        transcript_source?: 'any' | 'whisper' | 'youtube' | 'both';
       };
       header?: never;
       path?: never;

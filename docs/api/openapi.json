@@ -264,6 +264,32 @@
         "title": "AnalyticsEventInput",
         "type": "object"
       },
+      "ArchiveDiscoveryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ArchiveTopicDiscoveryItem"
+                },
+                {
+                  "$ref": "#/components/schemas/ArchiveMomentDiscoveryItem"
+                }
+              ]
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page_info": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        },
+        "required": [
+          "page_info"
+        ],
+        "title": "ArchiveDiscoveryResponse",
+        "type": "object"
+      },
       "ArchiveEvidenceMoment": {
         "properties": {
           "end_ms": {
@@ -716,6 +742,53 @@
           "action"
         ],
         "title": "ArchiveLabelReviewAction",
+        "type": "object"
+      },
+      "ArchiveMomentDiscoveryItem": {
+        "properties": {
+          "end_ms": {
+            "minimum": 0.0,
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "moment",
+            "default": "moment",
+            "title": "Kind",
+            "type": "string"
+          },
+          "snippet": {
+            "maxLength": 500,
+            "title": "Snippet",
+            "type": "string"
+          },
+          "start_ms": {
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "video": {
+            "$ref": "#/components/schemas/VideoInfo"
+          }
+        },
+        "required": [
+          "video",
+          "start_ms",
+          "end_ms",
+          "snippet"
+        ],
+        "title": "ArchiveMomentDiscoveryItem",
         "type": "object"
       },
       "ArchiveNamedPeriodAdminListResponse": {
@@ -1817,6 +1890,24 @@
           "source"
         ],
         "title": "ArchiveTopicCard",
+        "type": "object"
+      },
+      "ArchiveTopicDiscoveryItem": {
+        "properties": {
+          "kind": {
+            "const": "topic",
+            "default": "topic",
+            "title": "Kind",
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/ArchiveTopicCard"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "title": "ArchiveTopicDiscoveryItem",
         "type": "object"
       },
       "ArchiveTrendingSearch": {
@@ -8973,6 +9064,83 @@
         ]
       }
     },
+    "/archive/discovery": {
+      "get": {
+        "description": "Published archive intelligence ordered without visitor behavior or personalization.",
+        "operationId": "archive_discovery_archive_discovery_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "topics",
+                "moments"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque cursor returned by the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor returned by the previous page",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveDiscoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Browse deterministic topic or transcript-moment discovery",
+        "tags": [
+          "Archive"
+        ]
+      }
+    },
     "/archive/intelligence": {
       "get": {
         "description": "Composed archive exploration response with timeline, topics, trending searches, and cited evidence.",
@@ -11835,16 +12003,59 @@
             }
           },
           {
-            "description": "Number of videos to skip for pagination",
+            "description": "Opaque cursor returned by the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor returned by the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Stable feed ordering",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "latest",
+              "description": "Stable feed ordering",
+              "enum": [
+                "latest",
+                "relevance",
+                "longest"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "deprecated": true,
+            "description": "Deprecated offset pagination; use cursor instead",
             "in": "query",
             "name": "offset",
             "required": false,
             "schema": {
-              "default": 0,
-              "description": "Number of videos to skip for pagination",
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "deprecated": true,
+              "description": "Deprecated offset pagination; use cursor instead",
+              "title": "Offset"
             }
           },
           {
@@ -11946,6 +12157,92 @@
               ],
               "description": "Filter by video category/type",
               "title": "Category"
+            }
+          },
+          {
+            "description": "Published person slugs; may be repeated",
+            "in": "query",
+            "name": "people",
+            "required": false,
+            "schema": {
+              "default": [],
+              "description": "Published person slugs; may be repeated",
+              "items": {
+                "type": "string"
+              },
+              "title": "People",
+              "type": "array"
+            }
+          },
+          {
+            "description": "Published tag slugs; may be repeated",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "default": [],
+              "description": "Published tag slugs; may be repeated",
+              "items": {
+                "type": "string"
+              },
+              "title": "Tags",
+              "type": "array"
+            }
+          },
+          {
+            "description": "Minimum duration in seconds",
+            "in": "query",
+            "name": "min_duration",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Minimum duration in seconds",
+              "title": "Min Duration"
+            }
+          },
+          {
+            "description": "Maximum duration in seconds",
+            "in": "query",
+            "name": "max_duration",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum duration in seconds",
+              "title": "Max Duration"
+            }
+          },
+          {
+            "description": "Required transcript source",
+            "in": "query",
+            "name": "transcript_source",
+            "required": false,
+            "schema": {
+              "default": "any",
+              "description": "Required transcript source",
+              "enum": [
+                "any",
+                "whisper",
+                "youtube",
+                "both"
+              ],
+              "title": "Transcript Source",
+              "type": "string"
             }
           }
         ],

@@ -77,6 +77,32 @@ def test_internal_search_event_does_not_store_raw_query() -> None:
     assert payload == {"source": "native"}
 
 
+def test_web_vital_retains_only_bounded_non_identifying_dimensions() -> None:
+    from app.event_taxonomy import sanitize_client_event
+
+    event_type, payload = sanitize_client_event(
+        "web_vital",
+        {
+            "metric": "lcp",
+            "value": 2432,
+            "route_class": "episode",
+            "viewport_class": "mobile",
+            "build_version": "v0.1.0-rc.8",
+            "url": "/v/private?query=secret",
+            "transcript": "must never be retained",
+        },
+    )
+
+    assert event_type == "web_vital"
+    assert payload == {
+        "metric": "lcp",
+        "value": 2432,
+        "route_class": "episode",
+        "viewport_class": "mobile",
+        "build_version": "v0.1.0-rc.8",
+    }
+
+
 def test_internal_export_keeps_known_merged_source() -> None:
     from app.event_taxonomy import sanitize_internal_event
 

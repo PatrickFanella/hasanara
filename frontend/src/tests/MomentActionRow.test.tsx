@@ -25,15 +25,10 @@ describe('MomentActionRow', () => {
       />
     );
 
-    expect(screen.getByRole('link', { name: 'Open moment' })).toHaveAttribute(
-      'href',
-      '/v/video-1?t=1&source=whisper&t_ms=1140#moment-whisper-1140'
-    );
-    expect(screen.getByRole('link', { name: 'Play from here' })).toHaveAttribute(
-      'href',
-      '/v/video-1?t=1&source=whisper&q=housing&play=matches&t_ms=1140#moment-whisper-1140'
-    );
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy quote' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save moment' })).toBeInTheDocument();
+    expect(screen.getByText('More')).toHaveAttribute('aria-label', 'More moment actions');
+    expect(screen.getByRole('link', { name: 'Full VOD' })).toHaveAttribute('href', '/v/video-1');
   });
 });

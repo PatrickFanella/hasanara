@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const stableChrome = process.env.PLAYWRIGHT_STABLE_CHROME === '1' ? { channel: 'chrome' } : {};
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -43,7 +45,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ...stableChrome },
     },
 
     {
@@ -59,7 +61,7 @@ export default defineConfig({
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'], ...stableChrome },
     },
     {
       name: 'Mobile Safari',

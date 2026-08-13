@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { SearchHit } from '../../types/api';
 import { formatTimestamp } from '../../features/archive/format';
+import { buildTimestampLink } from '../../features/archive/format';
+import { buildPlayMatchesLink } from '../../features/search/moments';
+import { Link } from 'react-router-dom';
 import { clusterNearbyMoments } from '../../features/search/clusters';
 import HighlightedSnippet from '../HighlightedSnippet';
 import MomentActionRow from './MomentActionRow';
@@ -54,12 +57,23 @@ export default function SearchMomentsList({
                 </div>
               </div>
               <div className="min-w-0">
-                <HighlightedSnippet
-                  as="div"
-                  className="archive-snippet"
-                  snippet={moment.snippet}
-                  highlights={moment.highlights}
-                />
+                <Link
+                  to={
+                    query
+                      ? buildPlayMatchesLink(videoId, moment, query)
+                      : buildTimestampLink(videoId, moment.start_ms, moment.source)
+                  }
+                  className="block rounded-lg hover:bg-surface-muted focus:bg-surface-muted"
+                  aria-label={`Play cited moment at ${formatTimestamp(moment.start_ms)}`}
+                  onClick={() => onTrackResultClick(videoId, moment)}
+                >
+                  <HighlightedSnippet
+                    as="div"
+                    className="archive-snippet"
+                    snippet={moment.snippet}
+                    highlights={moment.highlights}
+                  />
+                </Link>
                 <MomentActionRow
                   videoId={videoId}
                   moment={moment}

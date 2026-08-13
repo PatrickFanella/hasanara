@@ -370,7 +370,7 @@ export default function SearchPage() {
             )}
           </div>
 
-          <aside className="space-y-4 xl:sticky xl:top-24">
+          <section aria-label="Search context" className="space-y-4 xl:sticky xl:top-24">
             <section className="archive-section space-y-4">
               <div className="archive-rule-title">Research tools</div>
               <div className="flex flex-wrap gap-2" aria-label="Every mention exports">
@@ -464,7 +464,7 @@ export default function SearchPage() {
                 </div>
               </section>
             )}
-          </aside>
+          </section>
         </div>
       ) : (
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]">

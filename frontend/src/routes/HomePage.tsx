@@ -257,7 +257,7 @@ export default function HomePage() {
           )}
         </div>
 
-        <aside className="archive-section flex flex-col gap-6">
+        <section aria-label="Archive highlights" className="archive-section flex flex-col gap-6">
           <div>
             <div className="archive-eyebrow">Open a thread</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
@@ -303,7 +303,7 @@ export default function HomePage() {
               <div className="mt-3 text-sm text-accent">Start reading →</div>
             </Link>
           )}
-        </aside>
+        </section>
       </section>
 
       <section className="archive-section grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:items-center">

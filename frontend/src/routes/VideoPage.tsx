@@ -75,8 +75,40 @@ export default function VideoPage() {
   const [isPlayingMatches, setIsPlayingMatches] = useState(false);
   const [autoFollowEnabled, setAutoFollowEnabled] = useState(true);
   const [operationFeedback, setOperationFeedback] = useState<string | null>(null);
+  const [isMobileEpisode, setIsMobileEpisode] = useState(() =>
+    typeof window === 'undefined' ? false : window.matchMedia?.('(max-width: 1023px)').matches
+  );
+  const [mobileTab, setMobileTab] = useState<'transcript' | 'chapters' | 'info'>('transcript');
+  const [sheetSnap, setSheetSnap] = useState<'collapsed' | 'half' | 'expanded'>('half');
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
   const autoFollowScrollTimeoutRef = useRef<number | null>(null);
+  const sheetDragStartRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 1023px)');
+    if (!query) return;
+    const update = () => setIsMobileEpisode(query.matches);
+    update();
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+
+  const changeSheetSnap = useCallback((direction: -1 | 1) => {
+    const snaps = ['collapsed', 'half', 'expanded'] as const;
+    setSheetSnap((current) => {
+      const index = snaps.indexOf(current);
+      return snaps[Math.max(0, Math.min(snaps.length - 1, index + direction))];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileEpisode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSheetSnap('collapsed');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isMobileEpisode]);
 
   const startMilliseconds = useMemo(() => {
     const exact = params.get('t_ms');
@@ -652,7 +684,53 @@ export default function VideoPage() {
   }
   return (
     <div className="episode-page space-y-7">
-      <VideoHeader title={episodeTitle} actions={video ? <ExportMenu videoId={video.id} /> : null}>
+      {video && isMobileEpisode && (
+        <div className="mobile-player-dock" id="episode-player">
+          <PlayerPanel video={video} start={start} playerRef={playerRef} />
+        </div>
+      )}
+      <VideoHeader
+        title={episodeTitle}
+        actions={
+          video ? (
+            <>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  const key = 'hasanara:saved-episodes';
+                  const saved = new Set<string>(JSON.parse(localStorage.getItem(key) ?? '[]'));
+                  saved.add(video.id);
+                  localStorage.setItem(key, JSON.stringify([...saved]));
+                  setOperationFeedback('Episode saved on this device.');
+                }}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() =>
+                  void copyText(window.location.href).then(() =>
+                    setOperationFeedback('Episode link copied.')
+                  )
+                }
+              >
+                Share
+              </button>
+              <ExportMenu videoId={video.id} />
+              <a
+                className="btn-secondary"
+                href={`https://www.youtube.com/watch?v=${video.youtube_id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                YouTube
+              </a>
+            </>
+          ) : null
+        }
+      >
         {video && <VideoDetailsPanel video={video} />}
       </VideoHeader>
       {operationFeedback && (
@@ -660,10 +738,15 @@ export default function VideoPage() {
           {operationFeedback}
         </div>
       )}
-      {video && <EpisodeIntelligence videoId={video.id} />}
+      {video && (
+        <div className="desktop-episode-intelligence">
+          <EpisodeIntelligence videoId={video.id} />
+        </div>
+      )}
 
       <div className={viewMode === 'standard' ? 'transcript-layout' : 'space-y-6'}>
-        <aside
+        <section
+          aria-label="Playback and reading controls"
           className={
             viewMode === 'standard'
               ? 'transcript-rail'
@@ -672,7 +755,7 @@ export default function VideoPage() {
                 : 'hidden'
           }
         >
-          {video && (
+          {video && !isMobileEpisode && (
             <div>
               <PlayerPanel video={video} start={start} playerRef={playerRef} />
             </div>
@@ -734,305 +817,418 @@ export default function VideoPage() {
               if (segmentIndex != null && segmentIndex >= 0) mountSegmentChapter(segmentIndex);
             }}
           />
-        </aside>
+        </section>
 
         <section
-          className={viewMode === 'standard' ? 'min-w-0' : 'mx-auto max-w-5xl'}
+          className={`${viewMode === 'standard' ? 'min-w-0' : 'mx-auto max-w-5xl'} mobile-transcript-sheet`}
           aria-labelledby="transcript-title"
+          aria-expanded={sheetSnap === 'expanded'}
+          aria-label={`${sheetSnap} episode reader`}
+          data-snap={sheetSnap}
         >
-          <div className="transcript-shell">
-            <header className="transcript-toolbar">
-              <div className="flex flex-col gap-4 border-b border-border/70 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="mb-1 flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_rgba(183,255,60,0.65)]"
-                      aria-hidden="true"
-                    />
-                    <h2
-                      id="transcript-title"
-                      className="text-lg font-semibold tracking-[-0.025em] text-ink"
-                    >
-                      Interactive transcript
-                    </h2>
+          {isMobileEpisode && (
+            <div className="mobile-sheet-controls">
+              <button
+                type="button"
+                className="mobile-sheet-handle"
+                aria-label={`${sheetSnap} transcript sheet. Use arrow keys or drag to resize.`}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowUp') changeSheetSnap(1);
+                  if (event.key === 'ArrowDown') changeSheetSnap(-1);
+                }}
+                onPointerDown={(event) => {
+                  sheetDragStartRef.current = event.clientY;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerUp={(event) => {
+                  const startY = sheetDragStartRef.current;
+                  sheetDragStartRef.current = null;
+                  if (startY == null) return;
+                  const delta = event.clientY - startY;
+                  if (delta < -42) changeSheetSnap(1);
+                  if (delta > 42) changeSheetSnap(-1);
+                }}
+              >
+                <span aria-hidden="true" />
+              </button>
+              <div className="mobile-sheet-tabs" role="tablist" aria-label="Episode reader">
+                {(['transcript', 'chapters', 'info'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={mobileTab === tab}
+                    onClick={() => {
+                      setMobileTab(tab);
+                      if (sheetSnap === 'collapsed') setSheetSnap('half');
+                    }}
+                  >
+                    {tab[0].toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="mobile-sheet-snap-actions">
+                <button
+                  type="button"
+                  onClick={() => changeSheetSnap(-1)}
+                  disabled={sheetSnap === 'collapsed'}
+                >
+                  Collapse
+                </button>
+                <span className="sr-only" role="status" aria-live="polite">
+                  Transcript sheet {sheetSnap}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => changeSheetSnap(1)}
+                  disabled={sheetSnap === 'expanded'}
+                >
+                  Expand
+                </button>
+              </div>
+            </div>
+          )}
+          {(!isMobileEpisode || mobileTab === 'transcript') && (
+            <div className="transcript-shell">
+              <header className="transcript-toolbar">
+                <div className="flex flex-col gap-4 border-b border-border/70 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="mb-1 flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_rgba(183,255,60,0.65)]"
+                        aria-hidden="true"
+                      />
+                      <h2
+                        id="transcript-title"
+                        className="text-lg font-semibold tracking-[-0.025em] text-ink"
+                      >
+                        Interactive transcript
+                      </h2>
+                    </div>
+                    <p className="text-xs text-subtle">
+                      Timecoded, searchable, and linked to the source
+                    </p>
                   </div>
-                  <p className="text-xs text-subtle">
-                    Timecoded, searchable, and linked to the source
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {viewMode !== 'standard' && (
+                      <div className="view-switch" role="group" aria-label="Transcript layout">
+                        {(['standard', 'theater', 'reader'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={viewMode === mode ? 'view-switch-active' : ''}
+                            onClick={() => setViewMode(mode)}
+                          >
+                            {mode === 'standard' ? 'Split' : mode === 'theater' ? 'Watch' : 'Read'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {viewMode === 'reader' && video && (
+                      <button
+                        type="button"
+                        className="toolbar-button"
+                        onClick={() => playerRef.current?.togglePlay()}
+                        aria-label="Toggle playback"
+                      >
+                        Play / pause
+                      </button>
+                    )}
+                    {!autoFollowEnabled && (
+                      <button
+                        type="button"
+                        className="toolbar-button toolbar-button-accent"
+                        onClick={resumeAutoFollow}
+                        aria-label="Follow current sentence"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Follow live
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {viewMode !== 'standard' && (
-                    <div className="view-switch" role="group" aria-label="Transcript layout">
-                      {(['standard', 'theater', 'reader'] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          className={viewMode === mode ? 'view-switch-active' : ''}
-                          onClick={() => setViewMode(mode)}
-                        >
-                          {mode === 'standard' ? 'Split' : mode === 'theater' ? 'Watch' : 'Read'}
-                        </button>
-                      ))}
+
+                <div className="grid gap-3 px-4 py-4 sm:px-6 xl:grid-cols-[minmax(16rem,1fr)_auto] xl:items-center">
+                  <TranscriptSearchBar
+                    initialQuery={params.get('q') ?? ''}
+                    onSearch={(value) => {
+                      const next = new URLSearchParams(params);
+                      if (value) next.set('q', value);
+                      else next.delete('q');
+                      setParams(next);
+                    }}
+                  />
+                  {matchIndices.length > 0 && (
+                    <div
+                      className="flex flex-wrap items-center gap-1.5"
+                      role="group"
+                      aria-label="Search navigation"
+                    >
+                      <span
+                        className="mr-1 min-w-14 text-center font-mono text-xs text-muted"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      >
+                        {matchCursor + 1} / {matchIndices.length}
+                      </span>
+                      <button
+                        className="toolbar-button"
+                        onClick={() => gotoMatch(-1)}
+                        aria-label="Go to previous match"
+                      >
+                        ←
+                      </button>
+                      <button
+                        className="toolbar-button"
+                        onClick={() => gotoMatch(1)}
+                        aria-label="Go to next match"
+                      >
+                        →
+                      </button>
+                      <button
+                        className="toolbar-button"
+                        onClick={() => setIsPlayingMatches((value) => !value)}
+                        aria-label="Play all matching transcript moments"
+                      >
+                        {isPlayingMatches ? 'Stop' : 'Play matches'}
+                      </button>
                     </div>
                   )}
-                  {viewMode === 'reader' && video && (
-                    <button
-                      type="button"
-                      className="toolbar-button"
-                      onClick={() => playerRef.current?.togglePlay()}
-                      aria-label="Toggle playback"
-                    >
-                      Play / pause
-                    </button>
-                  )}
-                  {!autoFollowEnabled && (
-                    <button
-                      type="button"
-                      className="toolbar-button toolbar-button-accent"
-                      onClick={resumeAutoFollow}
-                      aria-label="Follow current sentence"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Follow live
-                    </button>
-                  )}
                 </div>
-              </div>
+              </header>
 
-              <div className="grid gap-3 px-4 py-4 sm:px-6 xl:grid-cols-[minmax(16rem,1fr)_auto] xl:items-center">
-                <TranscriptSearchBar
-                  initialQuery={params.get('q') ?? ''}
-                  onSearch={(value) => {
-                    const next = new URLSearchParams(params);
-                    if (value) next.set('q', value);
-                    else next.delete('q');
-                    setParams(next);
-                  }}
-                />
-                {matchIndices.length > 0 && (
-                  <div
-                    className="flex flex-wrap items-center gap-1.5"
-                    role="group"
-                    aria-label="Search navigation"
-                  >
+              <div className="transcript-body">
+                {transcriptStatus === 'loading' && (
+                  <div className="py-24 text-center text-muted" role="status" aria-live="polite">
                     <span
-                      className="mr-1 min-w-14 text-center font-mono text-xs text-muted"
-                      aria-live="polite"
-                      aria-atomic="true"
+                      className="mb-4 inline-block h-7 w-7 animate-spin rounded-full border-2 border-border border-t-accent"
+                      aria-hidden="true"
+                    />
+                    <p className="font-mono text-xs uppercase tracking-[0.18em]">
+                      Loading transcript
+                    </p>
+                  </div>
+                )}
+                {transcriptStatus === 'error' && (
+                  <div className="mx-auto max-w-lg px-6 py-24 text-center" role="alert">
+                    <div
+                      className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-danger/20 bg-danger-soft text-danger"
+                      aria-hidden="true"
                     >
-                      {matchCursor + 1} / {matchIndices.length}
-                    </span>
+                      !
+                    </div>
+                    <h3 className="text-lg font-semibold text-ink">
+                      Transcript took too long to load
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-muted">
+                      The source transcript is still available. Try the request again without
+                      leaving this episode.
+                    </p>
                     <button
-                      className="toolbar-button"
-                      onClick={() => gotoMatch(-1)}
-                      aria-label="Go to previous match"
+                      type="button"
+                      className="btn-primary mt-5"
+                      onClick={() =>
+                        videoId &&
+                        void loadTranscript(
+                          videoId,
+                          requestedTranscriptSource ??
+                            (video?.has_whisper_transcript ? 'whisper' : 'best')
+                        )
+                      }
                     >
-                      ←
-                    </button>
-                    <button
-                      className="toolbar-button"
-                      onClick={() => gotoMatch(1)}
-                      aria-label="Go to next match"
-                    >
-                      →
-                    </button>
-                    <button
-                      className="toolbar-button"
-                      onClick={() => setIsPlayingMatches((value) => !value)}
-                      aria-label="Play all matching transcript moments"
-                    >
-                      {isPlayingMatches ? 'Stop' : 'Play matches'}
+                      Try again
                     </button>
                   </div>
                 )}
+                {transcriptStatus === 'ready' &&
+                  transcript &&
+                  (hasFormattedBlocks ? (
+                    <>
+                      <TranscriptQualityNotice
+                        source={(transcript.source ?? 'whisper') as TranscriptSource}
+                        sourceLabel={transcript.source_label}
+                        blocks={formattedBlocks}
+                      />
+                      {transcriptChapters.length > 1 && (
+                        <nav
+                          className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
+                          aria-label="Transcript chapters"
+                        >
+                          <span
+                            className="mr-auto text-sm text-muted"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
+                            <span className="ml-2 text-subtle">
+                              {transcriptChapters[activeTranscriptChapter]?.label}
+                            </span>
+                          </span>
+                          {!fullTranscript && (
+                            <>
+                              <button
+                                type="button"
+                                className="toolbar-button"
+                                disabled={activeTranscriptChapter === 0}
+                                onClick={() =>
+                                  setActiveTranscriptChapter((current) => Math.max(0, current - 1))
+                                }
+                              >
+                                Previous chapter
+                              </button>
+                              <button
+                                type="button"
+                                className="toolbar-button"
+                                disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
+                                onClick={() =>
+                                  setActiveTranscriptChapter((current) =>
+                                    Math.min(transcriptChapters.length - 1, current + 1)
+                                  )
+                                }
+                              >
+                                Next chapter
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            aria-description="Full-document mode may reduce performance on long transcripts."
+                            onClick={() => setFullTranscript((current) => !current)}
+                          >
+                            {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
+                          </button>
+                        </nav>
+                      )}
+                      <FormattedTranscriptDocument
+                        source={(transcript.source ?? 'whisper') as TranscriptSource}
+                        blocks={visibleFormattedBlocks}
+                        transcriptSegments={transcript.segments}
+                        hits={hits}
+                        activeBlockIndex={activeBlockIndex}
+                        activeSegId={activeSegId}
+                        activeSentenceId={activeSentenceId}
+                        isSavedSegment={isSavedSegment}
+                        onClickSentence={onClickFormattedSentence}
+                        onSaveMoment={saveTranscriptMoment}
+                        onCopyQuote={copyTranscriptQuote}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <TranscriptQualityNotice
+                        source={(transcript.source ?? 'whisper') as TranscriptSource}
+                        sourceLabel={transcript.source_label}
+                        blocks={[]}
+                      />
+                      {transcriptChapters.length > 1 && (
+                        <nav
+                          className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
+                          aria-label="Transcript chapters"
+                        >
+                          <span
+                            className="mr-auto text-sm text-muted"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
+                            <span className="ml-2 text-subtle">
+                              {transcriptChapters[activeTranscriptChapter]?.label}
+                            </span>
+                          </span>
+                          {!fullTranscript && (
+                            <>
+                              <button
+                                type="button"
+                                className="toolbar-button"
+                                disabled={activeTranscriptChapter === 0}
+                                onClick={() =>
+                                  setActiveTranscriptChapter((current) => Math.max(0, current - 1))
+                                }
+                              >
+                                Previous chapter
+                              </button>
+                              <button
+                                type="button"
+                                className="toolbar-button"
+                                disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
+                                onClick={() =>
+                                  setActiveTranscriptChapter((current) =>
+                                    Math.min(transcriptChapters.length - 1, current + 1)
+                                  )
+                                }
+                              >
+                                Next chapter
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            aria-description="Full-document mode may reduce performance on long transcripts."
+                            onClick={() => setFullTranscript((current) => !current)}
+                          >
+                            {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
+                          </button>
+                        </nav>
+                      )}
+                      <PlainTranscriptTurns
+                        turns={visibleTranscriptTurns}
+                        source={(transcript.source ?? 'whisper') as TranscriptSource}
+                        activeSegId={activeSegId}
+                        isSavedSegment={isSavedSegment}
+                        onClickSegment={onClickSegment}
+                        onSaveMoment={saveTranscriptMoment}
+                        onCopyQuote={copyTranscriptQuote}
+                      />
+                    </>
+                  ))}
               </div>
-            </header>
-
-            <div className="transcript-body">
-              {transcriptStatus === 'loading' && (
-                <div className="py-24 text-center text-muted" role="status" aria-live="polite">
-                  <span
-                    className="mb-4 inline-block h-7 w-7 animate-spin rounded-full border-2 border-border border-t-accent"
-                    aria-hidden="true"
-                  />
-                  <p className="font-mono text-xs uppercase tracking-[0.18em]">
-                    Loading transcript
-                  </p>
-                </div>
-              )}
-              {transcriptStatus === 'error' && (
-                <div className="mx-auto max-w-lg px-6 py-24 text-center" role="alert">
-                  <div
-                    className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-danger/20 bg-danger-soft text-danger"
-                    aria-hidden="true"
-                  >
-                    !
-                  </div>
-                  <h3 className="text-lg font-semibold text-ink">
-                    Transcript took too long to load
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-muted">
-                    The source transcript is still available. Try the request again without leaving
-                    this episode.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-primary mt-5"
-                    onClick={() =>
-                      videoId &&
-                      void loadTranscript(
-                        videoId,
-                        requestedTranscriptSource ??
-                          (video?.has_whisper_transcript ? 'whisper' : 'best')
-                      )
-                    }
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-              {transcriptStatus === 'ready' &&
-                transcript &&
-                (hasFormattedBlocks ? (
-                  <>
-                    <TranscriptQualityNotice
-                      source={(transcript.source ?? 'whisper') as TranscriptSource}
-                      sourceLabel={transcript.source_label}
-                      blocks={formattedBlocks}
-                    />
-                    {transcriptChapters.length > 1 && (
-                      <nav
-                        className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
-                        aria-label="Transcript chapters"
-                      >
-                        <span
-                          className="mr-auto text-sm text-muted"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
-                          <span className="ml-2 text-subtle">
-                            {transcriptChapters[activeTranscriptChapter]?.label}
-                          </span>
-                        </span>
-                        {!fullTranscript && (
-                          <>
-                            <button
-                              type="button"
-                              className="toolbar-button"
-                              disabled={activeTranscriptChapter === 0}
-                              onClick={() =>
-                                setActiveTranscriptChapter((current) => Math.max(0, current - 1))
-                              }
-                            >
-                              Previous chapter
-                            </button>
-                            <button
-                              type="button"
-                              className="toolbar-button"
-                              disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
-                              onClick={() =>
-                                setActiveTranscriptChapter((current) =>
-                                  Math.min(transcriptChapters.length - 1, current + 1)
-                                )
-                              }
-                            >
-                              Next chapter
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          className="toolbar-button"
-                          onClick={() => setFullTranscript((current) => !current)}
-                        >
-                          {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
-                        </button>
-                      </nav>
-                    )}
-                    <FormattedTranscriptDocument
-                      source={(transcript.source ?? 'whisper') as TranscriptSource}
-                      blocks={visibleFormattedBlocks}
-                      transcriptSegments={transcript.segments}
-                      hits={hits}
-                      activeBlockIndex={activeBlockIndex}
-                      activeSegId={activeSegId}
-                      activeSentenceId={activeSentenceId}
-                      isSavedSegment={isSavedSegment}
-                      onClickSentence={onClickFormattedSentence}
-                      onSaveMoment={saveTranscriptMoment}
-                      onCopyQuote={copyTranscriptQuote}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <TranscriptQualityNotice
-                      source={(transcript.source ?? 'whisper') as TranscriptSource}
-                      sourceLabel={transcript.source_label}
-                      blocks={[]}
-                    />
-                    {transcriptChapters.length > 1 && (
-                      <nav
-                        className="mx-4 mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-panel px-3 py-3 sm:mx-6"
-                        aria-label="Transcript chapters"
-                      >
-                        <span
-                          className="mr-auto text-sm text-muted"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          Chapter {activeTranscriptChapter + 1} of {transcriptChapters.length}
-                          <span className="ml-2 text-subtle">
-                            {transcriptChapters[activeTranscriptChapter]?.label}
-                          </span>
-                        </span>
-                        {!fullTranscript && (
-                          <>
-                            <button
-                              type="button"
-                              className="toolbar-button"
-                              disabled={activeTranscriptChapter === 0}
-                              onClick={() =>
-                                setActiveTranscriptChapter((current) => Math.max(0, current - 1))
-                              }
-                            >
-                              Previous chapter
-                            </button>
-                            <button
-                              type="button"
-                              className="toolbar-button"
-                              disabled={activeTranscriptChapter >= transcriptChapters.length - 1}
-                              onClick={() =>
-                                setActiveTranscriptChapter((current) =>
-                                  Math.min(transcriptChapters.length - 1, current + 1)
-                                )
-                              }
-                            >
-                              Next chapter
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          className="toolbar-button"
-                          onClick={() => setFullTranscript((current) => !current)}
-                        >
-                          {fullTranscript ? 'Use progressive transcript' : 'Load full transcript'}
-                        </button>
-                      </nav>
-                    )}
-                    <PlainTranscriptTurns
-                      turns={visibleTranscriptTurns}
-                      source={(transcript.source ?? 'whisper') as TranscriptSource}
-                      activeSegId={activeSegId}
-                      isSavedSegment={isSavedSegment}
-                      onClickSegment={onClickSegment}
-                      onSaveMoment={saveTranscriptMoment}
-                      onCopyQuote={copyTranscriptQuote}
-                    />
-                  </>
-                ))}
             </div>
-          </div>
+          )}
+          {isMobileEpisode && mobileTab === 'chapters' && (
+            <div className="mobile-sheet-panel">
+              <h2 className="section-title">Chapters</h2>
+              {chapters.length > 0 ? (
+                <ol className="mt-4 space-y-2">
+                  {chapters.map((chapter) => (
+                    <li key={`${chapter.chapter_index}:${chapter.start_ms}`}>
+                      <button
+                        type="button"
+                        className="chapter-sheet-item"
+                        onClick={() => {
+                          selectChapter(chapter);
+                          setMobileTab('transcript');
+                        }}
+                      >
+                        <span>{formatTimestamp(chapter.start_ms)}</span>
+                        <strong>{chapter.title}</strong>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-3 text-muted">
+                  Chapter landmarks are not available for this episode.
+                </p>
+              )}
+            </div>
+          )}
+          {isMobileEpisode && mobileTab === 'info' && video && (
+            <div className="mobile-sheet-panel space-y-5">
+              <h2 className="section-title">Episode information</h2>
+              <VideoDetailsPanel video={video} />
+              <EpisodeIntelligence videoId={video.id} />
+              <ExportMenu videoId={video.id} />
+              <a
+                className="btn-secondary w-full"
+                href={`https://www.youtube.com/watch?v=${video.youtube_id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open source on YouTube
+              </a>
+            </div>
+          )}
         </section>
       </div>
     </div>

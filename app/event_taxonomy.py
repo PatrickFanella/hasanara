@@ -50,6 +50,10 @@ def _one_of(*values: str) -> Callable[[object], bool]:
     return lambda value: isinstance(value, str) and value in allowed
 
 
+def _build_version(value: object) -> bool:
+    return isinstance(value, str) and 1 <= len(value) <= 64 and bool(re.fullmatch(r"[A-Za-z0-9._-]+", value))
+
+
 _CLIENT_PROPERTIES: dict[str, dict[str, Callable[[object], bool]]] = {
     "search": {
         "date_from": _date,
@@ -67,6 +71,15 @@ _CLIENT_PROPERTIES: dict[str, dict[str, Callable[[object], bool]]] = {
         "videoId": _uuid_identifier,
         "format": _one_of("srt", "vtt", "json", "pdf", "csv", "m3u"),
         "source": _one_of("best", "native", "youtube", "whisper", "merged"),
+    },
+    "web_vital": {
+        "metric": _one_of("lcp", "cls", "inp"),
+        "value": _non_negative_number,
+        "route_class": _one_of(
+            "home", "search", "explore", "feed", "topic", "episode", "saved", "account", "admin", "other"
+        ),
+        "viewport_class": _one_of("mobile", "tablet", "desktop"),
+        "build_version": _build_version,
     },
 }
 

@@ -241,22 +241,28 @@ def list_videos(
     return _attach_video_metadata_rows(rows, metadata_map)
 
 
-@_retry_on_transient_error
-def count_videos(
-    db,
+def _video_feed_filters(
+    *,
     q: str | None = None,
     date_field: str = "uploaded_at",
     date_from=None,
     date_to=None,
     completed_only: bool = False,
     category: str | None = None,
+    people: list[str] | None = None,
+    tags: list[str] | None = None,
+    min_duration: int | None = None,
+    max_duration: int | None = None,
+    transcript_source: str = "any",
 ):
     date_column = date_field if date_field in {"uploaded_at", "created_at", "updated_at"} else "uploaded_at"
-    where_clauses = []
-    params = {}
+    where_clauses: list[str] = []
+    params: dict[str, object] = {}
     if q:
         where_clauses.append("(v.title ILIKE :q OR v.youtube_id ILIKE :q OR v.channel_name ILIKE :q)")
         params["q"] = f"%{q}%"
+        params["q_exact"] = q
+        params["q_prefix"] = f"{q}%"
     if date_from is not None:
         where_clauses.append(f"v.{date_column} >= CAST(:date_from AS timestamptz)")
         params["date_from"] = date_from
@@ -268,6 +274,128 @@ def count_videos(
     if category:
         where_clauses.append("v.category ILIKE :category")
         params["category"] = category
+    if people:
+        where_clauses.append(
+            "EXISTS (SELECT 1 FROM archive_video_people vp JOIN archive_people p ON p.id=vp.person_id "
+            "WHERE vp.video_id=v.id AND p.status='published' AND p.slug = ANY(CAST(:people AS text[])))"
+        )
+        params["people"] = list(dict.fromkeys(people))
+    if tags:
+        where_clauses.append(
+            "EXISTS (SELECT 1 FROM archive_video_taggings vt JOIN archive_video_tags t ON t.id=vt.tag_id "
+            "WHERE vt.video_id=v.id AND t.status='published' AND t.slug = ANY(CAST(:tags AS text[])))"
+        )
+        params["tags"] = list(dict.fromkeys(tags))
+    if min_duration is not None:
+        where_clauses.append("v.duration_seconds >= :min_duration")
+        params["min_duration"] = min_duration
+    if max_duration is not None:
+        where_clauses.append("v.duration_seconds <= :max_duration")
+        params["max_duration"] = max_duration
+    if transcript_source in {"whisper", "both"}:
+        where_clauses.append("EXISTS (SELECT 1 FROM segments s WHERE s.video_id=v.id)")
+    if transcript_source in {"youtube", "both"}:
+        where_clauses.append("EXISTS (SELECT 1 FROM youtube_transcripts yt WHERE yt.video_id=v.id)")
+    return where_clauses, params
+
+
+@_retry_on_transient_error
+def list_video_feed(
+    db,
+    *,
+    limit: int,
+    sort: str,
+    cursor_primary: str | int | float | None = None,
+    cursor_secondary: str | int | float | None = None,
+    cursor_id: uuid.UUID | None = None,
+    **filters,
+):
+    """List one keyset page plus one lookahead row."""
+
+    where_clauses, params = _video_feed_filters(**filters)
+    effective_at = "COALESCE(v.uploaded_at, v.created_at)"
+    relevance = "CASE WHEN lower(v.title)=lower(:q_exact) THEN 3 " "WHEN v.title ILIKE :q_prefix THEN 2 ELSE 1 END"
+    if sort == "longest":
+        primary = "COALESCE(v.duration_seconds, -1)"
+        order_sql = f"{primary} DESC, v.id DESC"
+        if cursor_id is not None:
+            if cursor_primary is None:
+                raise ValueError("longest cursor is missing its primary value")
+            where_clauses.append(f"({primary}, v.id) < (:cursor_primary, :cursor_id)")
+            params.update(cursor_primary=int(cursor_primary), cursor_id=str(cursor_id))
+        select_cursor = f"{primary} AS feed_primary, NULL::text AS feed_secondary"
+    elif sort == "relevance":
+        order_sql = f"{relevance} DESC, {effective_at} DESC, v.id DESC"
+        if cursor_id is not None:
+            if cursor_primary is None:
+                raise ValueError("relevance cursor is missing its primary value")
+            where_clauses.append(
+                f"({relevance}, {effective_at}, v.id) < "
+                "(:cursor_primary, CAST(:cursor_secondary AS timestamptz), :cursor_id)"
+            )
+            params.update(
+                cursor_primary=int(cursor_primary), cursor_secondary=cursor_secondary, cursor_id=str(cursor_id)
+            )
+        select_cursor = f"{relevance} AS feed_primary, {effective_at} AS feed_secondary"
+    else:
+        order_sql = f"{effective_at} DESC, v.id DESC"
+        if cursor_id is not None:
+            where_clauses.append(f"({effective_at}, v.id) < (CAST(:cursor_primary AS timestamptz), :cursor_id)")
+            params.update(cursor_primary=cursor_primary, cursor_id=str(cursor_id))
+        select_cursor = f"{effective_at} AS feed_primary, NULL::text AS feed_secondary"
+    params["limit"] = limit + 1
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    rows = (
+        db.execute(
+            text(f"""
+            SELECT v.id, v.youtube_id, v.title, v.duration_seconds, v.state,
+                   v.caption_ingest_state, v.diarization_state, v.uploaded_at,
+                   v.created_at, v.updated_at, v.channel_name, v.language, v.category,
+                   EXISTS (SELECT 1 FROM segments s WHERE s.video_id=v.id) AS has_whisper_transcript,
+                   EXISTS (SELECT 1 FROM youtube_transcripts yt WHERE yt.video_id=v.id) AS has_youtube_transcript,
+                   {select_cursor}
+            FROM videos v
+            {where_sql}
+            ORDER BY {order_sql}
+            LIMIT :limit
+            """),
+            params,
+        )
+        .mappings()
+        .all()
+    )
+    metadata_map = _safe_video_metadata_map(db, [row["id"] for row in rows[:limit]])
+    return _attach_video_metadata_rows(rows, metadata_map)
+
+
+@_retry_on_transient_error
+def count_videos(
+    db,
+    q: str | None = None,
+    date_field: str = "uploaded_at",
+    date_from=None,
+    date_to=None,
+    completed_only: bool = False,
+    category: str | None = None,
+    people: list[str] | None = None,
+    tags: list[str] | None = None,
+    min_duration: int | None = None,
+    max_duration: int | None = None,
+    transcript_source: str = "any",
+):
+    where_clauses, params = _video_feed_filters(
+        q=q,
+        date_field=date_field,
+        date_from=date_from,
+        date_to=date_to,
+        completed_only=completed_only,
+        category=category,
+        people=people,
+        tags=tags,
+        min_duration=min_duration,
+        max_duration=max_duration,
+        transcript_source=transcript_source,
+    )
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     return db.execute(text(f"SELECT count(*) AS count FROM videos v {where_sql}"), params).mappings().first()["count"]
 

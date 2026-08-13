@@ -7,6 +7,9 @@ import AppLayout from './routes/AppLayout';
 import { AuthProvider, queryClient, ThemeProvider } from './services';
 import { NotFoundPage, PageSuspense as Page, RouteErrorPage } from './routes/RouteStates';
 import RootErrorBoundary from './components/RootErrorBoundary';
+import { registerWebVitals } from './services/webVitals';
+
+registerWebVitals();
 
 const HomePage = lazy(() => import('./routes/HomePage'));
 const SearchPage = lazy(() => import('./routes/SearchPage'));

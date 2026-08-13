@@ -3,15 +3,17 @@ import uuid
 from datetime import date
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from .. import crud
+from ..archive.discovery import build_discovery_page
 from ..archive.intelligence import get_archive_intelligence, get_archive_period_options
 from ..archive.intelligence_repository import (
     create_named_period,
     list_named_periods_admin,
+    published_label_cards_for_period,
     refresh_named_period_stats,
     refresh_named_period_stats_for_slug,
     seed_named_periods,
@@ -37,8 +39,10 @@ from ..archive.video_metadata_repository import (
 from ..cache import invalidate_cache_pattern, invalidate_video_data
 from ..db import get_db
 from ..exceptions import NotFoundError, ValidationError
+from ..feed_cursor import CursorError
 from ..pagination import build_offset_page
 from ..schemas import (
+    ArchiveDiscoveryResponse,
     ArchiveIntelligenceResponse,
     ArchiveLabelAssignmentListResponse,
     ArchiveLabelAssignmentResponse,
@@ -499,6 +503,25 @@ def archive_timeline(
     db=Depends(get_db),
 ):
     return crud.get_archive_timeline(db, limit=limit, granularity=granularity)
+
+
+@router.get(
+    "/archive/discovery",
+    response_model=ArchiveDiscoveryResponse,
+    summary="Browse deterministic topic or transcript-moment discovery",
+    description="Published archive intelligence ordered without visitor behavior or personalization.",
+)
+def archive_discovery(
+    kind: Literal["topics", "moments"] = Query(...),
+    limit: int = Query(12, ge=1, le=50),
+    cursor: str | None = Query(None, description="Opaque cursor returned by the previous page"),
+    db=Depends(get_db),
+):
+    cards = published_label_cards_for_period(db, limit=101)
+    try:
+        return build_discovery_page(cards, kind=kind, limit=limit, cursor=cursor)
+    except CursorError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get(
