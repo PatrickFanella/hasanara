@@ -163,6 +163,10 @@ describe('StreamsPage', () => {
     });
 
     expect(screen.getByDisplayValue('alpha')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/minimum minutes/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/maximum minutes/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/transcript source/i)).not.toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Search VODs'));
     await user.click(screen.getByRole('button', { name: 'Search' }));
@@ -170,6 +174,32 @@ describe('StreamsPage', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Search VODs')).toHaveValue('');
     });
+  });
+
+  it('strips retired VOD filters from the URL and never sends them', async () => {
+    const listMock = vi.spyOn(api, 'listStreamLibrary').mockResolvedValue({
+      items: [],
+      page_info: { has_next_page: false, has_previous_page: false, total_count: 0 },
+    } as never);
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/episodes?date_from=2026-01-01&min_duration=60&max_duration=120&transcript_source=youtube',
+        ]}
+      >
+        <StreamsPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    expect(listMock.mock.calls.at(-1)?.[0]).toEqual(
+      expect.not.objectContaining({
+        min_duration: expect.anything(),
+        max_duration: expect.anything(),
+        transcript_source: expect.anything(),
+      })
+    );
+    expect(screen.getByLabelText('From')).toHaveValue('2026-01-01');
   });
 
   it('shows explicit no-transcript indicator', async () => {

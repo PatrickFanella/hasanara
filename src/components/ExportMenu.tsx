@@ -60,9 +60,7 @@ export default function ExportMenu({ videoId }: Props) {
             {feedback}
           </div>
         )}
-        <div className="mt-2 text-xs text-muted">
-          Exports use the best transcript available for this VOD.
-        </div>
+        <div className="mt-2 text-xs text-muted">Exports use this VOD's transcript.</div>
         <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-subtle">
           Per-section
         </div>

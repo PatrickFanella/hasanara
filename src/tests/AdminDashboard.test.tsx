@@ -55,7 +55,7 @@ describe('AdminDashboard', () => {
     const mockHealth = {
       database: { status: 'healthy', total_size_mb: 1024, connections: 12 },
       workers: { active_jobs: 1, avg_processing_time_seconds: 245, error_rate_percent: 2.5 },
-      queue: { pending: 3, oldest_pending_minutes: 15 },
+      queue: { pending: 3, eligible: 1, needs_attention: 2, oldest_pending_minutes: 15 },
     };
 
     const mockJobsOverTime = {
@@ -123,9 +123,11 @@ describe('AdminDashboard', () => {
 
     // Check that key metrics are displayed
     await waitFor(() => {
-      expect(screen.getByText('Total Jobs')).toBeInTheDocument();
+      expect(screen.getByText('Ingest jobs')).toBeInTheDocument();
       expect(screen.getByText('100')).toBeInTheDocument();
-      expect(screen.getByText('Videos Transcribed')).toBeInTheDocument();
+      expect(screen.getByText('Transcript-ready VODs')).toBeInTheDocument();
+      expect(screen.getByText('Pending VODs')).toBeInTheDocument();
+      expect(screen.getByText('15 minutes ago')).toBeInTheDocument();
       expect(screen.getByText('190')).toBeInTheDocument();
     });
 

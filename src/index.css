@@ -648,19 +648,39 @@ body {
   }
 
   .feed-tools {
-    @apply grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:grid-cols-[minmax(12rem,1fr)_9rem_auto_auto];
+    @apply grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:grid-cols-[minmax(12rem,1fr)_9rem_auto];
   }
 
   .feed-tools .feed-sort {
     @apply min-w-0;
   }
 
-  .feed-chips {
-    @apply flex gap-2 overflow-x-auto pb-1;
+  .feed-date-range {
+    @apply col-span-full grid grid-cols-2 gap-2 rounded-xl border border-border bg-surface-muted p-3 sm:grid-cols-[minmax(9rem,1fr)_minmax(9rem,1fr)_auto_auto] sm:items-end;
   }
 
-  .feed-chips button {
-    @apply min-h-[44px] shrink-0 rounded-full border border-border bg-surface px-3 text-sm text-ink;
+  .feed-date-desktop {
+    @apply col-span-full;
+  }
+
+  .feed-date-mobile {
+    @apply col-span-full hidden rounded-xl border border-border bg-surface-muted;
+  }
+
+  .feed-date-mobile summary {
+    @apply min-h-[44px] cursor-pointer px-3 py-3 text-sm font-semibold text-ink;
+  }
+
+  .feed-date-mobile .feed-date-range {
+    @apply border-0 border-t border-border;
+  }
+
+  .feed-date-range label {
+    @apply space-y-1 text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+
+  .feed-date-range button {
+    @apply min-h-[44px];
   }
 
   .feed-grid {
@@ -754,36 +774,28 @@ body {
   .feed-load-more {
     @apply flex min-h-20 flex-col items-center justify-center gap-3 text-center text-sm text-danger;
   }
-
-  .sheet-backdrop {
-    @apply fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 sm:p-4;
-  }
-
-  .filter-sheet {
-    @apply max-h-[88dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-t-2xl border border-border bg-surface p-5 shadow-2xl sm:rounded-2xl;
-  }
-
-  .sheet-handle {
-    @apply mx-auto h-1 w-12 rounded-full bg-border-strong;
-  }
-
-  .filter-sheet-grid {
-    @apply grid gap-4 sm:grid-cols-2;
-  }
-
-  .filter-sheet-grid label {
-    @apply space-y-1 text-sm font-semibold text-ink;
-  }
 }
 
 @media (max-width: 639px) {
+  .feed-date-desktop {
+    display: none;
+  }
+
+  .feed-date-mobile {
+    display: block;
+  }
+
   .feed-tools .feed-sort {
     grid-column: 2;
     grid-row: 1;
     width: 7.5rem;
   }
 
-  .feed-tools button {
+  .feed-tools > button {
+    width: 100%;
+  }
+
+  .feed-date-range button {
     width: 100%;
   }
 }

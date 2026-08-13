@@ -9,7 +9,6 @@ import {
   formatDuration,
   formatNumber,
   formatTimestamp,
-  sourceLabel,
 } from '../features/archive/format';
 import {
   OpinionHistory,
@@ -398,7 +397,6 @@ export default function TopicPage() {
                     <div key={moment.id} className="rounded-lg border border-border bg-surface p-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-subtle">
                         <span>{formatTimestamp(moment.start_ms)}</span>
-                        <span>{sourceLabel(moment.source ?? 'best')}</span>
                       </div>
                       <HighlightedSnippet
                         as="div"

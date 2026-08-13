@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { SearchHit } from '../../types/api';
-import { buildTimestampLink, formatTimestamp, sourceLabel } from '../../features/archive/format';
+import { buildTimestampLink, formatTimestamp } from '../../features/archive/format';
 import HighlightedSnippet from '../HighlightedSnippet';
 
 type TopicMentionCardProps = {
@@ -16,12 +16,8 @@ export default function TopicMentionCard({ label, moment }: TopicMentionCardProp
       <div className="text-xs uppercase tracking-wide text-subtle">{label}</div>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
         <span>{formatTimestamp(moment.start_ms)}</span>
-        <span>{sourceLabel(moment.source ?? 'best')}</span>
         {videoId && (
-          <Link
-            className="action-link"
-            to={buildTimestampLink(videoId, moment.start_ms, moment.source)}
-          >
+          <Link className="action-link" to={buildTimestampLink(videoId, moment.start_ms)}>
             Open cited moment
           </Link>
         )}

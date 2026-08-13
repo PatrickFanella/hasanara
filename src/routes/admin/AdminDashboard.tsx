@@ -47,9 +47,21 @@ type SystemHealth = {
   };
   queue: {
     pending: number;
+    eligible: number;
+    needs_attention: number;
     oldest_pending_minutes: number;
   };
 };
+
+function formatAge(minutes: number) {
+  if (minutes < 60) return `${minutes} minutes`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours < 24) return remainder ? `${hours}h ${remainder}m` : `${hours} hours`;
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours ? `${days}d ${remainingHours}h` : `${days} days`;
+}
 
 type ChartData = {
   labels: string[];
@@ -302,12 +314,12 @@ export default function AdminDashboard() {
         <h2 className="section-title mb-3">Key Metrics</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Total Jobs"
+            title="Ingest jobs"
             value={metrics.jobs.total.toLocaleString()}
             subtitle={`${metrics.jobs.today} today, ${metrics.jobs.this_week} this week`}
           />
           <MetricCard
-            title="Videos Transcribed"
+            title="Transcript-ready VODs"
             value={metrics.videos.completed.toLocaleString()}
             subtitle={`${metrics.videos.failed} failed`}
           />
@@ -328,7 +340,7 @@ export default function AdminDashboard() {
             subtitle={`${metrics.exports.this_week} this week`}
           />
           <MetricCard
-            title="Queue Status"
+            title="Pending VODs"
             value={metrics.jobs.pending.toLocaleString()}
             subtitle={`${metrics.jobs.in_progress} in progress`}
           />
@@ -374,7 +386,7 @@ export default function AdminDashboard() {
             <h3 className="mb-2 font-semibold">Workers</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span>Active Jobs:</span>
+                <span>Active ingest jobs:</span>
                 <span>{health.workers.active_jobs}</span>
               </div>
               <div className="flex justify-between">
@@ -402,12 +414,20 @@ export default function AdminDashboard() {
             <h3 className="mb-2 font-semibold">Queue</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span>Pending:</span>
+                <span>Pending VODs:</span>
                 <span>{health.queue.pending}</span>
               </div>
               <div className="flex justify-between">
+                <span>Worker eligible:</span>
+                <span>{health.queue.eligible}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Needs attention:</span>
+                <span>{health.queue.needs_attention}</span>
+              </div>
+              <div className="flex justify-between">
                 <span>Oldest:</span>
-                <span>{health.queue.oldest_pending_minutes}m ago</span>
+                <span>{formatAge(health.queue.oldest_pending_minutes)} ago</span>
               </div>
             </div>
           </div>

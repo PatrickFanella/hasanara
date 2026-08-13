@@ -19,13 +19,11 @@ export function buildQuoteText(
 
 export function buildPlayMatchesLink(videoId: string, moment: SearchHit, query: string) {
   const seconds = Math.floor(moment.start_ms / 1000);
-  const source = moment.source ?? 'whisper';
   const params = new URLSearchParams({
     t: String(seconds),
-    source,
     q: query,
     play: 'matches',
   });
   if (moment.start_ms % 1000 !== 0) params.set('t_ms', String(moment.start_ms));
-  return `/v/${videoId}?${params.toString()}#${canonicalMomentId(source, moment.start_ms)}`;
+  return `/v/${videoId}?${params.toString()}#${canonicalMomentId('whisper', moment.start_ms)}`;
 }

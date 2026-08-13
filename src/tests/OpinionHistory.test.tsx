@@ -47,7 +47,10 @@ describe('OpinionHistory', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('Model-generated')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /00:12/ })).toHaveAttribute('href', '/v/video-1?t=12');
+    expect(screen.getByRole('link', { name: /00:12/ })).toHaveAttribute(
+      'href',
+      '/v/video-1?t=12#moment-12000'
+    );
     expect((await axe.run(container)).violations).toEqual([]);
   });
 });

@@ -138,7 +138,7 @@ export default function HomePage() {
 
         <div className="archive-data-strip relative z-10">
           <div className="archive-data-cell">
-            <div className="meta-label">Archived VODs</div>
+            <div className="meta-label">Searchable VODs</div>
             <div className="mt-2 font-mono text-xl font-semibold text-ink">
               {summaryState === 'loading' && !summary
                 ? '—'
