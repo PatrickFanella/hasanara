@@ -43,6 +43,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/account/identities/by-id/{identity_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Identity By Id */
+    delete: operations['delete_identity_by_id_account_identities_by_id__identity_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/account/identities/{provider}': {
     parameters: {
       query?: never;
@@ -5543,6 +5560,37 @@ export interface operations {
       };
     };
   };
+  delete_identity_by_id_account_identities_by_id__identity_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        identity_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OkResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   delete_identity_account_identities__provider__delete: {
     parameters: {
       query?: never;
@@ -6822,6 +6870,8 @@ export interface operations {
            *         "total_size_mb": 1024
            *       },
            *       "queue": {
+           *         "eligible": 4,
+           *         "needs_attention": 8,
            *         "oldest_pending_minutes": 15,
            *         "pending": 12
            *       },

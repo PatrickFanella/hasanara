@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from ..accounts import (
     FinalAdminError,
+    IdentitySelectionRequiredError,
     delete_prepared_account,
     discard_prepared_account_deletion,
     list_identities,
@@ -226,23 +227,47 @@ async def merge_provider(provider: str, request: Request, db=Depends(get_db), us
 
 @router.delete("/identities/{provider}", response_model=OkResponse)
 def delete_identity(provider: str, request: Request, db=Depends(get_db), user=Depends(require_auth)):
-    exists = db.execute(
-        text("SELECT 1 FROM user_identities WHERE user_id=:user_id AND provider=:provider"),
-        {"user_id": str(user["id"]), "provider": provider},
-    ).first()
-    if not exists:
+    identities = (
+        db.execute(
+            text("SELECT id FROM user_identities WHERE user_id=:user_id AND provider=:provider ORDER BY created_at"),
+            {"user_id": str(user["id"]), "provider": provider},
+        )
+        .scalars()
+        .all()
+    )
+    if not identities:
         raise NotFoundError("Identity not found")
-    unlink_identity(db, user["id"], provider)
+    if len(identities) > 1:
+        raise IdentitySelectionRequiredError()
+    _unlink_identity(db, user, identities[0], provider, request)
+    return {"ok": True}
+
+
+@router.delete("/identities/by-id/{identity_id}", response_model=OkResponse)
+def delete_identity_by_id(identity_id: UUID, request: Request, db=Depends(get_db), user=Depends(require_auth)):
+    provider = db.execute(
+        text("SELECT provider FROM user_identities WHERE user_id=:user_id AND id=:identity_id"),
+        {"user_id": str(user["id"]), "identity_id": str(identity_id)},
+    ).scalar_one_or_none()
+    if provider is None:
+        raise NotFoundError("Identity not found")
+    _unlink_identity(db, user, identity_id, provider, request)
+    return {"ok": True}
+
+
+def _unlink_identity(db, user: dict, identity_id: UUID, provider: str, request: Request) -> None:
+    unlink_identity(db, user["id"], identity_id)
     write_audit_event(
         db,
         ACTION_IDENTITY_UNLINKED,
         user_id=user["id"],
+        resource_type="user_identity",
+        resource_id=str(identity_id),
         details={"provider": provider},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
     db.commit()
-    return {"ok": True}
 
 
 @router.get("/sessions", response_model=SessionsResponse)

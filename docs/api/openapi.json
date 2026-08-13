@@ -6285,6 +6285,49 @@
         ]
       }
     },
+    "/account/identities/by-id/{identity_id}": {
+      "delete": {
+        "operationId": "delete_identity_by_id_account_identities_by_id__identity_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Identity By Id",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
     "/account/identities/{provider}": {
       "delete": {
         "operationId": "delete_identity_account_identities__provider__delete",
@@ -8192,6 +8235,8 @@
                     "total_size_mb": 1024
                   },
                   "queue": {
+                    "eligible": 4,
+                    "needs_attention": 8,
                     "oldest_pending_minutes": 15,
                     "pending": 12
                   },
