@@ -183,6 +183,23 @@ case "$command" in
         ;;
     maintenance)
         shift
+        if [[ ${1:-} == recover-attention-backlog ]]; then
+            if (($# != 3 && $# != 5)) || [[ ${2:-} != alignment && ${2:-} != yt-dlp ]] || [[ ! ${3:-} =~ ^[1-5]$ ]]; then
+                printf '%s\n' 'recover-attention-backlog requires cohort alignment|yt-dlp, limit 1..5, and optional --confirm RECOVER' >&2
+                exit 64
+            fi
+            if (($# == 5)) && [[ ${4:-} != --confirm || ${5:-} != RECOVER ]]; then
+                printf '%s\n' 'recover-attention-backlog mutation requires --confirm RECOVER' >&2
+                exit 64
+            fi
+            run_preflight
+            if (($# == 5)); then
+                compose exec -T api python scripts/recover_attention_backlog.py --cohort "$2" --limit "$3" --confirm RECOVER
+            else
+                compose exec -T api python scripts/recover_attention_backlog.py --cohort "$2" --limit "$3"
+            fi
+            exit $?
+        fi
         if [[ ${1:-} == diarization-canary ]]; then
             if (($# != 3)) || ! is_uuid "${2:-}" || [[ ${3:-} != --approved ]]; then printf '%s\n' 'diarization-canary requires exactly one UUID and --approved' >&2; exit 64; fi
             run_diarization_canary "$2"; exit $?
