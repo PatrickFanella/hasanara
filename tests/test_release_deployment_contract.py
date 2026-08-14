@@ -937,7 +937,7 @@ def test_release_images_use_clean_python_packages_and_pinned_go_sources() -> Non
     assert api.index(cleanup) < api.index("COPY --from=dependencies /usr/local/lib/python3.11/site-packages")
 
     for value in (
-        "FROM golang:1.26.5-bookworm AS gosu-builder",
+        "FROM golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS gosu-builder",
         "ARG GOSU_VERSION=1.19",
         "ARG GOSU_REVISION=6456aaa0f3c854d199d0f037f068eb97515b7513",
         "github.com/tianon/gosu",
@@ -945,7 +945,7 @@ def test_release_images_use_clean_python_packages_and_pinned_go_sources() -> Non
         'git rev-parse HEAD)" = "${GOSU_REVISION}"',
         'git describe --exact-match --tags HEAD)" = "${GOSU_VERSION}"',
         "CGO_ENABLED=0 go build -trimpath -ldflags='-s -w'",
-        "FROM golang:1.26.5-bookworm AS walg-builder",
+        "FROM golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS walg-builder",
         "ARG WALG_VERSION=v3.0.9-dev.0c3efc9",
         "ARG WALG_REVISION=0c3efc982dccb6f25e5fcdf713ef037a86d62b49",
         "ARG WALG_BUILD_DATE=2026-07-23T00:00:00Z",
