@@ -220,8 +220,7 @@ describe('TopicPage', () => {
 
   it('persists timeline filters in the URL and distinguishes loading, empty, and failure states', async () => {
     let resolveTimeline:
-      | ((value: Awaited<ReturnType<typeof api.getTopicTimeline>>) => void)
-      | undefined;
+      ((value: Awaited<ReturnType<typeof api.getTopicTimeline>>) => void) | undefined;
     const timelineMock = vi
       .spyOn(api, 'getTopicTimeline')
       .mockImplementationOnce(
