@@ -1,7 +1,14 @@
 import type { ArchiveNamedPeriodAdminResponse } from '../../types/api';
 
 export type PeriodKind =
-  'week' | 'month' | 'event' | 'date' | 'holiday' | 'anniversary' | 'leadup' | 'fallout';
+  | 'week'
+  | 'month'
+  | 'event'
+  | 'date'
+  | 'holiday'
+  | 'anniversary'
+  | 'leadup'
+  | 'fallout';
 export type PeriodStatus = 'published' | 'hidden';
 export type PeriodFormState = {
   label: string;
