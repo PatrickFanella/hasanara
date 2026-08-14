@@ -1027,6 +1027,14 @@ def test_release_workflow_contracts() -> None:
     workflow = release_path.read_text(encoding="utf-8")
     verify_script = (ROOT / "scripts" / "verify.sh").read_text(encoding="utf-8")
     assert 'export TEST_SERVICE_HOST="${TEST_SERVICE_HOST:-localhost}"' in verify_script
+    assert 'VERIFY_RUN_TOKEN="${HASANARA_TEST_RUN_TOKEN:-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}-$$}"' in verify_script
+    assert 'COMPOSE_PROJECT="hasanara-test-${VERIFY_RUN_TOKEN}"' in verify_script
+    assert 'docker compose -p "${COMPOSE_PROJECT}"' in verify_script
+    assert 'export TEST_POSTGRES_PORT="${TEST_POSTGRES_PORT:-0}"' in verify_script
+    assert '"${COMPOSE[@]}" port "${service}" "${container_port}"' in verify_script
+    assert 'published_port postgres 5432' in verify_script
+    assert 'published_port redis 6379' in verify_script
+    assert 'published_port opensearch 9200' in verify_script
     assert "@${TEST_SERVICE_HOST}:${TEST_POSTGRES_PORT}/hasanara_test" in verify_script
     assert "redis://${TEST_SERVICE_HOST}:${TEST_REDIS_PORT}/0" in verify_script
     assert "http://${TEST_SERVICE_HOST}:${TEST_OPENSEARCH_PORT}" in verify_script
