@@ -2,7 +2,15 @@ import type { ArchiveEvidenceMoment, ArchivePeriodOption, VideoInfo } from '../.
 import { buildTimestampLink } from './format';
 
 export type PeriodKind =
-  'latest' | 'month' | 'week' | 'event' | 'leadup' | 'fallout' | 'holiday' | 'anniversary' | 'date';
+  | 'latest'
+  | 'month'
+  | 'week'
+  | 'event'
+  | 'leadup'
+  | 'fallout'
+  | 'holiday'
+  | 'anniversary'
+  | 'date';
 export const PERIOD_KIND_TABS: Array<{ kind: PeriodKind; label: string }> = [
   { kind: 'latest', label: 'Latest' },
   { kind: 'month', label: 'Months' },
