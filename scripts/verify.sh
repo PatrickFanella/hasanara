@@ -3,13 +3,15 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
-COMPOSE=(docker compose -p hasanara-test -f "${REPO_ROOT}/docker-compose.test.yml")
+VERIFY_RUN_TOKEN="${HASANARA_TEST_RUN_TOKEN:-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}-$$}"
+COMPOSE_PROJECT="hasanara-test-${VERIFY_RUN_TOKEN}"
+COMPOSE=(docker compose -p "${COMPOSE_PROJECT}" -f "${REPO_ROOT}/docker-compose.test.yml")
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 # Export these before Compose or Python can read repository .env settings.
-export TEST_POSTGRES_PORT="${TEST_POSTGRES_PORT:-55432}"
-export TEST_REDIS_PORT="${TEST_REDIS_PORT:-56379}"
-export TEST_OPENSEARCH_PORT="${TEST_OPENSEARCH_PORT:-59200}"
+export TEST_POSTGRES_PORT="${TEST_POSTGRES_PORT:-0}"
+export TEST_REDIS_PORT="${TEST_REDIS_PORT:-0}"
+export TEST_OPENSEARCH_PORT="${TEST_OPENSEARCH_PORT:-0}"
 export TEST_SERVICE_HOST="${TEST_SERVICE_HOST:-localhost}"
 export ENVIRONMENT='test'
 export SEARCH_BACKEND='postgres'
@@ -54,6 +56,15 @@ check_dependencies() {
   fi
 }
 
+published_port() {
+  local service="$1"
+  local container_port="$2"
+  local endpoint
+  endpoint="$("${COMPOSE[@]}" port "${service}" "${container_port}")"
+  [[ "${endpoint}" == *:* ]]
+  printf '%s\n' "${endpoint##*:}"
+}
+
 trap cleanup EXIT INT TERM
 check_dependencies
 cd "${REPO_ROOT}"
@@ -63,6 +74,11 @@ echo 'Validating documentation and retired product contracts...'
 
 echo 'Starting isolated PostgreSQL, Redis, and OpenSearch services...'
 "${COMPOSE[@]}" up -d --wait
+
+TEST_POSTGRES_PORT="$(published_port postgres 5432)"
+TEST_REDIS_PORT="$(published_port redis 6379)"
+TEST_OPENSEARCH_PORT="$(published_port opensearch 9200)"
+export TEST_POSTGRES_PORT TEST_REDIS_PORT TEST_OPENSEARCH_PORT
 
 export DATABASE_URL="postgresql+psycopg://postgres:postgres@${TEST_SERVICE_HOST}:${TEST_POSTGRES_PORT}/hasanara_test"
 export HASANARA_TEST_DATABASE_URL="${DATABASE_URL}"
