@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   backend-image:
-    runs-on: ubuntu-latest
+    runs-on: switchyard-production
     steps:
       - name: Authorize selective backend release
         env:

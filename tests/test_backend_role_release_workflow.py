@@ -34,6 +34,7 @@ def test_selective_release_revalidates_every_unchanged_first_party_digest():
 def test_selected_digest_is_scanned_signed_attested_and_uploaded():
     source = WORKFLOW.read_text(encoding="utf-8")
 
+    assert "backend-image:\n    runs-on: switchyard-production" in source
     assert "--severity CRITICAL,HIGH --pkg-types library --exit-code 1" in source
     assert 'docker push "$IMAGE:$TAG"' not in source
     assert "quay.io/skopeo/stable@sha256:47853bb9fb24202af9110531ebd6e43c5f97701254ca290596640290d17942f4" in source
