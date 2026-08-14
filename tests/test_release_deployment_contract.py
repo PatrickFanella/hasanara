@@ -1094,6 +1094,7 @@ def test_release_workflow_contracts() -> None:
     assert "PyPDF2" not in dev_requirements
     images = job_section("images")
     release = job_section("release")
+    assert re.search(r"^    runs-on: switchyard-production$", images, flags=re.MULTILINE)
     assert re.search(r"^    needs: verify$", cross_browser, flags=re.MULTILINE)
     for name, job in (("cross-browser", cross_browser), ("images", images)):
         strategy = re.search(

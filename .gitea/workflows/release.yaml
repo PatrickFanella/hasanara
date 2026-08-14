@@ -151,7 +151,7 @@ jobs:
         run: python3 scripts/validate_browser_evidence.py --root cross-browser-evidence --sha '${{ gitea.sha }}'
 
   images:
-    runs-on: ubuntu-latest
+    runs-on: switchyard-production
     needs: [verify, cross-browser-gate]
     if: >-
       needs.verify.result == 'success' && needs.cross-browser-gate.result == 'success' &&
