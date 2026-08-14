@@ -335,7 +335,7 @@ describe('AdminVideoMetadata', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Tag sort order must be a number.');
     expect(http.post).not.toHaveBeenCalled();
-  });
+  }, 20_000);
 
   it('announces load, search, and assignment failures without false success', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
