@@ -8,6 +8,12 @@ COMPOSE_PROJECT="hasanara-test-${VERIFY_RUN_TOKEN}"
 COMPOSE=(docker compose -p "${COMPOSE_PROJECT}" -f "${REPO_ROOT}/docker-compose.test.yml")
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+# An explicit per-run subnet avoids dependence on Docker's finite default
+# address pools while retaining an isolated, host-reachable Compose network.
+network_checksum="$(printf '%s' "${VERIFY_RUN_TOKEN}" | cksum)"
+network_checksum="${network_checksum%% *}"
+export TEST_NETWORK_SUBNET="${TEST_NETWORK_SUBNET:-10.$((192 + (network_checksum / 256) % 32)).$((network_checksum % 256)).0/24}"
+
 # Export these before Compose or Python can read repository .env settings.
 export TEST_POSTGRES_PORT="${TEST_POSTGRES_PORT:-0}"
 export TEST_REDIS_PORT="${TEST_REDIS_PORT:-0}"

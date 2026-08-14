@@ -58,3 +58,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: '${TEST_NETWORK_SUBNET:-10.223.255.0/24}'

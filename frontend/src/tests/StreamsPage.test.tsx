@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import StreamsPage from '../routes/StreamsPage';
 import { render } from '@testing-library/react';
 import { api } from '../services';
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
+}
 
 describe('StreamsPage', () => {
   beforeEach(() => {
@@ -184,10 +189,11 @@ describe('StreamsPage', () => {
     render(
       <MemoryRouter
         initialEntries={[
-          '/episodes?date_from=2026-01-01&min_duration=60&max_duration=120&transcript_source=youtube',
+          '/episodes?date_from=2026-01-01&min_duration=60&max_duration=120&transcript_source=youtube&source=asr',
         ]}
       >
         <StreamsPage />
+        <LocationProbe />
       </MemoryRouter>
     );
 
@@ -200,6 +206,9 @@ describe('StreamsPage', () => {
       })
     );
     expect(screen.getByLabelText('From')).toHaveValue('2026-01-01');
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/episodes?date_from=2026-01-01');
+    });
   });
 
   it('shows explicit no-transcript indicator', async () => {
