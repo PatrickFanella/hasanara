@@ -1162,15 +1162,21 @@ def test_release_workflow_contracts() -> None:
     assert '--data-urlencode "service=container_registry"' in publish
     assert '--data-urlencode "scope=repository:${repository}:pull,push"' in publish
     assert 'repository="${IMAGE#git.subcult.tv/}"' in publish
+    assert 'destination="docker://${IMAGE}:${TAG}"' in publish
+    assert 'destination_tls_verify=true' in publish
+    assert 'if docker container inspect gitea >/dev/null 2>&1; then' in publish
     assert 'docker network create --internal "$network"' in publish
     assert 'docker network connect --alias registry-origin "$network" gitea' in publish
     assert "-v /var/run/docker.sock:/var/run/docker.sock" in publish
-    assert '"docker-daemon:${IMAGE}:${TAG}" "docker://registry-origin:3000/${IMAGE#git.subcult.tv/}:${TAG}"' in publish
-    assert "--dest-tls-verify=false" in publish
+    assert 'destination="docker://registry-origin:3000/${repository}:${TAG}"' in publish
+    assert '"docker-daemon:${IMAGE}:${TAG}" "$DESTINATION"' in publish
+    assert '--dest-tls-verify="$DESTINATION_TLS_VERIFY"' in publish
     assert '--dest-registry-token "$REGISTRY_BEARER_TOKEN"' in publish
     assert "--digestfile /evidence/pushed.digest" in publish
     assert 'REGISTRY_BEARER_TOKEN="$registry_token" docker run' in publish
     assert "-e REGISTRY_BEARER_TOKEN" in publish
+    assert '-e DESTINATION="$destination"' in publish
+    assert '-e DESTINATION_TLS_VERIFY="$destination_tls_verify"' in publish
     assert "--entrypoint /bin/sh" in publish
     assert "auth.json" not in publish
     assert "identitytoken" not in publish
