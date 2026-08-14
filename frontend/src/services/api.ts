@@ -123,9 +123,7 @@ function normalizeVideosResponse(response: PaginatedVideos | VideoInfo[]): Pagin
 
 function normalizeTimelineResponse(
   response:
-    | TimelineResponse
-    | TimelineBucket[]
-    | { buckets?: TimelineBucket[]; items?: TimelineBucket[] }
+    TimelineResponse | TimelineBucket[] | { buckets?: TimelineBucket[]; items?: TimelineBucket[] }
 ) {
   if (Array.isArray(response)) return response;
   return response.buckets ?? response.items ?? [];
