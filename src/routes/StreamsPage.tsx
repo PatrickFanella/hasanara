@@ -71,7 +71,7 @@ export default function StreamsPage() {
     return () => query.removeEventListener?.('change', update);
   }, []);
   useEffect(() => {
-    const retired = ['min_duration', 'max_duration', 'transcript_source'];
+    const retired = ['min_duration', 'max_duration', 'transcript_source', 'source'];
     if (!retired.some((name) => params.has(name))) return;
     const next = new URLSearchParams(params);
     retired.forEach((name) => next.delete(name));
