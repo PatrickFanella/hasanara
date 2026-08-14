@@ -3,7 +3,6 @@ name: hasanara-test
 services:
   postgres:
     image: postgres:16
-    network_mode: bridge
     cpus: 0.75
     mem_limit: 1g
     memswap_limit: 1g
@@ -24,7 +23,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    network_mode: bridge
     cpus: 0.25
     mem_limit: 256m
     memswap_limit: 256m
@@ -42,7 +40,6 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:2.12.0
-    network_mode: bridge
     cpus: 1.0
     mem_limit: 1536m
     memswap_limit: 1536m
@@ -61,3 +58,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: '${TEST_NETWORK_SUBNET:-10.223.255.0/24}'
