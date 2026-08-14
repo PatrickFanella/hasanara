@@ -104,6 +104,37 @@ describe('YouTubePlayer', () => {
     await waitFor(() => expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true));
   });
 
+  it('preserves a ref seek issued before the player becomes ready', async () => {
+    let signalReady: (() => void) | undefined;
+    window.YT!.Player = vi.fn(function (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this: any,
+      _element: HTMLElement,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      config: any
+    ) {
+      this.seekTo = mockPlayer.seekTo;
+      this.playVideo = mockPlayer.playVideo;
+      this.getPlayerState = mockPlayer.getPlayerState;
+      signalReady = config.events.onReady;
+      return this;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const ref = createRef<YouTubePlayerHandle>();
+    render(<YouTubePlayer ref={ref} videoId="test-video-id" />);
+    await waitFor(() => expect(window.YT!.Player).toHaveBeenCalled());
+
+    ref.current?.seekTo(120, { play: true });
+    expect(mockPlayer.seekTo).not.toHaveBeenCalled();
+    signalReady?.();
+
+    await waitFor(() => {
+      expect(mockPlayer.seekTo).toHaveBeenCalledWith(120, true);
+      expect(mockPlayer.playVideo).toHaveBeenCalled();
+    });
+  });
+
   it('can seek and play via ref', async () => {
     const ref = createRef<YouTubePlayerHandle>();
     render(<YouTubePlayer ref={ref} videoId="test-video-id" />);

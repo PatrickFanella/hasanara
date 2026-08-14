@@ -116,8 +116,11 @@ export default forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer(
   useEffect(() => {
     const changed = previousStartRef.current !== start;
     previousStartRef.current = start;
-    pendingSeekRef.current = start || changed ? { seconds: start, play: false } : null;
-    if (ready && (start || changed)) seek(start, false);
+    if (start || changed) pendingSeekRef.current = { seconds: start, play: false };
+    if (ready && pendingSeekRef.current) {
+      const pendingSeek = pendingSeekRef.current;
+      seek(pendingSeek.seconds, pendingSeek.play);
+    }
   }, [ready, seek, start, videoId]);
 
   useImperativeHandle(ref, () => ({
