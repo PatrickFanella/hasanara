@@ -32,6 +32,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def recover(*, cohort: str, limit: int, mutate: bool) -> list[dict[str, str]]:
     db = SessionLocal()
     try:
+        if mutate:
+            db.execute(text("SELECT pg_advisory_xact_lock(hashtext('hasanara-attention-recovery'))"))
         eligible = int(
             db.execute(
                 text(f"SELECT COUNT(*) {pending_video_eligibility_sql()}"),
@@ -39,8 +41,9 @@ def recover(*, cohort: str, limit: int, mutate: bool) -> list[dict[str, str]]:
             ).scalar_one()
         )
         available = max(0, 5 - eligible)
-        if mutate and limit > available:
-            raise RuntimeError(f"only {available} recovery slots are available; {eligible} videos are already eligible")
+        if mutate and available == 0:
+            raise RuntimeError(f"no recovery slots are available; {eligible} videos are already eligible")
+        selection_limit = min(limit, available) if mutate else limit
         patterns = COHORT_PATTERNS[cohort]
         rows = (
             db.execute(
@@ -51,13 +54,6 @@ def recover(*, cohort: str, limit: int, mutate: bool) -> list[dict[str, str]]:
                     WHERE j.state = 'needs_attention'
                       AND v.state = 'pending'
                       AND v.caption_ingest_state = ANY(CAST(:terminal_states AS text[]))
-                      AND (
-                          SELECT count(*)
-                          FROM videos sibling
-                          WHERE sibling.job_id = j.id
-                            AND sibling.state = 'pending'
-                            AND sibling.caption_ingest_state = ANY(CAST(:terminal_states AS text[]))
-                      ) = 1
                       AND EXISTS (
                           SELECT 1 FROM unnest(CAST(:patterns AS text[])) pattern
                           WHERE COALESCE(j.last_failure_summary, j.error, '') ILIKE pattern
@@ -69,35 +65,98 @@ def recover(*, cohort: str, limit: int, mutate: bool) -> list[dict[str, str]]:
                 {
                     "terminal_states": list(TERMINAL_CAPTION_INGEST_STATES),
                     "patterns": list(patterns),
-                    "limit": limit,
+                    "limit": selection_limit,
                 },
             )
             .mappings()
             .all()
         )
-        selected = [{"job_id": str(row["job_id"]), "video_id": str(row["video_id"])} for row in rows]
+        selected = [{"source_job_id": str(row["job_id"]), "video_id": str(row["video_id"])} for row in rows]
         if not mutate:
             db.rollback()
             return selected
+        recovered: list[dict[str, str]] = []
+        source_job_ids: set[str] = set()
         for row in selected:
-            db.execute(
-                text("""
-                    UPDATE jobs
-                    SET state='pending', stage='queued', error=NULL, last_failure_summary=NULL,
-                        next_attempt_at=NULL, quarantined_at=NULL, updated_at=now()
-                    WHERE id=:job_id AND state='needs_attention'
-                """),
-                {"job_id": row["job_id"]},
+            source_job_id = row["source_job_id"]
+            source_job_ids.add(source_job_id)
+            recovery_job_id = str(
+                db.execute(
+                    text("""
+                        INSERT INTO jobs (
+                            kind, input_url, priority, meta, owner_user_id,
+                            state, stage, completed_units, total_units
+                        )
+                        SELECT
+                            'single', 'https://www.youtube.com/watch?v=' || v.youtube_id,
+                            j.priority,
+                            (COALESCE(j.meta, '{}'::jsonb)
+                                - 'normalized_url' - 'idempotency_key'
+                                - 'staged' - 'batch_id' - 'batch_expected_jobs')
+                                || jsonb_build_object('recovery', jsonb_build_object(
+                                    'cohort', CAST(:cohort AS text),
+                                    'source_job_id', j.id::text,
+                                    'source_video_id', v.id::text
+                                )),
+                            j.owner_user_id, 'pending', 'queued', 0, 1
+                        FROM jobs j
+                        JOIN videos v ON v.job_id = j.id
+                        WHERE j.id=:source_job_id AND j.state='needs_attention'
+                          AND v.id=:video_id AND v.state='pending'
+                          AND v.caption_ingest_state = ANY(CAST(:terminal_states AS text[]))
+                        RETURNING id
+                    """),
+                    {
+                        "cohort": cohort,
+                        "source_job_id": source_job_id,
+                        "video_id": row["video_id"],
+                        "terminal_states": list(TERMINAL_CAPTION_INGEST_STATES),
+                    },
+                ).scalar_one()
             )
+            moved = db.execute(
+                text("""
+                    UPDATE videos
+                    SET job_id=:recovery_job_id, idx=0, error=NULL, updated_at=now()
+                    WHERE id=:video_id AND job_id=:source_job_id AND state='pending'
+                """),
+                {
+                    "recovery_job_id": recovery_job_id,
+                    "video_id": row["video_id"],
+                    "source_job_id": source_job_id,
+                },
+            )
+            if moved.rowcount != 1:
+                raise RuntimeError("recovery video ownership transfer did not affect exactly one row")
             write_audit_event(
                 db,
                 ACTION_ADMIN_ACTION,
                 resource_type="recovery_job",
-                resource_id=row["job_id"],
-                details={"operation": "backlog_recovery", "cohort": cohort, "video_id": row["video_id"]},
+                resource_id=recovery_job_id,
+                details={
+                    "operation": "backlog_recovery",
+                    "cohort": cohort,
+                    "source_job_id": source_job_id,
+                    "video_id": row["video_id"],
+                },
+            )
+            recovered.append({**row, "job_id": recovery_job_id})
+        for source_job_id in source_job_ids:
+            db.execute(
+                text("""
+                    UPDATE jobs j
+                    SET state='completed', stage='completed', error=NULL,
+                        last_failure_summary=NULL, updated_at=now()
+                    WHERE j.id=:source_job_id AND j.state='needs_attention'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM videos v
+                          WHERE v.job_id=j.id AND v.state <> 'completed'
+                      )
+                """),
+                {"source_job_id": source_job_id},
             )
         db.commit()
-        return selected
+        return recovered
     except Exception:
         db.rollback()
         raise
