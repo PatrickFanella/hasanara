@@ -28,6 +28,7 @@ const AdminArchivePeriods = lazy(() => import('./routes/admin/AdminArchivePeriod
 const AdminUsers = lazy(() => import('./routes/admin/AdminUsers'));
 const AdminVideoMetadata = lazy(() => import('./routes/admin/AdminVideoMetadata'));
 const AdminLabelIntelligence = lazy(() => import('./routes/admin/AdminLabelIntelligence'));
+const AdminChapterReview = lazy(() => import('./routes/admin/AdminChapterReview'));
 
 const router = createBrowserRouter([
   {
@@ -177,6 +178,14 @@ const router = createBrowserRouter([
             element: (
               <Page>
                 <AdminLabelIntelligence />
+              </Page>
+            ),
+          },
+          {
+            path: 'chapters',
+            element: (
+              <Page>
+                <AdminChapterReview />
               </Page>
             ),
           },
