@@ -15,7 +15,7 @@ from .enrichment_runner import EpisodeInput, TranscriptBlockInput
 from .labeling.benchmark import EpisodePrediction, PredictedChapter
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
-PROMPT_VERSION = "archive-episode-enrichment-v1"
+PROMPT_VERSION = "archive-episode-enrichment-v2"
 
 EPISODE_ENRICHMENT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -196,7 +196,11 @@ Every chapter must cite one to three block indexes whose text directly demonstra
 Return only JSON matching the supplied schema."""
     user = {
         "video_id": episode.video_id,
+        "video_title": episode.title,
         "duration_ms": episode.duration_ms,
+        "transcript_source": episode.transcript_source,
+        "transcript_coverage": episode.transcript_coverage,
+        "transcript_selection_reason": episode.transcript_selection_reason,
         "target_chapter_count": target_count,
         "chapter_guidance": {
             "preferred_duration_minutes": "15-35",
@@ -422,7 +426,11 @@ def _balanced_episode_windows(episode: EpisodeInput, max_window_ms: int) -> list
                 start_ms,
                 EpisodeInput(
                     video_id=episode.video_id,
+                    title=episode.title,
                     duration_ms=end_ms - start_ms,
+                    transcript_source=episode.transcript_source,
+                    transcript_coverage=episode.transcript_coverage,
+                    transcript_selection_reason=episode.transcript_selection_reason,
                     blocks=blocks,
                 ),
             )

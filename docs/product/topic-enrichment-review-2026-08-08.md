@@ -1,5 +1,11 @@
 # Topic enrichment, keywords, tags, and chapters review
 
+Implementation and current production evidence are tracked in
+[`enrichment-workflow-audit-2026-08-15.md`](./enrichment-workflow-audit-2026-08-15.md).
+That addendum preserves the release gates in this review while documenting the
+new transcript-source policy, people-presence rules, chapter review workflow,
+and read-only Almaz validation.
+
 Date: 2026-08-08
 
 ## Executive assessment

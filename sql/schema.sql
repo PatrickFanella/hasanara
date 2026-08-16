@@ -504,11 +504,18 @@ CREATE TABLE IF NOT EXISTS archive_video_chapters (
     status TEXT NOT NULL DEFAULT 'candidate',
     source TEXT NOT NULL,
     run_id UUID REFERENCES archive_extraction_runs(id) ON DELETE SET NULL,
+    evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
+    pipeline_version TEXT,
+    model_name TEXT,
+    prompt_version TEXT,
+    transcript_source TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT archive_video_chapters_video_chapter_index_uq UNIQUE (video_id, chapter_index),
     CONSTRAINT archive_video_chapters_status_check CHECK (status IN ('candidate', 'published', 'rejected', 'hidden')),
-    CONSTRAINT archive_video_chapters_source_check CHECK (source IN ('automatic', 'manual', 'hybrid'))
+    CONSTRAINT archive_video_chapters_source_check CHECK (source IN ('automatic', 'manual', 'hybrid')),
+    CONSTRAINT archive_video_chapters_transcript_source_check
+        CHECK (transcript_source IS NULL OR transcript_source IN ('whisper', 'youtube'))
 );
 
 CREATE TABLE IF NOT EXISTS archive_label_aliases (
@@ -567,6 +574,20 @@ CREATE TABLE IF NOT EXISTS archive_label_feedback (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS archive_chapter_feedback (
+    id BIGSERIAL PRIMARY KEY,
+    chapter_id UUID REFERENCES archive_video_chapters(id) ON DELETE SET NULL,
+    video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    old_value JSONB NOT NULL DEFAULT '{}'::jsonb,
+    new_value JSONB NOT NULL DEFAULT '{}'::jsonb,
+    reason TEXT,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT archive_chapter_feedback_action_check
+        CHECK (action IN ('publish', 'reject', 'edit', 'boundary_adjust'))
+);
+
 CREATE INDEX IF NOT EXISTS archive_labels_kind_status_idx ON archive_labels(kind, status);
 CREATE INDEX IF NOT EXISTS archive_labels_status_confidence_idx ON archive_labels(status, confidence_score DESC);
 CREATE INDEX IF NOT EXISTS archive_label_aliases_normalized_idx ON archive_label_aliases(normalized_alias);
@@ -576,6 +597,10 @@ CREATE INDEX IF NOT EXISTS archive_label_assignments_label_status_idx ON archive
 CREATE INDEX IF NOT EXISTS archive_label_assignments_public_idx ON archive_label_assignments(status, publish_tier, unit_type, video_id);
 CREATE INDEX IF NOT EXISTS archive_label_assignments_time_idx ON archive_label_assignments(video_id, start_ms, end_ms);
 CREATE INDEX IF NOT EXISTS archive_video_chapters_video_idx ON archive_video_chapters(video_id, chapter_index);
+CREATE INDEX IF NOT EXISTS archive_video_chapters_status_video_idx
+    ON archive_video_chapters(status, video_id, chapter_index);
+CREATE INDEX IF NOT EXISTS archive_chapter_feedback_video_created_idx
+    ON archive_chapter_feedback(video_id, created_at);
 CREATE INDEX IF NOT EXISTS archive_extraction_runs_status_idx ON archive_extraction_runs(status, started_at DESC);
 
 -- ---

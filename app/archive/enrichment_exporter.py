@@ -6,6 +6,8 @@ from sqlalchemy import text
 
 from .enrichment_runner import EnrichmentInput, EpisodeInput, TranscriptBlockInput
 from .golden_sampler import select_representative_videos
+from .labeling.windows import build_windows_from_segments, load_source_segments
+from .transcript_selection import TranscriptSource, select_preferred_transcript
 
 
 def _clean_transcript_text(value: Any) -> str:
@@ -41,6 +43,15 @@ def _candidate_videos(
                       SELECT 1
                       FROM transcript_blocks AS tb
                       WHERE tb.video_id = v.id
+                      UNION ALL
+                      SELECT 1
+                      FROM segments AS s
+                      WHERE s.video_id = v.id
+                      UNION ALL
+                      SELECT 1
+                      FROM youtube_transcripts AS yt
+                      JOIN youtube_segments AS ys ON ys.youtube_transcript_id = yt.id
+                      WHERE yt.video_id = v.id
                   )
                 ORDER BY v.uploaded_at DESC NULLS LAST, v.created_at DESC, v.id
                 LIMIT :candidate_limit
@@ -53,7 +64,7 @@ def _candidate_videos(
     return [dict(row) for row in rows]
 
 
-def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> list[TranscriptBlockInput]:
+def _native_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> list[dict[str, Any]]:
     rows = (
         db.execute(
             text("""
@@ -68,7 +79,23 @@ def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> 
         .mappings()
         .all()
     )
-    blocks: list[TranscriptBlockInput] = []
+    if not rows:
+        rows = [
+            {
+                "block_index": index,
+                "start_ms": window.start_ms,
+                "end_ms": window.end_ms,
+                "text": window.text,
+            }
+            for index, window in enumerate(
+                build_windows_from_segments(
+                    load_source_segments(db, video_id, "whisper"),
+                    source="whisper",
+                    window_ms=120_000,
+                )
+            )
+        ][:max_blocks]
+    blocks: list[dict[str, Any]] = []
     for row in rows:
         start_ms = max(0, int(row.get("start_ms") or 0))
         end_ms = min(duration_ms, int(row.get("end_ms") or start_ms))
@@ -76,14 +103,70 @@ def _video_blocks(db: Any, video_id: str, duration_ms: int, max_blocks: int) -> 
         if end_ms <= start_ms or not cleaned:
             continue
         blocks.append(
+            {
+                "id": int(row.get("block_index") or 0),
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "text": cleaned,
+            }
+        )
+    return blocks
+
+
+def _youtube_segments(db: Any, video_id: str) -> list[dict[str, Any]]:
+    rows = (
+        db.execute(
+            text("""
+                SELECT ys.id, ys.start_ms, ys.end_ms, ys.text
+                FROM youtube_segments AS ys
+                JOIN youtube_transcripts AS yt ON yt.id = ys.youtube_transcript_id
+                WHERE yt.video_id = :video_id
+                ORDER BY ys.start_ms, ys.id
+                """),
+            {"video_id": video_id},
+        )
+        .mappings()
+        .all()
+    )
+    return [dict(row) for row in rows]
+
+
+def _selected_video_blocks(
+    db: Any, video_id: str, duration_ms: int, max_blocks: int
+) -> tuple[list[TranscriptBlockInput], TranscriptSource, float, str]:
+    native = _native_blocks(db, video_id, duration_ms, max_blocks)
+    youtube = _youtube_segments(db, video_id)
+    selected = select_preferred_transcript(native, youtube, duration_ms=duration_ms)
+    if selected.source == "whisper":
+        raw_blocks = selected.segments[:max_blocks]
+    else:
+        raw_blocks = [
+            {
+                "id": index,
+                "start_ms": window.start_ms,
+                "end_ms": window.end_ms,
+                "text": window.text,
+            }
+            for index, window in enumerate(
+                build_windows_from_segments(selected.segments, source="youtube", window_ms=120_000)
+            )
+        ][:max_blocks]
+    blocks: list[TranscriptBlockInput] = []
+    for row in raw_blocks:
+        start_ms = max(0, int(row["start_ms"]))
+        end_ms = min(duration_ms, int(row["end_ms"]))
+        cleaned = _clean_transcript_text(row["text"])
+        if start_ms >= duration_ms or end_ms <= start_ms or not cleaned:
+            continue
+        blocks.append(
             TranscriptBlockInput(
-                block_index=int(row.get("block_index") or 0),
+                block_index=len(blocks),
                 start_ms=start_ms,
                 end_ms=end_ms,
                 text=cleaned,
             )
         )
-    return blocks
+    return blocks, selected.source, selected.quality.coverage_ratio, selected.reason
 
 
 def export_enrichment_input(
@@ -120,13 +203,19 @@ def export_enrichment_input(
     episodes: list[EpisodeInput] = []
     for video in selected:
         duration_ms = int(video.get("duration_seconds") or 0) * 1000
-        blocks = _video_blocks(db, str(video["id"]), duration_ms, max_blocks_per_video)
+        blocks, transcript_source, transcript_coverage, selection_reason = _selected_video_blocks(
+            db, str(video["id"]), duration_ms, max_blocks_per_video
+        )
         if not blocks:
             continue
         episodes.append(
             EpisodeInput(
                 video_id=str(video["id"]),
+                title=str(video.get("title") or "").strip() or None,
                 duration_ms=duration_ms,
+                transcript_source=transcript_source,
+                transcript_coverage=transcript_coverage,
+                transcript_selection_reason=selection_reason,
                 blocks=blocks,
             )
         )

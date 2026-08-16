@@ -9,7 +9,13 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip check
 
 FROM python:3.11-slim AS api
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    GIT_COMMIT=${GIT_COMMIT} \
+    BUILD_DATE=${BUILD_DATE}
 RUN python -m pip uninstall --yes setuptools wheel
 COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=dependencies /usr/local/bin /usr/local/bin
@@ -21,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     && deno --version
 WORKDIR /app
 COPY app ./app
+COPY pyproject.toml ./
 COPY worker/__init__.py worker/formatter.py worker/state_model.py ./worker/
 COPY alembic ./alembic
 COPY alembic.ini ./

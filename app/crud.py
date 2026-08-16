@@ -276,14 +276,24 @@ def _video_feed_filters(
         params["category"] = category
     if people:
         where_clauses.append(
-            "EXISTS (SELECT 1 FROM archive_video_people vp JOIN archive_people p ON p.id=vp.person_id "
-            "WHERE vp.video_id=v.id AND p.status='published' AND p.slug = ANY(CAST(:people AS text[])))"
+            "(EXISTS (SELECT 1 FROM archive_video_people vp JOIN archive_people p ON p.id=vp.person_id "
+            "WHERE vp.video_id=v.id AND p.status='published' AND p.slug = ANY(CAST(:people AS text[]))) "
+            "OR EXISTS (SELECT 1 FROM archive_label_assignments a JOIN archive_labels l ON l.id=a.label_id "
+            "WHERE a.video_id=v.id AND a.unit_type='vod' AND l.kind='person' AND l.status='published' "
+            "AND l.slug = ANY(CAST(:people AS text[])) "
+            "AND (a.status='admin_approved' OR (a.status='auto_published' AND a.publish_tier IN ('gold','silver'))) "
+            "AND COALESCE(a.evidence->0->>'person_role','subject') IN ('guest','host','caller')))"
         )
         params["people"] = list(dict.fromkeys(people))
     if tags:
         where_clauses.append(
-            "EXISTS (SELECT 1 FROM archive_video_taggings vt JOIN archive_video_tags t ON t.id=vt.tag_id "
-            "WHERE vt.video_id=v.id AND t.status='published' AND t.slug = ANY(CAST(:tags AS text[])))"
+            "(EXISTS (SELECT 1 FROM archive_video_taggings vt JOIN archive_video_tags t ON t.id=vt.tag_id "
+            "WHERE vt.video_id=v.id AND t.status='published' AND t.slug = ANY(CAST(:tags AS text[]))) "
+            "OR EXISTS (SELECT 1 FROM archive_label_assignments a JOIN archive_labels l ON l.id=a.label_id "
+            "WHERE a.video_id=v.id AND a.unit_type='vod' AND l.kind<>'person' AND l.status='published' "
+            "AND l.slug = ANY(CAST(:tags AS text[])) "
+            "AND (a.status='admin_approved' OR (a.status='auto_published' AND a.publish_tier IN ('gold','silver') "
+            "AND l.kind IN ('category','series','game','meme','event')))))"
         )
         params["tags"] = list(dict.fromkeys(tags))
     if min_duration is not None:

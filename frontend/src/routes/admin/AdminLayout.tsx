@@ -72,6 +72,14 @@ export default function AdminLayout() {
           >
             Labels
           </NavLink>
+          <NavLink
+            className={({ isActive }) =>
+              `nav-link rounded-md px-3 py-2 ${isActive ? 'bg-surface-muted font-semibold text-ink' : ''}`
+            }
+            to="/admin/chapters"
+          >
+            Chapters
+          </NavLink>
         </nav>
         <Outlet />
       </div>

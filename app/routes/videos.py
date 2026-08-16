@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Literal, Union
 
@@ -394,7 +395,7 @@ def get_video_chapters(video_id: uuid.UUID, db=Depends(get_db)):
         db.execute(
             text("""
                 SELECT chapter_index, start_ms, end_ms, title, summary,
-                       confidence_score, status, source
+                       confidence_score, status, source, evidence
                 FROM archive_video_chapters
                 WHERE video_id = :video_id AND status = 'published'
                 ORDER BY chapter_index
@@ -408,25 +409,35 @@ def get_video_chapters(video_id: uuid.UUID, db=Depends(get_db)):
         chapters = []
         for row in persisted_rows:
             chapter = dict(row)
-            evidence_block = next(
-                (
-                    block
-                    for block in blocks
-                    if int(block.get("start_ms") or 0) >= int(chapter["start_ms"])
-                    and int(block.get("start_ms") or 0) < int(chapter["end_ms"])
-                ),
-                None,
-            )
-            evidence = []
-            if evidence_block:
-                evidence.append(
-                    {
-                        "block_index": int(evidence_block.get("block_index") or 0),
-                        "start_ms": int(evidence_block.get("start_ms") or 0),
-                        "end_ms": int(evidence_block.get("end_ms") or 0),
-                        "text": str(evidence_block.get("text") or "")[:280],
-                    }
+            raw_evidence = chapter.get("evidence") or []
+            if isinstance(raw_evidence, str):
+                try:
+                    raw_evidence = json.loads(raw_evidence)
+                except json.JSONDecodeError:
+                    raw_evidence = []
+            evidence = list(raw_evidence) if isinstance(raw_evidence, list) else []
+            # Rows published before provenance existed receive one conservative
+            # derived citation. New candidate rows always retain their actual
+            # model-cited blocks.
+            if not evidence:
+                evidence_block = next(
+                    (
+                        block
+                        for block in blocks
+                        if int(block.get("start_ms") or 0) >= int(chapter["start_ms"])
+                        and int(block.get("start_ms") or 0) < int(chapter["end_ms"])
+                    ),
+                    None,
                 )
+                if evidence_block:
+                    evidence.append(
+                        {
+                            "block_index": int(evidence_block.get("block_index") or 0),
+                            "start_ms": int(evidence_block.get("start_ms") or 0),
+                            "end_ms": int(evidence_block.get("end_ms") or 0),
+                            "text": str(evidence_block.get("text") or "")[:280],
+                        }
+                    )
             chapter["title"] = chapter.get("title") or f"Part {int(chapter['chapter_index']) + 1}"
             chapter["summary"] = chapter.get("summary") or (evidence[0]["text"] if evidence else "")
             chapter["confidence_score"] = float(chapter.get("confidence_score") or 0)

@@ -517,6 +517,7 @@ def test_upgraded_and_fresh_schema_have_complete_user_fk_and_cleanup_inventory(a
     parity_tables = (
         "user_vocabularies",
         "saved_searches",
+        "archive_chapter_feedback",
         "archive_label_feedback",
         "archive_opinion_revisions",
     )
@@ -528,6 +529,7 @@ def test_upgraded_and_fresh_schema_have_complete_user_fk_and_cleanup_inventory(a
             upgraded_catalog = _table_catalog_contract(conn, parity_tables)
     assert upgraded_fks == {
         ("api_keys", "user_id", "c"),
+        ("archive_chapter_feedback", "user_id", "n"),
         ("archive_label_feedback", "user_id", "n"),
         ("archive_opinion_revisions", "corrected_by", "n"),
         ("audit_logs", "user_id", "n"),

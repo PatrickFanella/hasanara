@@ -719,6 +719,59 @@ class ArchiveLabelExtractionResponse(BaseModel):
     assignments: int = Field(..., description="Number of label assignments created")
 
 
+class ArchiveChapterEvidence(BaseModel):
+    block_index: int = Field(..., ge=0)
+    start_ms: int = Field(..., ge=0)
+    end_ms: int = Field(..., ge=0)
+    text: str
+
+
+class ArchiveChapterCandidate(BaseModel):
+    id: uuid.UUID
+    video_id: uuid.UUID
+    chapter_index: int = Field(..., ge=0)
+    start_ms: int = Field(..., ge=0)
+    end_ms: int = Field(..., gt=0)
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    confidence_score: float = Field(..., ge=0, le=1)
+    status: Literal["candidate", "published", "rejected", "hidden"]
+    source: Literal["automatic", "manual", "hybrid"]
+    evidence: List[ArchiveChapterEvidence] = Field(default_factory=list)
+    pipeline_version: Optional[str] = None
+    model_name: Optional[str] = None
+    prompt_version: Optional[str] = None
+    transcript_source: Optional[Literal["whisper", "youtube"]] = None
+    run_id: Optional[uuid.UUID] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class ArchiveChapterCandidateSet(BaseModel):
+    video_id: uuid.UUID
+    youtube_id: Optional[str] = None
+    video_title: Optional[str] = None
+    duration_seconds: Optional[int] = Field(None, ge=0)
+    chapters: List[ArchiveChapterCandidate] = Field(default_factory=list)
+
+
+class ArchiveChapterCandidateSetListResponse(BaseModel):
+    items: List[ArchiveChapterCandidateSet] = Field(default_factory=list)
+
+
+class ArchiveChapterEdit(BaseModel):
+    id: uuid.UUID
+    start_ms: Optional[int] = Field(None, ge=0)
+    title: Optional[str] = Field(None, max_length=100)
+    summary: Optional[str] = Field(None, max_length=500)
+
+
+class ArchiveChapterSetReviewAction(BaseModel):
+    action: Literal["publish", "reject"]
+    chapters: List[ArchiveChapterEdit] = Field(default_factory=list)
+    reason: Optional[str] = Field(None, max_length=1000)
+
+
 class ArchivePeriodOption(BaseModel):
     slug: str = Field(..., description="Stable period slug")
     label: str = Field(..., description="Public period label")
