@@ -93,11 +93,10 @@ def test_upsert_label_preserves_rejected_and_inserts_normalized_aliases():
     assert "pg_advisory_xact_lock" in str(lock_sql)
     assert lock_params == {"slug": "new-jersey"}
     compact_insert_sql = _compact_sql(insert_sql)
-    assert (
-        "CASE WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden') "
-        "THEN archive_labels.status ELSE EXCLUDED.status END"
-    ) in compact_insert_sql
+    assert "THEN archive_labels.status ELSE EXCLUDED.status END" in compact_insert_sql
     assert "GREATEST(archive_labels.confidence_score, EXCLUDED.confidence_score)" in compact_insert_sql
+    assert "THEN archive_labels.kind ELSE EXCLUDED.kind" in compact_insert_sql
+    assert "archive_labels.source IN ('admin', 'seed', 'hybrid')" in compact_insert_sql
     assert "ON CONFLICT (label_id, normalized_alias) DO NOTHING" in str(alias_sql)
     assert alias_params["normalized_alias"] == "new jersey"
     assert alias_params["alias"] == "New Jersey"

@@ -3,6 +3,7 @@ from app.archive.labeling.extractors import (
     extract_alias_candidates,
     extract_keyphrase_candidates,
     extract_title_alias_candidates,
+    infer_person_title_role,
     suggest_person_names_from_title,
     suggest_person_names_from_titles,
 )
@@ -251,6 +252,92 @@ def test_title_alias_extractor_emits_title_source_candidates():
     assert candidates[0].kind == "category"
     assert candidates[0].evidence[0]["extractor"] == "title"
     assert candidates[0].evidence[0]["matched_alias"] == "chadvice"
+
+
+def test_person_title_alias_requires_presence_grammar_for_public_role():
+    aliases = [
+        {
+            "label_id": "person-rage",
+            "label": "YourRage",
+            "alias": "YourRage",
+            "kind": "person",
+            "status": "active",
+            "is_ambiguous": False,
+        }
+    ]
+
+    present = extract_title_alias_candidates({"id": "v1", "title": "Hanging out with YourRage"}, aliases)[0]
+    subject = extract_title_alias_candidates({"id": "v2", "title": "YourRage controversy explained"}, aliases)[0]
+
+    assert present.evidence[0]["person_role"] == "guest"
+    assert present.evidence[0]["person_presence"] is True
+    assert subject.evidence[0]["person_role"] == "subject"
+    assert subject.evidence[0]["person_presence"] is False
+    assert infer_person_title_role("Call with YourRage", "YourRage") == "caller"
+
+
+def test_person_title_role_handles_guest_lists_and_avoids_speech_false_positives():
+    assert (
+        infer_person_title_role(
+            "Election watch w/ MikeFromPA & AustinShow",
+            "AustinShow",
+        )
+        == "guest"
+    )
+    assert (
+        infer_person_title_role(
+            "BRIGHTON W/ JACKMANIFOLD, NIHACHU, MARCHE, AUSTINSHOW",
+            "AustinShow",
+        )
+        == "guest"
+    )
+    assert infer_person_title_role("Austin Calls", "Austin Calls") == "caller"
+    assert (
+        infer_person_title_role(
+            "Jake Tapper calls Hasan antisemitic",
+            "Jake Tapper",
+        )
+        == "subject"
+    )
+    assert (
+        infer_person_title_role(
+            "with Will Neff, Trump talks about Elon Musk",
+            "Elon Musk",
+        )
+        == "subject"
+    )
+
+
+def test_alias_extractor_drops_runtime_collisions_and_unsafe_person_nicknames():
+    aliases = [
+        {
+            "label_id": "person-austin",
+            "label": "AustinShow",
+            "alias": "Austin",
+            "kind": "person",
+            "is_ambiguous": True,
+        },
+        {"label_id": "person-austin", "label": "AustinShow", "alias": "AustinShow", "kind": "person"},
+        {"label_id": "place-austin", "label": "Austin", "alias": "Austin", "kind": "place"},
+    ]
+
+    candidates = extract_alias_candidates(
+        [{"id": "w1", "video_id": "v1", "text": "Austin passed a new ordinance", "start_ms": 0, "end_ms": 1_000}],
+        aliases,
+    )
+
+    assert candidates == []
+
+
+def test_alias_evidence_snippet_is_centered_on_the_actual_match():
+    prefix = "unrelated opening " * 40
+    candidates = extract_alias_candidates(
+        [{"id": "w1", "video_id": "v1", "text": f"{prefix}Will Neff joins the stream", "start_ms": 0, "end_ms": 1_000}],
+        [{"label_id": "person-will", "label": "Will Neff", "alias": "Will Neff", "kind": "person"}],
+    )
+
+    assert "Will Neff" in candidates[0].evidence[0]["snippet"]
+    assert candidates[0].evidence[0]["snippet"].startswith("…")
 
 
 def test_title_person_suggester_finds_names_and_filters_hasan_noise():

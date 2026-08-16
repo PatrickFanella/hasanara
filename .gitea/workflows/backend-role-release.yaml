@@ -53,6 +53,7 @@ jobs:
             *) exit 1 ;;
           esac
           printf 'tag=backend-%s-%s\n' "$ROLE" "$(printf '%s' '${{ gitea.sha }}' | cut -c1-12)" >> "$GITHUB_OUTPUT"
+          printf 'build_date=%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
       - name: Validate base manifest
         env:
           BASE_MANIFEST_JSON: ${{ inputs.base_manifest_json }}
@@ -99,6 +100,9 @@ jobs:
           load: true
           push: false
           tags: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}
+          build-args: |
+            GIT_COMMIT=${{ gitea.sha }}
+            BUILD_DATE=${{ steps.target.outputs.build_date }}
       - name: Block high and critical application vulnerabilities
         env:
           IMAGE_REF: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}

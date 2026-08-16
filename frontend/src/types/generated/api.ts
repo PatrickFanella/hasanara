@@ -149,6 +149,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/archive/chapter-candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List chapter candidate sets (Admin)
+     * @description List complete per-video chapter sets with stored evidence and model provenance.
+     */
+    get: operations['admin_list_archive_chapter_candidates_admin_archive_chapter_candidates_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/archive/enrichment/generate/{video_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate grounded enrichment candidates (Admin)
+     * @description Generate review-only chapter and label candidates for one selected video.
+     */
+    post: operations['admin_generate_archive_enrichment_admin_archive_enrichment_generate__video_id__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/archive/label-assignments/{assignment_id}/review': {
     parameters: {
       query?: never;
@@ -500,6 +540,26 @@ export interface paths {
     put?: never;
     /** Admin Record Opinion Candidate */
     post: operations['admin_record_opinion_candidate_admin_archive_topics__slug__opinions_candidates_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/archive/videos/{video_id}/chapters/review': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Review a complete chapter set (Admin)
+     * @description Atomically publish or reject a candidate set; edits and boundary changes are audited.
+     */
+    post: operations['admin_review_archive_chapter_set_admin_archive_videos__video_id__chapters_review_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2239,6 +2299,115 @@ export interface components {
       };
       /** Type */
       type: string;
+    };
+    /** ArchiveChapterCandidate */
+    ArchiveChapterCandidate: {
+      /** Chapter Index */
+      chapter_index: number;
+      /** Confidence Score */
+      confidence_score: number;
+      /** Created At */
+      created_at?: string | null;
+      /** End Ms */
+      end_ms: number;
+      /** Evidence */
+      evidence?: components['schemas']['ArchiveChapterEvidence'][];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Model Name */
+      model_name?: string | null;
+      /** Pipeline Version */
+      pipeline_version?: string | null;
+      /** Prompt Version */
+      prompt_version?: string | null;
+      /** Run Id */
+      run_id?: string | null;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: 'automatic' | 'manual' | 'hybrid';
+      /** Start Ms */
+      start_ms: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'candidate' | 'published' | 'rejected' | 'hidden';
+      /** Summary */
+      summary?: string | null;
+      /** Title */
+      title?: string | null;
+      /** Transcript Source */
+      transcript_source?: ('whisper' | 'youtube') | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
+    /** ArchiveChapterCandidateSet */
+    ArchiveChapterCandidateSet: {
+      /** Chapters */
+      chapters?: components['schemas']['ArchiveChapterCandidate'][];
+      /** Duration Seconds */
+      duration_seconds?: number | null;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+      /** Video Title */
+      video_title?: string | null;
+      /** Youtube Id */
+      youtube_id?: string | null;
+    };
+    /** ArchiveChapterCandidateSetListResponse */
+    ArchiveChapterCandidateSetListResponse: {
+      /** Items */
+      items?: components['schemas']['ArchiveChapterCandidateSet'][];
+    };
+    /** ArchiveChapterEdit */
+    ArchiveChapterEdit: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Start Ms */
+      start_ms?: number | null;
+      /** Summary */
+      summary?: string | null;
+      /** Title */
+      title?: string | null;
+    };
+    /** ArchiveChapterEvidence */
+    ArchiveChapterEvidence: {
+      /** Block Index */
+      block_index: number;
+      /** End Ms */
+      end_ms: number;
+      /** Start Ms */
+      start_ms: number;
+      /** Text */
+      text: string;
+    };
+    /** ArchiveChapterSetReviewAction */
+    ArchiveChapterSetReviewAction: {
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: 'publish' | 'reject';
+      /** Chapters */
+      chapters?: components['schemas']['ArchiveChapterEdit'][];
+      /** Reason */
+      reason?: string | null;
     };
     /** ArchiveDiscoveryResponse */
     ArchiveDiscoveryResponse: {
@@ -5766,6 +5935,73 @@ export interface operations {
       };
     };
   };
+  admin_list_archive_chapter_candidates_admin_archive_chapter_candidates_get: {
+    parameters: {
+      query?: {
+        /** @description Chapter status to review */
+        status?: string;
+        /** @description Optional video filter */
+        video_id?: string | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchiveChapterCandidateSetListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_generate_archive_enrichment_admin_archive_enrichment_generate__video_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   admin_review_archive_label_assignment_admin_archive_label_assignments__assignment_id__review_post: {
     parameters: {
       query?: never;
@@ -6533,6 +6769,41 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OpinionHistoryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_review_archive_chapter_set_admin_archive_videos__video_id__chapters_review_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ArchiveChapterSetReviewAction'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchiveChapterCandidateSet'];
         };
       };
       /** @description Validation Error */

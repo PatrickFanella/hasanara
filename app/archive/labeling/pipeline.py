@@ -4,6 +4,8 @@ from typing import Any
 
 from sqlalchemy import text
 
+from app.archive.transcript_selection import select_preferred_transcript
+
 from .extractors import extract_alias_candidates, extract_keyphrase_candidates, extract_title_alias_candidates
 from .normalization import slugify_label
 from .policy import classify_candidate
@@ -92,6 +94,17 @@ def _load_existing_aliases(db: Any) -> list[dict]:
     ]
     if "status" in alias_columns:
         where_clauses.append("a.status = 'active'")
+    # Treat duplicate normalized aliases as ambiguous even when an older import
+    # failed to maintain the denormalized is_ambiguous flag.
+    where_clauses.append("""
+        NOT EXISTS (
+            SELECT 1
+            FROM archive_label_aliases AS competing
+            WHERE competing.normalized_alias = a.normalized_alias
+              AND competing.label_id <> a.label_id
+              AND competing.status = 'active'
+        )
+    """)
 
     statement = text(f"""
         SELECT {', '.join(select_columns)}
@@ -147,9 +160,23 @@ def _load_video_title(db: Any, video_id: str) -> str:
 def _load_preferred_source_segments(db: Any, video_id: str) -> tuple[str, list[dict]]:
     """Load one transcript source so corroborating transcripts do not double-count evidence."""
     whisper_segments = load_source_segments(db, video_id, "whisper")
-    if whisper_segments:
-        return "whisper", whisper_segments
-    return "youtube", load_source_segments(db, video_id, "youtube")
+    youtube_segments = load_source_segments(db, video_id, "youtube")
+    if not whisper_segments and not youtube_segments:
+        return "whisper", []
+    duration_row = None
+    if hasattr(db, "execute"):
+        duration_row = _fetch_first_dict(
+            db.execute(text("SELECT duration_seconds FROM videos WHERE id = :video_id"), {"video_id": video_id})
+        )
+    duration_ms = int((duration_row or {}).get("duration_seconds") or 0) * 1000
+    if duration_ms <= 0:
+        duration_ms = max([int(row.get("end_ms") or 0) for row in [*whisper_segments, *youtube_segments]] or [1])
+    selected = select_preferred_transcript(
+        whisper_segments,
+        youtube_segments,
+        duration_ms=max(1, duration_ms),
+    )
+    return selected.source, selected.segments
 
 
 def extract_labels_for_video(
@@ -158,7 +185,7 @@ def extract_labels_for_video(
     extraction_tier: str = "cheap",
     *,
     title_only: bool = False,
-    include_keyphrases: bool = True,
+    include_keyphrases: bool = False,
     run_id: str | None = None,
 ) -> dict:
     run_scope = "video_title" if title_only else "video"
@@ -207,21 +234,37 @@ def extract_labels_for_video(
         for candidate in candidates:
             evidence = list(candidate.evidence)
             distinct_videos = len({str(item.get("video_id") or "") for item in evidence if item.get("video_id")})
-            policy = _load_policy(db, candidate.kind, "window", extraction_tier)
-            existing_canonical = _candidate_existing_canonical(candidate)
-            publish_tier, assignment_status = classify_candidate(
-                {
-                    "label": candidate.label,
-                    "kind": candidate.kind,
-                    "unit_type": "window",
-                    "confidence_score": candidate.confidence_score,
-                    "evidence_count": len(evidence),
-                    "distinct_videos": distinct_videos,
-                    "source": str(evidence[0].get("extractor") or "hybrid") if evidence else "hybrid",
-                },
-                policy,
-                existing_canonical=existing_canonical,
+            title_evidence = bool(evidence) and all(
+                str(item.get("extractor") or "").lower() == "title" for item in evidence
             )
+            unit_type = "vod" if title_evidence else "window"
+            policy = _load_policy(db, candidate.kind, unit_type, extraction_tier)
+            existing_canonical = _candidate_existing_canonical(candidate)
+            if title_evidence and candidate.kind == "person":
+                person_present = any(bool(item.get("person_presence")) for item in evidence)
+                publish_tier, assignment_status = (
+                    ("gold", "auto_published") if person_present else ("bronze", "candidate")
+                )
+            elif title_evidence and candidate.kind in {"category", "series", "game", "meme", "event"}:
+                publish_tier, assignment_status = "gold", "auto_published"
+            elif not title_evidence and candidate.kind == "person":
+                # Transcript mentions are useful evidence, but never proof that
+                # someone was physically or remotely present on stream.
+                publish_tier, assignment_status = "bronze", "candidate"
+            else:
+                publish_tier, assignment_status = classify_candidate(
+                    {
+                        "label": candidate.label,
+                        "kind": candidate.kind,
+                        "unit_type": unit_type,
+                        "confidence_score": candidate.confidence_score,
+                        "evidence_count": len(evidence),
+                        "distinct_videos": distinct_videos,
+                        "source": str(evidence[0].get("extractor") or "hybrid") if evidence else "hybrid",
+                    },
+                    policy,
+                    existing_canonical=existing_canonical,
+                )
 
             label_status = "published" if assignment_status == "auto_published" else "candidate"
             label_id = upsert_label_candidate(
@@ -253,15 +296,15 @@ def extract_labels_for_video(
                     db,
                     label_id=label_id,
                     video_id=str(item.get("video_id") or video_id),
-                    unit_type="window",
+                    unit_type=unit_type,
                     status=assignment_status,
                     publish_tier=publish_tier,
                     confidence_score=candidate.confidence_score,
                     evidence=[item],
                     source=source,
                     run_id=run_id,
-                    start_ms=_coerce_int(item.get("start_ms")),
-                    end_ms=_coerce_int(item.get("end_ms")),
+                    start_ms=None if unit_type == "vod" else _coerce_int(item.get("start_ms")),
+                    end_ms=None if unit_type == "vod" else _coerce_int(item.get("end_ms")),
                     window_id=None,
                     chapter_id=None,
                     component_scores={

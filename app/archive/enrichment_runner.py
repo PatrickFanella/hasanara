@@ -31,7 +31,11 @@ class EpisodeInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     video_id: str = Field(min_length=1)
+    title: str | None = Field(default=None, max_length=500)
     duration_ms: int = Field(gt=0)
+    transcript_source: Literal["whisper", "youtube"] | None = None
+    transcript_coverage: float | None = Field(default=None, ge=0, le=1)
+    transcript_selection_reason: str | None = Field(default=None, max_length=120)
     blocks: list[TranscriptBlockInput] = Field(min_length=1)
 
     @model_validator(mode="after")

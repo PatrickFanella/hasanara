@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -110,7 +111,7 @@ def persist_enrichment_candidates(
             SELECT COUNT(*)
             FROM archive_video_chapters
             WHERE video_id = :video_id
-              AND NOT (status = 'candidate' AND source = 'automatic')
+              AND (source <> 'automatic' OR status IN ('published', 'hidden'))
             """),
         {"video_id": episode.video_id},
     ).scalar_one()
@@ -121,8 +122,8 @@ def persist_enrichment_candidates(
         text("""
             DELETE FROM archive_video_chapters
             WHERE video_id = :video_id
-              AND status = 'candidate'
               AND source = 'automatic'
+              AND status IN ('candidate', 'rejected')
             """),
         {"video_id": episode.video_id},
     )
@@ -132,15 +133,30 @@ def persist_enrichment_candidates(
             if index + 1 < len(result.candidate.chapters)
             else episode.duration_ms
         )
+        block_by_index = {block.block_index: block for block in episode.blocks}
+        chapter_evidence = [
+            {
+                "block_index": block.block_index,
+                "start_ms": block.start_ms,
+                "end_ms": block.end_ms,
+                "text": block.text[:500],
+            }
+            for block_index in chapter.evidence_block_indexes
+            if (block := block_by_index.get(block_index)) is not None
+        ]
         _extract_id(
             db.execute(
                 text("""
                     INSERT INTO archive_video_chapters (
                         video_id, chapter_index, start_ms, end_ms, title, summary,
-                        confidence_score, status, source, run_id, created_at, updated_at
+                        confidence_score, status, source, run_id, evidence,
+                        pipeline_version, model_name, prompt_version, transcript_source,
+                        created_at, updated_at
                     ) VALUES (
                         :video_id, :chapter_index, :start_ms, :end_ms, :title, :summary,
-                        :confidence_score, :status, :source, :run_id, now(), now()
+                        :confidence_score, :status, :source, :run_id, CAST(:evidence AS jsonb),
+                        :pipeline_version, :model_name, :prompt_version, :transcript_source,
+                        now(), now()
                     )
                     RETURNING id
                     """),
@@ -155,6 +171,11 @@ def persist_enrichment_candidates(
                     "status": "candidate",
                     "source": "automatic",
                     "run_id": run_id,
+                    "evidence": json.dumps(chapter_evidence),
+                    "pipeline_version": f"grounded-episode-enrichment:{result.prompt_version}",
+                    "model_name": result.model,
+                    "prompt_version": result.prompt_version,
+                    "transcript_source": episode.transcript_source,
                 },
             ).first()
         )

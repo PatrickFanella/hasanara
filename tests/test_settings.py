@@ -128,6 +128,9 @@ def test_validate_production_settings_allows_safe_config():
 def test_archive_enrichment_defaults_to_disabled_v4_pro_candidates():
     config = _isolated_settings()
 
+    assert config.WHISPER_LANGUAGE == "en"
+    assert config.WHISPER_VAD_FILTER is True
+    assert "HasanAbi" in config.WHISPER_INITIAL_PROMPT
     assert config.ARCHIVE_ENRICHMENT_ENABLED is False
     assert config.ARCHIVE_ENRICHMENT_MODEL == "deepseek/deepseek-v4-pro"
     assert config.ARCHIVE_ENRICHMENT_MAX_WINDOW_MINUTES == 90

@@ -8,7 +8,9 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from .. import crud
+from ..archive.chapter_review import list_chapter_candidate_sets, review_chapter_set
 from ..archive.discovery import build_discovery_page
+from ..archive.enrichment_service import enrich_video_candidates
 from ..archive.intelligence import get_archive_intelligence, get_archive_period_options
 from ..archive.intelligence_repository import (
     create_named_period,
@@ -42,6 +44,10 @@ from ..exceptions import NotFoundError, ValidationError
 from ..feed_cursor import CursorError
 from ..pagination import build_offset_page
 from ..schemas import (
+    ArchiveChapterCandidate,
+    ArchiveChapterCandidateSet,
+    ArchiveChapterCandidateSetListResponse,
+    ArchiveChapterSetReviewAction,
     ArchiveDiscoveryResponse,
     ArchiveIntelligenceResponse,
     ArchiveLabelAssignmentListResponse,
@@ -955,6 +961,7 @@ def admin_review_archive_label(
 ):
     label = _review_label_action(db, label_id, payload, user)
     db.commit()
+    invalidate_cache_pattern("video:*")
     return label
 
 
@@ -972,6 +979,7 @@ def admin_review_archive_label_assignment(
 ):
     assignment = _review_assignment_action(db, assignment_id, payload, user)
     db.commit()
+    invalidate_video_data(assignment.video_id)
     return assignment
 
 
@@ -989,4 +997,77 @@ def admin_extract_labels_for_video(
 ):
     result = extract_labels_for_video(db, video_id=str(video_id), extraction_tier=extraction_tier)
     db.commit()
+    invalidate_video_data(video_id)
     return ArchiveLabelExtractionResponse(**result)
+
+
+@router.post(
+    "/admin/archive/enrichment/generate/{video_id}",
+    summary="Generate grounded enrichment candidates (Admin)",
+    description="Generate review-only chapter and label candidates for one selected video.",
+)
+def admin_generate_archive_enrichment(
+    video_id: uuid.UUID,
+    db=Depends(get_db),
+    user=Depends(require_role(ROLE_ADMIN)),
+):
+    return enrich_video_candidates(db, str(video_id))
+
+
+@router.get(
+    "/admin/archive/chapter-candidates",
+    response_model=ArchiveChapterCandidateSetListResponse,
+    summary="List chapter candidate sets (Admin)",
+    description="List complete per-video chapter sets with stored evidence and model provenance.",
+)
+def admin_list_archive_chapter_candidates(
+    status: str = Query("candidate", description="Chapter status to review"),
+    video_id: uuid.UUID | None = Query(None, description="Optional video filter"),
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db=Depends(get_db),
+    user=Depends(require_role(ROLE_ADMIN)),
+):
+    items = list_chapter_candidate_sets(
+        db,
+        status=status,
+        video_id=str(video_id) if video_id else None,
+        limit=limit,
+        offset=offset,
+    )
+    return ArchiveChapterCandidateSetListResponse(
+        items=[ArchiveChapterCandidateSet.model_validate(item) for item in items]
+    )
+
+
+@router.post(
+    "/admin/archive/videos/{video_id}/chapters/review",
+    response_model=ArchiveChapterCandidateSet,
+    summary="Review a complete chapter set (Admin)",
+    description="Atomically publish or reject a candidate set; edits and boundary changes are audited.",
+)
+def admin_review_archive_chapter_set(
+    video_id: uuid.UUID,
+    payload: ArchiveChapterSetReviewAction,
+    db=Depends(get_db),
+    user=Depends(require_role(ROLE_ADMIN)),
+):
+    chapters = review_chapter_set(
+        db,
+        str(video_id),
+        action=payload.action,
+        edits=[item.model_dump(exclude_none=True, mode="json") for item in payload.chapters],
+        reason=payload.reason,
+        user_id=_user_id_value(user),
+    )
+    db.commit()
+    invalidate_video_data(video_id)
+    video = crud.get_video(db, video_id)
+    video_data = dict(video) if video else {}
+    return ArchiveChapterCandidateSet(
+        video_id=video_id,
+        youtube_id=video_data.get("youtube_id"),
+        video_title=video_data.get("title"),
+        duration_seconds=video_data.get("duration_seconds"),
+        chapters=[ArchiveChapterCandidate.model_validate(chapter) for chapter in chapters],
+    )

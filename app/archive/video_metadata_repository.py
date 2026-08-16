@@ -724,32 +724,106 @@ def _get_video_metadata_map(db, video_ids: list, published_only: bool) -> dict[s
     video_id_values = list(dict.fromkeys(str(video_id) for video_id in video_ids))
     clause, params = _in_clause("video_id", video_id_values)
 
+    unified_people_sql = ""
+    unified_tags_sql = ""
+    if published_only:
+        unified_people_sql = """
+            UNION ALL
+            SELECT
+                a.video_id,
+                l.slug,
+                l.label AS display_name,
+                COALESCE(
+                    (SELECT jsonb_agg(alias.alias ORDER BY alias.weight DESC, alias.alias)
+                     FROM archive_label_aliases AS alias
+                     WHERE alias.label_id = l.id AND alias.status = 'active'),
+                    '[]'::jsonb
+                ) AS aliases,
+                l.description,
+                COALESCE(a.evidence->0->>'person_role', 'subject') AS role,
+                CASE WHEN a.status = 'admin_approved' THEN 'admin' ELSE 'auto' END AS confidence,
+                'Canonical label assignment ' || CAST(a.id AS text) AS notes,
+                0 AS sort_order,
+                a.created_at,
+                1 AS projection_priority
+            FROM archive_label_assignments AS a
+            JOIN archive_labels AS l ON l.id = a.label_id
+            WHERE a.video_id IN ({clause})
+              AND a.unit_type = 'vod'
+              AND l.kind = 'person'
+              AND l.status = 'published'
+              AND (
+                    a.status = 'admin_approved'
+                    OR (a.status = 'auto_published' AND a.publish_tier IN ('gold', 'silver'))
+                  )
+              AND COALESCE(a.evidence->0->>'person_role', 'subject') IN ('guest', 'host', 'caller')
+        """
+        unified_tags_sql = """
+            UNION ALL
+            SELECT
+                a.video_id,
+                l.slug,
+                l.label,
+                l.kind,
+                l.description,
+                CASE WHEN a.status = 'admin_approved' THEN 'admin' ELSE 'auto' END AS confidence,
+                'Canonical label assignment ' || CAST(a.id AS text) AS notes,
+                0 AS sort_order,
+                a.created_at,
+                1 AS projection_priority
+            FROM archive_label_assignments AS a
+            JOIN archive_labels AS l ON l.id = a.label_id
+            WHERE a.video_id IN ({clause})
+              AND a.unit_type = 'vod'
+              AND l.kind <> 'person'
+              AND l.status = 'published'
+              AND (
+                    a.status = 'admin_approved'
+                    OR (
+                        a.status = 'auto_published'
+                        AND a.publish_tier IN ('gold', 'silver')
+                        AND l.kind IN ('category', 'series', 'game', 'meme', 'event')
+                    )
+                  )
+        """
+
     people_rows = (
         db.execute(
             text(f"""
-            SELECT
-                vp.video_id,
-                p.slug,
-                p.display_name,
-                p.aliases,
-                p.description,
-                vp.role,
-                vp.confidence,
-                vp.notes,
-                p.sort_order
-            FROM archive_video_people vp
-            JOIN archive_people p ON p.id = vp.person_id
-            WHERE vp.video_id IN ({clause})
-              {"AND p.status = 'published'" if published_only else ""}
-            ORDER BY p.sort_order ASC, p.display_name ASC, vp.created_at ASC
+            SELECT *
+            FROM (
+                SELECT
+                    vp.video_id,
+                    p.slug,
+                    p.display_name,
+                    p.aliases,
+                    p.description,
+                    vp.role,
+                    vp.confidence,
+                    vp.notes,
+                    p.sort_order,
+                    vp.created_at,
+                    0 AS projection_priority
+                FROM archive_video_people vp
+                JOIN archive_people p ON p.id = vp.person_id
+                WHERE vp.video_id IN ({clause})
+                  {"AND p.status = 'published'" if published_only else ""}
+                {unified_people_sql.format(clause=clause)}
+            ) AS people_metadata
+            ORDER BY projection_priority ASC, sort_order ASC, display_name ASC, created_at ASC
             """),
             params,
         )
         .mappings()
         .all()
     )
+    person_keys: set[tuple[str, str]] = set()
     for row in people_rows:
         video_key = str(row["video_id"])
+        person_key = (video_key, str(row["slug"]))
+        if person_key in person_keys:
+            continue
+        person_keys.add(person_key)
         bucket = result.setdefault(video_key, {"people": [], "tags": []})
         bucket["people"].append(
             {
@@ -765,28 +839,39 @@ def _get_video_metadata_map(db, video_ids: list, published_only: bool) -> dict[s
     tag_rows = (
         db.execute(
             text(f"""
-            SELECT
-                vt.video_id,
-                t.slug,
-                t.label,
-                t.kind,
-                t.description,
-                vt.confidence,
-                vt.notes,
-                t.sort_order
-            FROM archive_video_taggings vt
-            JOIN archive_video_tags t ON t.id = vt.tag_id
-            WHERE vt.video_id IN ({clause})
-              {"AND t.status = 'published'" if published_only else ""}
-            ORDER BY t.sort_order ASC, t.label ASC, vt.created_at ASC
+            SELECT *
+            FROM (
+                SELECT
+                    vt.video_id,
+                    t.slug,
+                    t.label,
+                    t.kind,
+                    t.description,
+                    vt.confidence,
+                    vt.notes,
+                    t.sort_order,
+                    vt.created_at,
+                    0 AS projection_priority
+                FROM archive_video_taggings vt
+                JOIN archive_video_tags t ON t.id = vt.tag_id
+                WHERE vt.video_id IN ({clause})
+                  {"AND t.status = 'published'" if published_only else ""}
+                {unified_tags_sql.format(clause=clause)}
+            ) AS tag_metadata
+            ORDER BY projection_priority ASC, sort_order ASC, label ASC, created_at ASC
             """),
             params,
         )
         .mappings()
         .all()
     )
+    tag_keys: set[tuple[str, str]] = set()
     for row in tag_rows:
         video_key = str(row["video_id"])
+        tag_key = (video_key, str(row["slug"]))
+        if tag_key in tag_keys:
+            continue
+        tag_keys.add(tag_key)
         bucket = result.setdefault(video_key, {"people": [], "tags": []})
         bucket["tags"].append(
             {

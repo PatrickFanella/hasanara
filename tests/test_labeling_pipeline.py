@@ -262,7 +262,12 @@ def test_extract_labels_for_video_uses_keyphrase_assignment_source(monkeypatch):
         pipeline, "insert_assignment", lambda _db, **kwargs: assignment_calls.append(kwargs) or "assignment-2"
     )
 
-    result = pipeline.extract_labels_for_video(db, video_id="video-2", extraction_tier="cheap")
+    result = pipeline.extract_labels_for_video(
+        db,
+        video_id="video-2",
+        extraction_tier="cheap",
+        include_keyphrases=True,
+    )
 
     assert result["candidates"] == 1
     assert assignment_calls[0]["source"] == "keyphrase"
@@ -406,7 +411,12 @@ def test_extract_labels_for_video_skips_assignments_for_hidden_labels(monkeypatc
 
     db.execute = fake_execute
 
-    result = pipeline.extract_labels_for_video(db, video_id="video-hidden", extraction_tier="cheap")
+    result = pipeline.extract_labels_for_video(
+        db,
+        video_id="video-hidden",
+        extraction_tier="cheap",
+        include_keyphrases=True,
+    )
 
     assert result["candidates"] == 1
     assert result["assignments"] == 0

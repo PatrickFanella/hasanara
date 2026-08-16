@@ -118,6 +118,9 @@ def test_labeling_admin_routes_registered(client: TestClient):
         "/admin/archive/labels/{label_id}/review": {"post"},
         "/admin/archive/label-assignments/{assignment_id}/review": {"post"},
         "/admin/archive/labels/extract-video/{video_id}": {"post"},
+        "/admin/archive/enrichment/generate/{video_id}": {"post"},
+        "/admin/archive/chapter-candidates": {"get"},
+        "/admin/archive/videos/{video_id}/chapters/review": {"post"},
     }
 
     for path, methods in expected_paths.items():
@@ -138,6 +141,15 @@ def test_labeling_admin_routes_require_auth(client: TestClient):
         == 401
     )
     assert client.post(f"/admin/archive/labels/extract-video/{video_id}").status_code == 401
+    assert client.post(f"/admin/archive/enrichment/generate/{video_id}").status_code == 401
+    assert client.get("/admin/archive/chapter-candidates").status_code == 401
+    assert (
+        client.post(
+            f"/admin/archive/videos/{video_id}/chapters/review",
+            json={"action": "reject", "reason": "not coherent"},
+        ).status_code
+        == 401
+    )
 
 
 def test_labeling_admin_routes_require_admin(client: TestClient, db_session):
@@ -167,6 +179,20 @@ def test_labeling_admin_routes_require_admin(client: TestClient, db_session):
     )
     assert (
         client.post(f"/admin/archive/labels/extract-video/{video_id}", cookies=cookies, headers=headers).status_code
+        == 403
+    )
+    assert (
+        client.post(f"/admin/archive/enrichment/generate/{video_id}", cookies=cookies, headers=headers).status_code
+        == 403
+    )
+    assert client.get("/admin/archive/chapter-candidates", cookies=cookies).status_code == 403
+    assert (
+        client.post(
+            f"/admin/archive/videos/{video_id}/chapters/review",
+            json={"action": "reject", "reason": "not coherent"},
+            cookies=cookies,
+            headers=headers,
+        ).status_code
         == 403
     )
 
@@ -204,6 +230,31 @@ def test_review_assignment_approve_updates_assignment_label_and_feedback():
     assert "INSERT INTO archive_label_feedback" in db.calls[3][0]
 
 
+def test_review_assignment_route_invalidates_the_changed_video(monkeypatch):
+    label_id = uuid.uuid4()
+    assignment_id = uuid.uuid4()
+    before = _assignment_row(assignment_id, label_id)
+    after = _assignment_row(
+        assignment_id,
+        label_id,
+        assignment_status="admin_approved",
+        label_status="published",
+    )
+    db = FakeDb([FakeResult([before]), FakeResult(), FakeResult(), FakeResult(), FakeResult([after])])
+    invalidated = []
+    monkeypatch.setattr(archive_routes, "invalidate_video_data", invalidated.append)
+
+    result = archive_routes.admin_review_archive_label_assignment(
+        assignment_id=assignment_id,
+        payload=ArchiveLabelReviewAction(action="approve"),
+        db=db,
+        user={"id": uuid.uuid4()},
+    )
+
+    assert db.commit_count == 1
+    assert invalidated == [result.video_id]
+
+
 def test_extract_video_route_calls_pipeline_and_commits(monkeypatch):
     db = FakeDb([])
     captured = {}
@@ -222,13 +273,23 @@ def test_extract_video_route_calls_pipeline_and_commits(monkeypatch):
         }
 
     monkeypatch.setattr(archive_routes, "extract_labels_for_video", fake_extract)
+    monkeypatch.setattr(
+        archive_routes,
+        "invalidate_video_data",
+        lambda video_id: captured.update(invalidated_video_id=video_id),
+    )
 
     video_id = uuid.uuid4()
     result = archive_routes.admin_extract_labels_for_video(
         video_id=video_id, extraction_tier="balanced", db=db, user={"id": uuid.uuid4()}
     )
 
-    assert captured == {"db": db, "video_id": str(video_id), "extraction_tier": "balanced"}
+    assert captured == {
+        "db": db,
+        "video_id": str(video_id),
+        "extraction_tier": "balanced",
+        "invalidated_video_id": video_id,
+    }
     assert result.run_id == "run-1"
     assert result.windows == 2
     assert db.commit_count == 1

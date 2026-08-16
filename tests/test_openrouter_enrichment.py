@@ -206,7 +206,11 @@ def test_hierarchical_enrichment_bounds_windows_and_recombines_episode():
     duration_ms = 200 * 60_000
     episode = EpisodeInput(
         video_id="long-video",
+        title="A long mixed-topic VOD",
         duration_ms=duration_ms,
+        transcript_source="youtube",
+        transcript_coverage=0.98,
+        transcript_selection_reason="youtube_higher_coverage_quality",
         blocks=[
             TranscriptBlockInput(
                 block_index=index,
@@ -221,6 +225,10 @@ def test_hierarchical_enrichment_bounds_windows_and_recombines_episode():
 
     def generate_window(window: EpisodeInput) -> OpenRouterEpisodeResult:
         window_durations.append(window.duration_ms)
+        assert window.title == episode.title
+        assert window.transcript_source == episode.transcript_source
+        assert window.transcript_coverage == episode.transcript_coverage
+        assert window.transcript_selection_reason == episode.transcript_selection_reason
         midpoint = window.duration_ms // 2
         return OpenRouterEpisodeResult(
             video_id=window.video_id,

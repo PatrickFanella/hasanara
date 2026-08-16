@@ -264,6 +264,370 @@
         "title": "AnalyticsEventInput",
         "type": "object"
       },
+      "ArchiveChapterCandidate": {
+        "properties": {
+          "chapter_index": {
+            "minimum": 0.0,
+            "title": "Chapter Index",
+            "type": "integer"
+          },
+          "confidence_score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence Score",
+            "type": "number"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "end_ms": {
+            "exclusiveMinimum": 0.0,
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChapterEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Name"
+          },
+          "pipeline_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipeline Version"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "source": {
+            "enum": [
+              "automatic",
+              "manual",
+              "hybrid"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "start_ms": {
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "candidate",
+              "published",
+              "rejected",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "transcript_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "whisper",
+                  "youtube"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript Source"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "video_id": {
+            "format": "uuid",
+            "title": "Video Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "video_id",
+          "chapter_index",
+          "start_ms",
+          "end_ms",
+          "confidence_score",
+          "status",
+          "source"
+        ],
+        "title": "ArchiveChapterCandidate",
+        "type": "object"
+      },
+      "ArchiveChapterCandidateSet": {
+        "properties": {
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChapterCandidate"
+            },
+            "title": "Chapters",
+            "type": "array"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "video_id": {
+            "format": "uuid",
+            "title": "Video Id",
+            "type": "string"
+          },
+          "video_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Title"
+          },
+          "youtube_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Youtube Id"
+          }
+        },
+        "required": [
+          "video_id"
+        ],
+        "title": "ArchiveChapterCandidateSet",
+        "type": "object"
+      },
+      "ArchiveChapterCandidateSetListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChapterCandidateSet"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "ArchiveChapterCandidateSetListResponse",
+        "type": "object"
+      },
+      "ArchiveChapterEdit": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "ArchiveChapterEdit",
+        "type": "object"
+      },
+      "ArchiveChapterEvidence": {
+        "properties": {
+          "block_index": {
+            "minimum": 0.0,
+            "title": "Block Index",
+            "type": "integer"
+          },
+          "end_ms": {
+            "minimum": 0.0,
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_index",
+          "start_ms",
+          "end_ms",
+          "text"
+        ],
+        "title": "ArchiveChapterEvidence",
+        "type": "object"
+      },
+      "ArchiveChapterSetReviewAction": {
+        "properties": {
+          "action": {
+            "enum": [
+              "publish",
+              "reject"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChapterEdit"
+            },
+            "title": "Chapters",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "ArchiveChapterSetReviewAction",
+        "type": "object"
+      },
       "ArchiveDiscoveryResponse": {
         "properties": {
           "items": {
@@ -6560,6 +6924,136 @@
         ]
       }
     },
+    "/admin/archive/chapter-candidates": {
+      "get": {
+        "description": "List complete per-video chapter sets with stored evidence and model provenance.",
+        "operationId": "admin_list_archive_chapter_candidates_admin_archive_chapter_candidates_get",
+        "parameters": [
+          {
+            "description": "Chapter status to review",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "candidate",
+              "description": "Chapter status to review",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional video filter",
+            "in": "query",
+            "name": "video_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional video filter",
+              "title": "Video Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveChapterCandidateSetListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List chapter candidate sets (Admin)",
+        "tags": [
+          "Archive"
+        ]
+      }
+    },
+    "/admin/archive/enrichment/generate/{video_id}": {
+      "post": {
+        "description": "Generate review-only chapter and label candidates for one selected video.",
+        "operationId": "admin_generate_archive_enrichment_admin_archive_enrichment_generate__video_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Video Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate grounded enrichment candidates (Admin)",
+        "tags": [
+          "Archive"
+        ]
+      }
+    },
     "/admin/archive/label-assignments/{assignment_id}/review": {
       "post": {
         "description": "Approve, reject, publish, or hide a label assignment.",
@@ -7922,6 +8416,60 @@
           }
         },
         "summary": "Admin Record Opinion Candidate",
+        "tags": [
+          "Archive"
+        ]
+      }
+    },
+    "/admin/archive/videos/{video_id}/chapters/review": {
+      "post": {
+        "description": "Atomically publish or reject a candidate set; edits and boundary changes are audited.",
+        "operationId": "admin_review_archive_chapter_set_admin_archive_videos__video_id__chapters_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Video Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveChapterSetReviewAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveChapterCandidateSet"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review a complete chapter set (Admin)",
         "tags": [
           "Archive"
         ]

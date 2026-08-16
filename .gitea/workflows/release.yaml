@@ -219,6 +219,7 @@ jobs:
             tag="validation-${short_sha}-${{ gitea.run_number }}"
           fi
           printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+          printf 'build_date=%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
         with:
@@ -253,6 +254,9 @@ jobs:
           load: true
           push: false
           tags: ${{ matrix.image }}:${{ steps.target.outputs.tag }}
+          build-args: |
+            GIT_COMMIT=${{ gitea.sha }}
+            BUILD_DATE=${{ steps.target.outputs.build_date }}
       - name: Prepare pinned Trivy scanner cache
         id: trivy
         run: |

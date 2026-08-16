@@ -100,15 +100,30 @@ def upsert_label_candidate(
                 :confidence_score, :run_id, now(), now()
             )
             ON CONFLICT (slug) DO UPDATE SET
-                label = EXCLUDED.label,
-                kind = EXCLUDED.kind,
+                label = CASE
+                    WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden')
+                      OR archive_labels.source IN ('admin', 'seed', 'hybrid')
+                    THEN archive_labels.label
+                    ELSE EXCLUDED.label
+                END,
+                kind = CASE
+                    WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden')
+                      OR archive_labels.source IN ('admin', 'seed', 'hybrid')
+                    THEN archive_labels.kind
+                    ELSE EXCLUDED.kind
+                END,
                 confidence_score = GREATEST(archive_labels.confidence_score, EXCLUDED.confidence_score),
                 publish_tier = CASE
+                    WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden')
+                      OR archive_labels.source IN ('admin', 'seed', 'hybrid')
+                    THEN archive_labels.publish_tier
                     WHEN EXCLUDED.confidence_score >= archive_labels.confidence_score THEN EXCLUDED.publish_tier
                     ELSE archive_labels.publish_tier
                 END,
                 status = CASE
-                    WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden') THEN archive_labels.status
+                    WHEN archive_labels.status IN ('published', 'rejected', 'merged', 'hidden')
+                      OR archive_labels.source IN ('admin', 'seed', 'hybrid')
+                    THEN archive_labels.status
                     ELSE EXCLUDED.status
                 END,
                 updated_at = now()

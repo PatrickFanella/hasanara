@@ -9,6 +9,63 @@ from .normalization import is_junk_phrase, normalize_label, normalized_alias
 from .types import LabelCandidate
 
 
+def _usable_aliases(aliases: list[dict]) -> tuple[dict[str, dict], dict[str, set[str]]]:
+    """Return active aliases that resolve to exactly one canonical label.
+
+    The database carries an ambiguity flag, but older imports did not maintain
+    it consistently. Recomputing collisions at read time prevents an unmarked
+    alias such as ``Austin`` from silently resolving to whichever label row was
+    loaded last.
+    """
+    active_rows: list[tuple[dict, str, str]] = []
+    label_ids_by_alias: dict[str, set[str]] = defaultdict(set)
+    for alias_row in aliases:
+        label_id = str(alias_row.get("label_id") or "")
+        if not label_id:
+            continue
+        status = alias_row.get("status")
+        if status is not None and str(status).lower() != "active":
+            continue
+        alias_value = normalized_alias(str(alias_row.get("alias") or ""))
+        if not alias_value or is_junk_phrase(alias_value):
+            continue
+        label_ids_by_alias[alias_value].add(label_id)
+        if not bool(alias_row.get("is_ambiguous")):
+            active_rows.append((alias_row, label_id, alias_value))
+
+    label_rows: dict[str, dict] = {}
+    alias_terms_by_label: dict[str, set[str]] = defaultdict(set)
+    for alias_row, label_id, alias_value in active_rows:
+        if len(label_ids_by_alias[alias_value]) != 1:
+            continue
+        kind = str(alias_row.get("kind") or "topic").lower()
+        canonical_alias = normalized_alias(str(alias_row.get("label") or ""))
+        # One-word nicknames are too collision-prone for automatic person
+        # detection. Keep a one-word handle only when it is itself the canonical
+        # display name (YourRage, Valkyrae, Pokimane, and similar handles).
+        if kind == "person" and " " not in alias_value and alias_value != canonical_alias:
+            continue
+        label_rows[label_id] = alias_row
+        alias_terms_by_label[label_id].add(alias_value)
+    return label_rows, alias_terms_by_label
+
+
+def _match_centered_snippet(text: str, matched_alias: str, *, radius: int = 180) -> str:
+    words = [re.escape(part) for part in matched_alias.split() if part]
+    pattern = re.compile(r"\b" + r"[^a-z0-9]+".join(words) + r"\b", re.IGNORECASE) if words else None
+    match = pattern.search(text) if pattern else None
+    if match is None:
+        return text[: radius * 2].strip()
+    start = max(0, match.start() - radius)
+    end = min(len(text), match.end() + radius)
+    snippet = text[start:end].strip()
+    if start:
+        snippet = f"…{snippet}"
+    if end < len(text):
+        snippet = f"{snippet}…"
+    return snippet
+
+
 def _ngrams(text: str, max_words: int = 3, max_tokens: int = 400) -> list[str]:
     words = [word for word in normalized_alias(text).split() if word][:max_tokens]
     phrases: list[str] = []
@@ -87,26 +144,7 @@ def extract_keyphrase_candidates(
 
 def extract_alias_candidates(windows: list[dict], aliases: list[dict]) -> list[LabelCandidate]:
     evidence_by_label: dict[str, list[dict]] = defaultdict(list)
-    alias_terms_by_label: dict[str, set[str]] = defaultdict(set)
-    label_rows: dict[str, dict] = {}
-
-    for alias_row in aliases:
-        label_id = str(alias_row.get("label_id") or "")
-        if not label_id:
-            continue
-
-        status = alias_row.get("status")
-        if status is not None and str(status).lower() != "active":
-            continue
-        if bool(alias_row.get("is_ambiguous")):
-            continue
-
-        alias_value = normalized_alias(str(alias_row.get("alias") or ""))
-        if not alias_value or is_junk_phrase(alias_value):
-            continue
-
-        label_rows[label_id] = alias_row
-        alias_terms_by_label[label_id].add(alias_value)
+    label_rows, alias_terms_by_label = _usable_aliases(aliases)
 
     for window in windows:
         text = str(window.get("text") or "")
@@ -115,8 +153,6 @@ def extract_alias_candidates(windows: list[dict], aliases: list[dict]) -> list[L
         video_id = str(window.get("video_id") or "")
         start_ms = int(window.get("start_ms") or 0)
         end_ms = int(window.get("end_ms") or 0)
-        snippet = text[:300]
-
         for label_id in sorted(alias_terms_by_label):
             matches = sorted(term for term in alias_terms_by_label[label_id] if alias_matches_text(term, lowered_text))
             if not matches:
@@ -129,7 +165,7 @@ def extract_alias_candidates(windows: list[dict], aliases: list[dict]) -> list[L
                     "video_id": video_id,
                     "start_ms": start_ms,
                     "end_ms": end_ms,
-                    "snippet": snippet,
+                    "snippet": _match_centered_snippet(text, matches[0]),
                     "extractor": "alias",
                     "matched_alias": matches[0],
                 }
@@ -215,23 +251,59 @@ TITLE_PERSON_REJECT_TERMS = {
 
 
 def _title_alias_rows(aliases: list[dict]) -> tuple[dict[str, dict], dict[str, set[str]]]:
-    label_rows: dict[str, dict] = {}
-    alias_terms_by_label: dict[str, set[str]] = defaultdict(set)
-    for alias_row in aliases:
-        label_id = str(alias_row.get("label_id") or "")
-        if not label_id:
-            continue
-        status = alias_row.get("status")
-        if status is not None and str(status).lower() != "active":
-            continue
-        if bool(alias_row.get("is_ambiguous")):
-            continue
-        alias_value = normalized_alias(str(alias_row.get("alias") or ""))
-        if not alias_value or is_junk_phrase(alias_value):
-            continue
-        label_rows[label_id] = alias_row
-        alias_terms_by_label[label_id].add(alias_value)
-    return label_rows, alias_terms_by_label
+    return _usable_aliases(aliases)
+
+
+def infer_person_title_role(title: str, matched_alias: str) -> str:
+    """Classify an exact title match as on-stream presence or subject-only."""
+    normalized_title = normalized_alias(title)
+    normalized_match = normalized_alias(matched_alias)
+    if not normalized_title or not normalized_match:
+        return "subject"
+    match = re.search(rf"\b{re.escape(normalized_match)}\b", normalized_title)
+    if match is None:
+        return "subject"
+    before = normalized_title[max(0, match.start() - 55) : match.start()].strip()
+    after = normalized_title[match.end() : match.end() + 55].strip()
+    # Some curated aliases include the disambiguating verb (for example,
+    # "Austin calls"). Treat that as phone presence. Do not treat a generic
+    # ``PERSON calls SUBJECT ...`` construction as presence: political titles
+    # such as "Jake Tapper calls Hasan antisemitic" use ``calls`` as speech.
+    if (
+        re.search(r"\b(?:calls?|calling|calls in)$", normalized_match)
+        or re.search(r"(?:call in|call with|on the phone with)\s*$", before)
+        or re.match(r"^(?:calls in|joins (?:by )?phone|on the phone)\b", after)
+    ):
+        return "caller"
+    if re.search(
+        r"(?:with|w|featuring|featured|feat|ft|guest|joined by|talking with|talking to|"
+        r"interview with|interviews|interviewing|hanging out with|hangs out with)\s*$",
+        before,
+    ) or re.match(r"^(?:joins|joined|visits|visited|comes on|came on|on stream|in studio)\b", after):
+        return "guest"
+
+    # Titles often introduce several guests once: ``w/ MikeFromPA &
+    # AustinShow``. Preserve case here so the intervening text must look like a
+    # list of names and connectors, not a new prose/topic clause.
+    alias_words = [re.escape(word) for word in normalized_match.split() if word]
+    original_match = (
+        re.search(r"\b" + r"[^a-z0-9]+".join(alias_words) + r"\b", title, re.IGNORECASE) if alias_words else None
+    )
+    if original_match is not None:
+        original_before = title[max(0, original_match.start() - 140) : original_match.start()]
+        introductions = list(
+            re.finditer(
+                r"\b(?:with|w/|featuring|feat\.?|ft\.?|joined by)\s+",
+                original_before,
+                re.IGNORECASE,
+            )
+        )
+        if introductions:
+            intervening = original_before[introductions[-1].end() :]
+            tokens = re.findall(r"[A-Za-z0-9_'.-]+|&", intervening)
+            if tokens and all(token in {"&", "and", "the"} or token[:1].isupper() for token in tokens):
+                return "guest"
+    return "subject"
 
 
 def extract_title_alias_candidates(video: dict, aliases: list[dict]) -> list[LabelCandidate]:
@@ -248,10 +320,12 @@ def extract_title_alias_candidates(video: dict, aliases: list[dict]) -> list[Lab
         if not matches:
             continue
         row = label_rows[label_id]
+        kind = str(row.get("kind") or "topic")
+        person_role = infer_person_title_role(title, matches[0]) if kind == "person" else None
         candidates.append(
             LabelCandidate(
                 label=normalize_label(str(row.get("label") or label_id)),
-                kind=str(row.get("kind") or "topic"),
+                kind=kind,
                 aliases=tuple(sorted(alias_terms_by_label[label_id])),
                 confidence_score=0.97,
                 component_scores={"title_match": 1.0, "alias_count": float(len(alias_terms_by_label[label_id]))},
@@ -264,6 +338,14 @@ def extract_title_alias_candidates(video: dict, aliases: list[dict]) -> list[Lab
                         "extractor": "title",
                         "matched_alias": matches[0],
                         "title": title,
+                        **(
+                            {
+                                "person_role": person_role,
+                                "person_presence": person_role in {"guest", "host", "caller"},
+                            }
+                            if person_role is not None
+                            else {}
+                        ),
                     },
                 ),
             )
@@ -289,9 +371,16 @@ def _title_candidate_text(title: str) -> str:
 def suggest_person_names_from_title(title: str) -> list[str]:
     text = _title_candidate_text(title)
     candidates: list[str] = []
+    # Suggestions are proposals for a human-curated catalog. Require explicit
+    # guest/caller grammar instead of treating every title-cased phrase as a
+    # person; the old generic proper-noun scan proposed events and headlines as
+    # people (for example, "Artemis II" and "America Convention").
     patterns = [
-        r"\b(?:with|ft\.?|featuring|guest|visits?|interviews?|talking (?:with|to))\s+([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,3})",
-        r"\b([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){1,3})\b",
+        r"\b(?:with|w/|ft\.?|feat\.?|featuring|guest|joined by|interviews?|"
+        r"talking (?:with|to)|hanging out with|on the phone with)\s+"
+        r"([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,3})",
+        r"\b([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,3})\s+"
+        r"(?:joins|joined|visits|visited|calls in|comes on|in studio)\b",
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, text):
@@ -320,3 +409,13 @@ def suggest_person_names_from_titles(rows: list[dict]) -> list[dict]:
             if len(item["titles"]) < 5:
                 item["titles"].append({"video_id": str(row.get("id") or row.get("video_id") or ""), "title": title})
     return sorted(grouped.values(), key=lambda item: (-int(item["count"]), str(item["name"])))
+
+
+__all__ = [
+    "extract_alias_candidates",
+    "extract_keyphrase_candidates",
+    "extract_title_alias_candidates",
+    "infer_person_title_role",
+    "suggest_person_names_from_title",
+    "suggest_person_names_from_titles",
+]

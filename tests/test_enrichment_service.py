@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app.archive.enrichment_runner import EnrichmentInput, EpisodeInput
@@ -117,9 +119,17 @@ def test_persist_enrichment_writes_review_candidates_with_grounded_labels():
     )
 
     chapter_inserts = [call for call in db.calls if "INSERT INTO archive_video_chapters" in call[0]]
+    conflict_query = next(sql for sql, _params in db.calls if "SELECT COUNT(*)" in sql)
+    candidate_delete = next(sql for sql, _params in db.calls if "DELETE FROM archive_video_chapters" in sql)
     assert len(chapter_inserts) == 2
+    assert "source <> 'automatic'" in conflict_query
+    assert "status IN ('published', 'hidden')" in conflict_query
+    assert "status IN ('candidate', 'rejected')" in candidate_delete
     assert all(call[1]["status"] == "candidate" for call in chapter_inserts)
     assert all(call[1]["source"] == "automatic" for call in chapter_inserts)
+    assert all(call[1]["model_name"] == "deepseek/deepseek-v4-pro" for call in chapter_inserts)
+    assert all(call[1]["prompt_version"] == "prompt-v1" for call in chapter_inserts)
+    assert json.loads(chapter_inserts[0][1]["evidence"])[0]["block_index"] == 0
     assert {label["label"] for label in labels} == {
         "labor organizing",
         "housing costs",
