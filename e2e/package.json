@@ -20,7 +20,7 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^24.6.0",
     "@types/pg": "^8.11.10",
     "typescript": "~5.9.3",
