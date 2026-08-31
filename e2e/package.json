@@ -17,12 +17,12 @@
     "seed-db": "tsx fixtures/seed-database.ts"
   },
   "dependencies": {
-    "pg": "^8.13.1"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.1",
     "@types/node": "^24.6.0",
-    "@types/pg": "^8.11.10",
+    "@types/pg": "^8.23.1",
     "typescript": "~5.9.3",
     "tsx": "^4.19.2"
   }
