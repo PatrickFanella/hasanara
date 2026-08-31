@@ -24,4 +24,4 @@ types-PyYAML==6.0.12.20250915
 bandit[toml]==1.8.0
 pip-audit==2.8.0
 # Transitive pin for pip-audit's CacheControl security support.
-msgpack==1.2.1
+msgpack==1.2.2
