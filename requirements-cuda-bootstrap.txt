@@ -1,6 +1,6 @@
 # Bootstrap canonical PyPI artifacts before Torch to avoid divergent/truncated pypi.nvidia.com CDN bytes; hash validation remains enforced downstream.
 cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==12.8.1
-cuda-bindings==12.9.4
+cuda-bindings==13.3.1
 nvidia-cudnn-cu12==9.19.0.56
 nvidia-cusparselt-cu12==0.7.1
 nvidia-nccl-cu12==2.28.9
