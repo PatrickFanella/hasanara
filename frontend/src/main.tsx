@@ -1,3 +1,4 @@
+import { SiteProvider } from './services/site';
 import { lazy, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -11,6 +12,7 @@ import { registerWebVitals } from './services/webVitals';
 
 registerWebVitals();
 
+const CommunityPage = lazy(() => import('./routes/CommunityPage'));
 const HomePage = lazy(() => import('./routes/HomePage'));
 const SearchPage = lazy(() => import('./routes/SearchPage'));
 const ExplorePage = lazy(() => import('./routes/ExplorePage'));
@@ -44,6 +46,14 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     errorElement: <RouteErrorPage />,
     children: [
+      {
+        path: 'community',
+        element: (
+          <Page>
+            <CommunityPage />
+          </Page>
+        ),
+      },
       {
         index: true,
         element: (
@@ -246,14 +256,16 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <RootErrorBoundary>
-            <RouterProvider router={router} />
-          </RootErrorBoundary>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <SiteProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <RootErrorBoundary>
+              <RouterProvider router={router} />
+            </RootErrorBoundary>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </SiteProvider>
   </StrictMode>
 );

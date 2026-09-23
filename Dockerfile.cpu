@@ -54,14 +54,14 @@ COPY scripts/verify_ml_runtime.py /tmp/verify_ml_runtime.py
 # Install Python dependencies with pip cache mount for faster rebuilds
 # Use CPU-only PyTorch (smaller, no CUDA/ROCm)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install --no-cache-dir --upgrade setuptools==81.0.0 wheel==0.47.0 && \
+    pip3 install --no-cache-dir --upgrade pip==26.2 setuptools==83.0.0 wheel==0.47.0 && \
     TORCH_VERSION="$(sed -n 's/^torch==//p' requirements-ml-runtime.txt)" && \
     TORCHAUDIO_VERSION="$(sed -n 's/^torchaudio==//p' requirements-ml-runtime.txt)" && \
     TORCHCODEC_VERSION="$(sed -n 's/^torchcodec==//p' requirements-ml-runtime.txt)" && \
     pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
         "torch==${TORCH_VERSION}" "torchaudio==${TORCHAUDIO_VERSION}" \
         "torchcodec==${TORCHCODEC_VERSION}" && \
-    pip3 install --no-cache-dir -c constraints.txt -r requirements.txt && \
+    pip3 install --no-cache-dir -c constraints.txt -c requirements-ml-runtime.txt -r requirements.txt && \
     pip3 check && \
     python3 /tmp/verify_ml_runtime.py
 
@@ -80,6 +80,9 @@ RUN rm -rf /usr/local/lib/python3.11/site-packages/*
 # Copy Python packages from deps stage
 COPY --from=python-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=python-deps /usr/local/bin /usr/local/bin
+
+# Immutable runtime: installer vendors are unnecessary after build checks.
+RUN python3 -m pip uninstall --yes pip
 
 # Set working directory
 WORKDIR /app

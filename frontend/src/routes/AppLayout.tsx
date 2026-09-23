@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useNavigationType,
+} from 'react-router-dom';
+import { useSite } from '../services/site';
 import { useAuth, useTheme } from '../services';
+import TheWire from '../components/TheWire';
 
-const navItems = [
+const baseNavItems = [
   { to: '/', label: 'Home' },
   { to: '/search', label: 'Search' },
   { to: '/explore', label: 'Explore' },
@@ -15,72 +24,73 @@ const navItems = [
 const routeMeta: Array<{ match: RegExp; title: string; description: string }> = [
   {
     match: /^\/$/,
-    title: 'HasanAra — Broadcast archive',
-    description: 'Search and watch the public HasanAbi broadcast archive.',
+    title: '{name} — Broadcast archive',
+    description: 'Search and watch the public {creator} broadcast archive.',
   },
   {
     match: /^\/search/,
-    title: 'Search transcripts — HasanAra',
+    title: 'Search transcripts — {name}',
     description: 'Find timestamped, citation-backed moments across the archive.',
   },
   {
     match: /^\/explore/,
-    title: 'Explore topics — HasanAra',
+    title: 'Explore topics — {name}',
     description: 'Explore public archive topics, periods, and evidence.',
   },
   {
     match: /^\/(episodes|streams)/,
-    title: 'Watch the archive — HasanAra',
+    title: 'Watch the archive — {name}',
     description: 'Browse the latest VODs, topics, and cited transcript moments.',
   },
   {
     match: /^\/timeline/,
-    title: 'Archive timeline — HasanAra',
+    title: 'Archive timeline — {name}',
     description: 'Browse broadcasts chronologically.',
   },
   {
     match: /^\/topics\//,
-    title: 'Topic evidence — HasanAra',
+    title: 'Topic evidence — {name}',
     description: 'Review a topic through timestamped transcript evidence.',
   },
   {
     match: /^\/v\//,
-    title: 'Episode transcript — HasanAra',
+    title: 'Episode transcript — {name}',
     description: 'Watch a source VOD with its interactive transcript.',
   },
   {
     match: /^\/saved/,
-    title: 'Saved moments — HasanAra',
+    title: 'Saved moments — {name}',
     description: 'Return to saved searches and transcript moments.',
   },
   {
     match: /^\/account/,
-    title: 'Account — HasanAra',
-    description: 'Manage your HasanAra account.',
+    title: 'Account — {name}',
+    description: 'Manage your {name} account.',
   },
   {
     match: /^\/support/,
-    title: 'Support the archive — HasanAra',
-    description: 'Help keep HasanAra public, searchable, and independently maintained.',
+    title: 'Support the archive — {name}',
+    description: 'Help keep {name} public, searchable, and independently maintained.',
   },
   {
     match: /^\/about/,
-    title: 'About the archive — HasanAra',
-    description: 'How HasanAra turns public broadcasts into a searchable, cited record.',
+    title: 'About the archive — {name}',
+    description: 'How {name} turns public broadcasts into a searchable, cited record.',
   },
   {
     match: /^\/(privacy|terms)/,
-    title: 'Project policies — HasanAra',
-    description: 'Privacy and terms for the HasanAra public archive.',
+    title: 'Project policies — {name}',
+    description: 'Privacy and terms for the {name} public archive.',
   },
   {
     match: /^\/admin/,
-    title: 'Archive administration — HasanAra',
-    description: 'Operate the HasanAra archive.',
+    title: 'Archive administration — {name}',
+    description: 'Operate the {name} archive.',
   },
 ];
 
 function RouteTransitionManager() {
+  const site = useSite();
   const location = useLocation();
   const navigationType = useNavigationType();
   const previousPath = useRef(location.pathname);
@@ -89,17 +99,29 @@ function RouteTransitionManager() {
 
   useEffect(() => {
     const meta = routeMeta.find((item) => item.match.test(location.pathname)) ?? {
-      title: 'HasanAra',
+      title: '{name}',
       description: 'Public broadcast archive.',
     };
-    document.title = meta.title;
+    document.title = meta.title.replaceAll('{name}', site.name);
     let description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!description) {
       description = document.createElement('meta');
       description.name = 'description';
       document.head.appendChild(description);
     }
-    description.content = meta.description;
+    description.content =
+      location.pathname === '/'
+        ? site.description
+        : meta.description
+            .replaceAll('{name}', site.name)
+            .replaceAll('{creator}', site.creator_name);
+
+    for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]')) {
+      link.href = site.favicon_url || '/icon.svg';
+      link.removeAttribute('type');
+    }
+    const social = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
+    if (social) social.content = site.social_image_url || '/social-card.svg';
 
     const pathChanged = previousPath.current !== location.pathname;
     if (!pathChanged) return;
@@ -121,9 +143,9 @@ function RouteTransitionManager() {
           target.focus({ preventScroll: true });
         }
       }
-      setAnnouncement(meta.title.replace(' — HasanAra', ''));
+      setAnnouncement(meta.title.replace(' — {name}', '').replaceAll('{name}', site.name));
     });
-  }, [location.pathname, navigationType]);
+  }, [location.pathname, navigationType, site]);
 
   return (
     <span className="sr-only" aria-live="polite">
@@ -132,7 +154,44 @@ function RouteTransitionManager() {
   );
 }
 
+function HeaderSearch() {
+  const navigate = useNavigate();
+  const [value, setValue] = useState('');
+  return (
+    <form
+      role="search"
+      aria-label="Search the archive"
+      className="header-search"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const query = value.trim();
+        if (!query) return;
+        navigate(`/search?q=${encodeURIComponent(query)}`);
+        setValue('');
+      }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+      <input
+        type="search"
+        name="header-q"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Search every transcript…"
+        aria-label="Search transcripts"
+        autoComplete="off"
+      />
+    </form>
+  );
+}
+
 export default function AppLayout() {
+  const site = useSite();
+  const navItems = site.community_enabled
+    ? [...baseNavItems, { to: '/community', label: 'Community' }]
+    : baseNavItems;
   const { user, loading, error: authError, login, loginTwitch, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -168,41 +227,36 @@ export default function AppLayout() {
         Skip to main content
       </a>
 
-      <header
-        className="sticky top-0 z-40 border-b border-border/80 bg-canvas/85 backdrop-blur-2xl"
-        role="banner"
-      >
-        <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4 px-4 py-3 lg:px-6">
+      <header className="site-header" role="banner">
+        <div className="mx-auto flex h-16 max-w-[100rem] items-center justify-between gap-4 px-4 lg:px-6">
           <div className="flex items-center gap-4">
-            <Link to="/" className="group flex items-center gap-3" aria-label="Home - HasanAra">
+            <Link
+              to="/"
+              className="group flex items-center gap-3"
+              aria-label={`Home - ${site.name}`}
+            >
               <img
-                src="/icon.svg"
+                src={site.logo_url || '/icon.svg'}
                 alt=""
-                width="40"
-                height="40"
-                className="h-10 w-10 rounded-lg border border-border bg-surface object-cover"
+                width="64"
+                height="36"
+                className="site-logo"
               />
               <span>
-                <span className="block text-xl font-semibold leading-none tracking-[-0.04em] text-ink group-hover:text-accent">
-                  HasanAra
+                <span className="brand-name block leading-none text-ink group-hover:text-accent">
+                  {site.name}
                 </span>
-                <span className="mt-1 hidden text-[8px] font-bold uppercase tracking-[0.24em] text-subtle sm:block">
-                  Broadcast archive
+                <span className="mt-1 hidden text-[11px] font-medium text-subtle sm:block">
+                  {site.tagline || 'Broadcast archive'}
                 </span>
               </span>
             </Link>
+            {!location.pathname.startsWith('/search') && <HeaderSearch />}
           </div>
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
             {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `nav-link ${isActive ? 'bg-surface-muted text-ink' : ''}`
-                }
-              >
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} className="nav-link">
                 {item.label}
               </NavLink>
             ))}
@@ -329,6 +383,7 @@ export default function AppLayout() {
           </button>
         </div>
 
+        <TheWire />
         {mobileMenuOpen && (
           <nav
             id="mobile-menu"
@@ -489,11 +544,14 @@ export default function AppLayout() {
       >
         <div className="mx-auto grid max-w-[100rem] gap-5 px-4 py-7 text-sm text-muted sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center lg:px-6">
           <p>
-            &copy; {new Date().getFullYear()} HasanAra. A{' '}
-            <a href="https://subcult.tv" className="action-link underline underline-offset-2">
-              Subcult
-            </a>{' '}
-            project.
+            &copy; {new Date().getFullYear()} {site.name}.{' '}
+            {site.operator_url ? (
+              <a href={site.operator_url} className="action-link underline underline-offset-2">
+                {site.operator_name}
+              </a>
+            ) : (
+              site.operator_name
+            )}
           </p>
           <nav
             aria-label="Project and legal"

@@ -10,6 +10,8 @@ import axe from 'axe-core';
 
 const playerMocks = vi.hoisted(() => ({
   destroy: vi.fn(),
+  previewRange: vi.fn(),
+  pause: vi.fn(),
   getCurrentTime: vi.fn(() => 0),
   seekTo: vi.fn(),
   togglePlay: vi.fn(),
@@ -111,6 +113,33 @@ describe('VideoPage', () => {
     vi.useRealTimers();
   });
 
+  it('opens a shared passage in a fresh session and preserves its exact range', async () => {
+    mockAuth();
+    mockEpisode();
+    renderVideo('/v/video-1?t=12&t_ms=12125&end_ms=22000');
+    expect(await screen.findByRole('heading', { name: 'Share a passage' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Start time')).toHaveValue('00:00:12.125');
+    expect(screen.getByLabelText('End time')).toHaveValue('00:00:22');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview passage' }));
+    expect(playerMocks.previewRange).toHaveBeenCalledWith(12.125, 22);
+    fireEvent.click(screen.getByRole('button', { name: 'Close passage' }));
+    expect(screen.queryByRole('heading', { name: 'Share a passage' })).not.toBeInTheDocument();
+  });
+
+  it('starts a passage from a transcript selection and leaves old links start-only', async () => {
+    mockAuth();
+    mockEpisode();
+    renderVideo('/v/video-1?t=12');
+    fireEvent.click(await screen.findByRole('button', { name: 'Open paragraph at 00:00:12' }));
+    expect(screen.queryByLabelText('End time')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Share passage' }));
+    expect(await screen.findByLabelText('Start time')).toHaveValue('00:00:12');
+    expect(screen.getByLabelText('End time')).toHaveValue('00:00:18');
+    fireEvent.click(screen.getByRole('button', { name: 'Open paragraph at 00:00:18' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Play from here/ }));
+    expect(screen.queryByLabelText('End time')).not.toBeInTheDocument();
+  });
+
   it('renders people and content tags near the VOD metadata', async () => {
     vi.spyOn(http, 'get').mockImplementation(((path: string) => {
       if (path === 'auth/me') {
@@ -150,7 +179,7 @@ describe('VideoPage', () => {
       expect(screen.getByRole('heading', { name: 'Guest Stream' })).toBeInTheDocument();
     });
 
-    await waitFor(() => expect(document.title).toBe('Guest Stream | HasanAra'));
+    await waitFor(() => expect(document.title).toBe('Guest Stream | Transcript Archive'));
     expect(screen.getByText(/Automated transcripts can contain errors/i)).toBeInTheDocument();
     expect(
       screen.getByText(/verify quotations against the linked source video/i)
@@ -289,7 +318,7 @@ describe('VideoPage', () => {
     );
 
     const sentence = await screen.findByRole('button', {
-      name: 'Play paragraph from 00:00:12',
+      name: 'Open paragraph at 00:00:12',
     });
     fireEvent.click(sentence);
     fireEvent.click(screen.getByRole('button', { name: 'Save moment' }));
@@ -299,13 +328,18 @@ describe('VideoPage', () => {
     expect(await screen.findByText('Transcript moment removed.')).toBeInTheDocument();
   });
 
-  it('seeks from transcript paragraphs and lets the reader resume auto-follow', async () => {
+  it('opens a paragraph, plays from it on request, and resumes auto-follow', async () => {
     mockAuth();
     mockEpisode();
     const replaceState = vi.spyOn(history, 'replaceState');
 
     renderVideo();
-    fireEvent.click(await screen.findByRole('button', { name: 'Play paragraph from 00:00:12' }));
+    const paragraph = await screen.findByRole('button', { name: 'Open paragraph at 00:00:12' });
+    fireEvent.click(paragraph);
+    expect(paragraph).toHaveAttribute('aria-expanded', 'true');
+    expect(playerMocks.seekTo).not.toHaveBeenCalled();
+    expect(screen.getByRole('toolbar', { name: 'Passage actions' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Play from here/ }));
 
     expect(playerMocks.seekTo).toHaveBeenCalledWith(12, { play: true });
     expect(replaceState).toHaveBeenCalledWith(null, '', '#seg-1');
@@ -342,6 +376,8 @@ describe('VideoPage', () => {
     expect(document.querySelector('#block-7')).toHaveAttribute('data-active', 'true');
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
     fireEvent.click(sentence!);
+    expect(playerMocks.seekTo).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /^Play from here/ }));
     expect(playerMocks.seekTo).toHaveBeenLastCalledWith(14, { play: true });
     expect(replaceState).toHaveBeenLastCalledWith(null, '', '#seg-1-s-1');
   });
@@ -413,7 +449,7 @@ describe('VideoPage', () => {
 
     renderVideo();
     expect(
-      (await screen.findByText('Loading transcript')).closest('[role="status"]')
+      (await screen.findByText(/Loading transcript/)).closest('[role="status"]')
     ).toHaveTextContent('Loading transcript');
     await act(async () => {
       resolveTranscript({
@@ -432,7 +468,8 @@ describe('VideoPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Opening argument/ }));
     expect(playerMocks.seekTo).toHaveBeenCalledWith(12, { play: true });
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: 'Opening argument' })).toBeInTheDocument();
   });
 
   it('searches the current VOD, wraps match navigation, and clears the query', async () => {
@@ -499,7 +536,7 @@ describe('VideoPage', () => {
     mockEpisode();
     renderVideo();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Play paragraph from 00:00:12' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open paragraph at 00:00:12' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save moment' }));
     await waitFor(() =>
       expect(serviceMocks.addFavorite).toHaveBeenCalledWith({
@@ -526,7 +563,7 @@ describe('VideoPage', () => {
     writeText.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('denied'));
     renderVideo();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Play paragraph from 00:00:12' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open paragraph at 00:00:12' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save moment' }));
     expect(
       await screen.findByText('The transcript moment could not be saved.')
@@ -618,7 +655,7 @@ describe('VideoPage', () => {
       () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
       { timeout: 5000 }
     );
-    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Section 6 of 7/)).toBeInTheDocument();
     expect(document.getElementById('moment-140')).toBeNull();
   });
 
@@ -638,7 +675,7 @@ describe('VideoPage', () => {
       () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
       { timeout: 5000 }
     );
-    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Section 6 of 7/)).toBeInTheDocument();
   });
 
   it('recovers a legacy database-id fragment from its floored timestamp', async () => {
@@ -658,7 +695,7 @@ describe('VideoPage', () => {
       () => expect(document.getElementById(`moment-${target.start_ms}`)).not.toBeNull(),
       { timeout: 5000 }
     );
-    expect(screen.getByText(/Chapter 6 of 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Section 6 of 7/)).toBeInTheDocument();
   });
 
   it('progressively mounts transcript chapters and offers a full-document escape hatch', async () => {
@@ -678,7 +715,7 @@ describe('VideoPage', () => {
     await waitFor(() => expect(document.getElementById('seg-251')).not.toBeNull(), {
       timeout: 5_000,
     });
-    expect(screen.getByText(/Chapter 3 of 30/)).toBeInTheDocument();
+    expect(screen.getByText(/Section 3 of 30/)).toBeInTheDocument();
     expect(document.querySelectorAll('[data-transcript-sentence="true"]')).toHaveLength(270);
     expect(document.querySelectorAll('*').length).toBeLessThanOrEqual(1_500);
     expect(document.getElementById('seg-1')).toBeNull();

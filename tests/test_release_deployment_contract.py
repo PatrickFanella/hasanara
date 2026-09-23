@@ -1034,7 +1034,7 @@ def test_release_images_use_clean_python_packages_and_pinned_go_sources() -> Non
     api = (ROOT / "Dockerfile.api").read_text(encoding="utf-8")
     postgres_walg = (ROOT / "Dockerfile.postgres-walg").read_text(encoding="utf-8")
 
-    cleanup = "RUN python -m pip uninstall --yes setuptools wheel"
+    cleanup = "RUN python -m pip uninstall --yes pip setuptools wheel"
     assert cleanup in api
     assert api.index(cleanup) < api.index("COPY --from=dependencies /usr/local/lib/python3.11/site-packages")
 
@@ -1091,11 +1091,11 @@ def _assert_cuda_bootstrap_contract_specs() -> None:
     bootstrap = (ROOT / "requirements-cuda-bootstrap.txt").read_text(encoding="utf-8")
     package_specs = [line for line in bootstrap.splitlines() if line and not line.startswith("#")]
     assert package_specs == [
-        "cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==12.8.1",
-        "cuda-bindings==12.9.4",
-        "nvidia-cudnn-cu12==9.19.0.56",
+        "cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==12.6.3",
+        "cuda-bindings==12.9.8",
+        "nvidia-cudnn-cu12==9.10.2.21",
         "nvidia-cusparselt-cu12==0.7.1",
-        "nvidia-nccl-cu12==2.28.9",
+        "nvidia-nccl-cu12==2.29.3",
         "nvidia-nvshmem-cu12==3.4.5",
     ]
     extras = package_specs[0].split("[", 1)[1].split("]", 1)[0].split(",")
@@ -1372,6 +1372,10 @@ def test_release_workflow_contracts() -> None:
 
     local_scan = scan_step("Block local high and critical application-library vulnerabilities")
     digest_scan = scan_step("Block digest high and critical application-library vulnerabilities")
+    for scan in (local_scan, digest_scan):
+        assert "--vex /lightning.vex.json" in scan
+        assert "scripts/check_lightning_patch.py:/check.py:ro" in scan
+        assert "--network none" in scan
     os_scan = scan_step("Report digest OS vulnerabilities")
     sbom_scan = scan_step("Generate SPDX JSON SBOM for digest")
     cleanup = scan_step("Remove Trivy scanner cache")

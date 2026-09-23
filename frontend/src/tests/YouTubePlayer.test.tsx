@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import YouTubePlayer from '../components/YouTubePlayer';
 import { createRef } from 'react';
 import type { YouTubePlayerHandle } from '../components/YouTubePlayer';
+import { resetYouTubeApiForTests } from '../services/youtubeApi';
 
 describe('YouTubePlayer', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,11 +12,13 @@ describe('YouTubePlayer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetYouTubeApiForTests();
     playerState = 2;
 
     // Mock YouTube IFrame API
     mockPlayer = {
       seekTo: vi.fn(),
+      loadVideoById: vi.fn(),
       playVideo: vi.fn(),
       pauseVideo: vi.fn(),
       getPlayerState: vi.fn(() => playerState),
@@ -26,6 +29,7 @@ describe('YouTubePlayer', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Player: vi.fn(function (this: any, _element: any, config: any) {
         this.seekTo = mockPlayer.seekTo;
+        this.loadVideoById = mockPlayer.loadVideoById;
         this.playVideo = mockPlayer.playVideo;
         this.pauseVideo = mockPlayer.pauseVideo;
         this.getPlayerState = mockPlayer.getPlayerState;
@@ -40,6 +44,49 @@ describe('YouTubePlayer', () => {
 
   afterEach(() => {
     delete window.YT;
+    resetYouTubeApiForTests();
+    document.querySelector('script[data-youtube-iframe-api]')?.remove();
+  });
+
+  it('previews a bounded range and resumes unrestricted playback with a seek', async () => {
+    const ref = createRef<YouTubePlayerHandle>();
+    render(<YouTubePlayer ref={ref} videoId="test-video-id" />);
+    await waitFor(() => expect(screen.queryByText('Loading player…')).not.toBeInTheDocument());
+    ref.current?.previewRange(12.125, 24.5);
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith({
+      videoId: 'test-video-id',
+      startSeconds: 12.125,
+      endSeconds: 24.5,
+    });
+    ref.current?.seekTo(24.5, { play: true });
+    expect(mockPlayer.seekTo).toHaveBeenCalledWith(24.5, true);
+    ref.current?.previewRange(30, 20);
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues a bounded preview until the player is ready', async () => {
+    let signalReady: (() => void) | undefined;
+    window.YT!.Player = vi.fn(function (
+      _element: HTMLElement,
+      config: { events: { onReady: () => void } }
+    ) {
+      signalReady = config.events.onReady;
+      return mockPlayer;
+    }) as unknown as NonNullable<typeof window.YT>['Player'];
+    const ref = createRef<YouTubePlayerHandle>();
+    render(<YouTubePlayer ref={ref} videoId="test-video-id" start={10} />);
+    await waitFor(() => expect(window.YT!.Player).toHaveBeenCalled());
+    ref.current?.previewRange(12.125, 24.5);
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled();
+    signalReady?.();
+    await waitFor(() =>
+      expect(mockPlayer.loadVideoById).toHaveBeenCalledWith({
+        videoId: 'test-video-id',
+        startSeconds: 12.125,
+        endSeconds: 24.5,
+      })
+    );
+    expect(mockPlayer.seekTo).not.toHaveBeenCalled();
   });
 
   it('renders player container', () => {
@@ -255,12 +302,12 @@ describe('YouTubePlayer', () => {
     expect(() => unmount()).not.toThrow();
   });
 
-  it.skip('loads YouTube API script when not available', async () => {
-    // This test is skipped because happy-dom doesn't support external script loading
-    // In a real browser environment, this functionality works correctly
+  it('loads the YouTube API script and initializes after its ready callback', async () => {
+    const playerConstructor = window.YT!.Player;
     delete window.YT;
-
-    const appendChildSpy = vi.spyOn(document.body, 'appendChild');
+    const appendChildSpy = vi
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation((node) => node);
 
     render(<YouTubePlayer videoId="test-video-id" />);
 
@@ -268,8 +315,15 @@ describe('YouTubePlayer', () => {
       expect(appendChildSpy).toHaveBeenCalled();
     });
 
-    const scriptTag = appendChildSpy.mock.calls[0][0] as HTMLScriptElement;
+    const scriptTag = appendChildSpy.mock.calls.find(
+      ([element]) => (element as HTMLElement).tagName === 'SCRIPT'
+    )?.[0] as HTMLScriptElement;
     expect(scriptTag.src).toBe('https://www.youtube.com/iframe_api');
+    expect(scriptTag.dataset.youtubeIframeApi).toBe('true');
+
+    window.YT = { Player: playerConstructor };
+    window.onYouTubeIframeAPIReady?.();
+    await waitFor(() => expect(playerConstructor).toHaveBeenCalled());
 
     appendChildSpy.mockRestore();
   });

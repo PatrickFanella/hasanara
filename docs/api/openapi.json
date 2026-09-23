@@ -264,6 +264,56 @@
         "title": "AnalyticsEventInput",
         "type": "object"
       },
+      "ArchiveActivity": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "kind": {
+            "const": "archive",
+            "title": "Kind",
+            "type": "string"
+          },
+          "video": {
+            "$ref": "#/components/schemas/ArchiveAddition"
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "video"
+        ],
+        "title": "ArchiveActivity",
+        "type": "object"
+      },
+      "ArchiveAddition": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "ArchiveAddition",
+        "type": "object"
+      },
       "ArchiveChapterCandidate": {
         "properties": {
           "chapter_index": {
@@ -2076,7 +2126,7 @@
       "ArchiveSummary": {
         "properties": {
           "creator_name": {
-            "default": "HasanAra",
+            "default": "Transcript Archive",
             "description": "Archive display name",
             "title": "Creator Name",
             "type": "string"
@@ -2977,6 +3027,44 @@
         "title": "AuthMeUserResponse",
         "type": "object"
       },
+      "BrandTheme": {
+        "additionalProperties": false,
+        "description": "Optional overrides of the default design. Unset fields keep the stylesheet's values.",
+        "properties": {
+          "dark": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Dark",
+            "type": "object"
+          },
+          "font": {
+            "anyOf": [
+              {
+                "enum": [
+                  "system",
+                  "editorial",
+                  "mono"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Font"
+          },
+          "light": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Light",
+            "type": "object"
+          }
+        },
+        "title": "BrandTheme",
+        "type": "object"
+      },
       "CleanedSegment": {
         "description": "Transcript segment with cleaned text.",
         "example": {
@@ -3285,6 +3373,121 @@
           }
         },
         "title": "CleanupStats",
+        "type": "object"
+      },
+      "ClipRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "end_ms": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "start_ms": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "video_id": {
+            "format": "uuid",
+            "title": "Video Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_id",
+          "start_ms",
+          "end_ms"
+        ],
+        "title": "ClipRequest",
+        "type": "object"
+      },
+      "ClipStatus": {
+        "properties": {
+          "end_ms": {
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "video_id": {
+            "format": "uuid",
+            "title": "Video Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "video_id",
+          "start_ms",
+          "end_ms",
+          "status",
+          "expires_at"
+        ],
+        "title": "ClipStatus",
+        "type": "object"
+      },
+      "CommunityTimeline": {
+        "properties": {
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PostActivity"
+                },
+                {
+                  "$ref": "#/components/schemas/ArchiveActivity"
+                }
+              ]
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "CommunityTimeline",
         "type": "object"
       },
       "CreateAPIKeyRequest": {
@@ -4211,6 +4414,33 @@
         "title": "MentionMap",
         "type": "object"
       },
+      "Moderation": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "hide",
+              "restore",
+              "pin",
+              "unpin"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "action"
+        ],
+        "title": "Moderation",
+        "type": "object"
+      },
       "OffsetPageInfo": {
         "properties": {
           "has_next_page": {
@@ -4663,6 +4893,280 @@
         "title": "PaginatedVideos",
         "type": "object"
       },
+      "Post": {
+        "properties": {
+          "author_id": {
+            "format": "uuid",
+            "title": "Author Id",
+            "type": "string"
+          },
+          "author_name": {
+            "title": "Author Name",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "end_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Ms"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "video_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Id"
+          },
+          "video_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Title"
+          }
+        },
+        "required": [
+          "id",
+          "author_id",
+          "author_name",
+          "parent_id",
+          "kind",
+          "body",
+          "status",
+          "video_id",
+          "video_title",
+          "start_ms",
+          "end_ms",
+          "pinned",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Post",
+        "type": "object"
+      },
+      "PostActivity": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "kind": {
+            "const": "post",
+            "title": "Kind",
+            "type": "string"
+          },
+          "post": {
+            "$ref": "#/components/schemas/Post"
+          }
+        },
+        "required": [
+          "kind",
+          "at",
+          "post"
+        ],
+        "title": "PostActivity",
+        "type": "object"
+      },
+      "PostEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "if_match": {
+            "format": "date-time",
+            "title": "If Match",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body",
+          "if_match"
+        ],
+        "title": "PostEdit",
+        "type": "object"
+      },
+      "PostInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "end_ms": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Ms"
+          },
+          "kind": {
+            "enum": [
+              "update",
+              "discussion",
+              "reply"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "publish": {
+            "default": false,
+            "title": "Publish",
+            "type": "boolean"
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "video_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Id"
+          }
+        },
+        "required": [
+          "kind",
+          "body"
+        ],
+        "title": "PostInput",
+        "type": "object"
+      },
+      "PostPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Post"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "PostPage",
+        "type": "object"
+      },
       "ProfileResponse": {
         "properties": {
           "user": {
@@ -4845,6 +5349,22 @@
           "video_id"
         ],
         "title": "QuotedMomentsResponse",
+        "type": "object"
+      },
+      "Reason": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "Reason",
         "type": "object"
       },
       "RelatedEpisode": {
@@ -5617,6 +6137,98 @@
           "sessions"
         ],
         "title": "SessionsResponse",
+        "type": "object"
+      },
+      "SiteConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "atproto_enabled": {
+            "title": "Atproto Enabled",
+            "type": "boolean"
+          },
+          "clip_exports_enabled": {
+            "title": "Clip Exports Enabled",
+            "type": "boolean"
+          },
+          "community_enabled": {
+            "title": "Community Enabled",
+            "type": "boolean"
+          },
+          "creator_name": {
+            "title": "Creator Name",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "favicon_url": {
+            "default": "/icon.svg",
+            "title": "Favicon Url",
+            "type": "string"
+          },
+          "logo_url": {
+            "default": "/icon.svg",
+            "title": "Logo Url",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "operator_name": {
+            "default": "Archive team",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Operator Name",
+            "type": "string"
+          },
+          "operator_url": {
+            "default": "",
+            "title": "Operator Url",
+            "type": "string"
+          },
+          "project_notice": {
+            "default": "Source recordings and trademarks belong to their respective owners.",
+            "maxLength": 500,
+            "title": "Project Notice",
+            "type": "string"
+          },
+          "public_passages_enabled": {
+            "title": "Public Passages Enabled",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "social_image_url": {
+            "default": "/social-card.svg",
+            "title": "Social Image Url",
+            "type": "string"
+          },
+          "tagline": {
+            "default": "Broadcast archive",
+            "maxLength": 100,
+            "title": "Tagline",
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/BrandTheme"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "creator_name",
+          "public_passages_enabled",
+          "clip_exports_enabled",
+          "atproto_enabled",
+          "community_enabled"
+        ],
+        "title": "SiteConfig",
         "type": "object"
       },
       "SupportConfig": {
@@ -6541,12 +7153,12 @@
   },
   "info": {
     "contact": {
-      "name": "onnwee",
-      "url": "https://github.com/onnwee"
+      "name": "Transcript Archive maintainers"
     },
     "description": "\nYouTube video transcription service API with searchable and exportable transcripts.\n\n## Features\n\n* **Job Management** - Create and monitor transcription jobs for single videos or entire channels\n* **Video Transcripts** - Access Whisper-generated transcripts with optional speaker diarization\n* **YouTube Captions** - Retrieve and export YouTube's native closed captions\n* **Full-Text Search** - Search across transcripts using PostgreSQL or OpenSearch\n* **Export Formats** - Download transcripts in SRT, VTT, JSON, and PDF formats\n* **Authentication** - OAuth 2.0 via Google and Twitch\n* **Admin Tools** - Event analytics and user management\n\n## Authentication\n\nMost endpoints require authentication via session cookies set after OAuth login.\nAdmin endpoints require additional authorization.\n    ",
     "license": {
-      "name": "TBD"
+      "identifier": "Apache-2.0",
+      "name": "Apache License 2.0"
     },
     "title": "Transcript Create API",
     "version": "0.1.0"
@@ -9958,7 +10570,7 @@
     },
     "/archive/summary": {
       "get": {
-        "description": "Summary statistics for HasanAra based on real VOD and transcript data.",
+        "description": "Summary statistics for the archive based on real VOD and transcript data.",
         "operationId": "archive_summary_archive_summary_get",
         "parameters": [
           {
@@ -10211,6 +10823,44 @@
         ]
       }
     },
+    "/atproto/client-metadata.json": {
+      "get": {
+        "operationId": "client_metadata_atproto_client_metadata_json_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Client Metadata",
+        "tags": [
+          "AT Protocol"
+        ]
+      }
+    },
+    "/atproto/config": {
+      "get": {
+        "operationId": "client_config_atproto_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Client Config",
+        "tags": [
+          "AT Protocol"
+        ]
+      }
+    },
     "/auth/callback/google": {
       "get": {
         "operationId": "auth_callback_google_auth_callback_google_get",
@@ -10382,6 +11032,772 @@
         "summary": "Get current user",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/clips": {
+      "post": {
+        "operationId": "request_clip_clips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Clip",
+        "tags": [
+          "Original clip exports"
+        ]
+      }
+    },
+    "/clips/{job_id}": {
+      "get": {
+        "operationId": "clip_status_clips__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clip Status",
+        "tags": [
+          "Original clip exports"
+        ]
+      }
+    },
+    "/clips/{job_id}/download": {
+      "get": {
+        "operationId": "download_clip_clips__job_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Clip",
+        "tags": [
+          "Original clip exports"
+        ]
+      }
+    },
+    "/community/export": {
+      "get": {
+        "description": "Paginated own-content portability, including drafts and moderated content.",
+        "operationId": "export_posts_community_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Posts",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/hidden": {
+      "get": {
+        "operationId": "hidden_posts_community_hidden_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hidden Posts",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/mine": {
+      "get": {
+        "operationId": "mine_community_mine_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mine",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/posts": {
+      "get": {
+        "operationId": "list_posts_community_posts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parent_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "video_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Video Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Posts",
+        "tags": [
+          "Community"
+        ]
+      },
+      "post": {
+        "operationId": "create_post_community_posts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Post",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/posts/{post_id}": {
+      "delete": {
+        "operationId": "delete_post_community_posts__post_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Post",
+        "tags": [
+          "Community"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_post_community_posts__post_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Post",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/posts/{post_id}/moderate": {
+      "post": {
+        "operationId": "moderate_post_community_posts__post_id__moderate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Moderation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Moderate Post",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/posts/{post_id}/publish": {
+      "post": {
+        "operationId": "publish_post_community_posts__post_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Post",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/posts/{post_id}/report": {
+      "post": {
+        "operationId": "report_post_community_posts__post_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Post",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/reports": {
+      "get": {
+        "operationId": "reports_community_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reports",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/reports/{report_id}/resolve": {
+      "post": {
+        "operationId": "resolve_report_community_reports__report_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Report",
+        "tags": [
+          "Community"
+        ]
+      }
+    },
+    "/community/timeline": {
+      "get": {
+        "operationId": "community_timeline_community_timeline_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityTimeline"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Community Timeline",
+        "tags": [
+          "Community"
         ]
       }
     },
@@ -12308,6 +13724,150 @@
         ]
       }
     },
+    "/share/videos/{video_id}": {
+      "get": {
+        "operationId": "passage_page_share_videos__video_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Video Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": true,
+            "schema": {
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Start Ms",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "maximum": 2147483647,
+              "title": "End Ms",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open a public passage with social metadata",
+        "tags": [
+          "Passages"
+        ]
+      }
+    },
+    "/share/videos/{video_id}/card.png": {
+      "get": {
+        "operationId": "passage_card_share_videos__video_id__card_png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "video_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Video Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": true,
+            "schema": {
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Start Ms",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "maximum": 2147483647,
+              "title": "End Ms",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Render a passage social card",
+        "tags": [
+          "Passages"
+        ]
+      }
+    },
+    "/site": {
+      "get": {
+        "operationId": "site_config_site_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Site Config",
+        "tags": [
+          "Site"
+        ]
+      }
+    },
     "/support": {
       "get": {
         "description": "Return the validated Stripe-hosted Payment Link when donations are enabled.",
@@ -12420,21 +13980,11 @@
             },
             "description": "Favorite created"
           },
-          "400": {
-            "description": "Invalid or missing required fields"
-          },
           "401": {
             "description": "Authentication required"
           },
           "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "description": "Invalid or missing required fields"
           }
         },
         "summary": "Add favorite segment",
