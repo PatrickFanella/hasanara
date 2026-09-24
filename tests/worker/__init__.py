@@ -1,1 +1,0 @@
-"""Worker module unit tests."""

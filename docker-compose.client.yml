@@ -1,0 +1,76 @@
+# HasanAra client overlay. Applied after core docker-compose.production.yml and
+# before core docker-compose.release.yml. Paths are relative to this
+# deployment directory, which is the Compose project directory.
+
+x-client-environment: &client-environment
+    SITE_PROFILE_PATH: /config/branding/brand.json
+    ARCHIVE_EDITORIAL_PRESET: hasanara
+
+x-client-volumes: &client-volumes
+    - ./branding:/config/branding:ro
+
+networks:
+    management:
+        name: management
+        external: true
+    dev:
+        name: dev
+        external: true
+
+services:
+    db:
+        ports: !override
+            - 10.0.0.200:15432:5432
+
+    migrations:
+        environment: *client-environment
+        volumes: *client-volumes
+
+    api:
+        networks:
+            - default
+            - management
+        ports: !override
+            - 10.0.0.200:${API_HOST_PORT:-41177}:8000
+        environment:
+            FRONTEND_ORIGIN: https://hasanara.tv
+            CORS_ALLOW_ORIGINS: https://hasanara.tv
+            OAUTH_GOOGLE_REDIRECT_URI: ${OAUTH_GOOGLE_REDIRECT_URI:?OAUTH_GOOGLE_REDIRECT_URI is required}
+            OAUTH_TWITCH_REDIRECT_URI: ${OAUTH_TWITCH_REDIRECT_URI:?OAUTH_TWITCH_REDIRECT_URI is required}
+            BOOTSTRAP_ADMIN_IDENTITIES: ${BOOTSTRAP_ADMIN_IDENTITIES:-}
+            FORWARDED_ALLOW_IPS: 172.20.0.250
+            <<: *client-environment
+        volumes: *client-volumes
+
+    worker:
+        environment:
+            CHANNEL_SYNC_URLS: ${CHANNEL_SYNC_URLS:-https://www.youtube.com/@HasanAbiVODs/videos,https://www.youtube.com/@HasanAbiVODsBackup/videos,https://www.youtube.com/@HasanAbiVODs3/videos}
+            <<: *client-environment
+        volumes: *client-volumes
+
+    summary-refresher:
+        environment: *client-environment
+        volumes: *client-volumes
+
+    archive-intelligence-refresher:
+        environment: *client-environment
+        volumes: *client-volumes
+        networks:
+            - default
+            - dev
+
+    analytics-retention:
+        environment: *client-environment
+        volumes: *client-volumes
+
+    archive-enrichment-queue:
+        environment: *client-environment
+        volumes: *client-volumes
+
+    frontend:
+        networks:
+            - management
+        ports:
+            - 10.0.0.200:5173:80
+        volumes:
+            - ./branding/assets:/usr/share/nginx/html/branding:ro

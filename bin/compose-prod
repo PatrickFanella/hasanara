@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run the pinned core's guarded production helper for this deployment.
+set -Eeuo pipefail
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+helper=$root/core/scripts/compose_prod.sh
+if [[ ! -f $helper ]]; then
+    printf '%s\n' 'core submodule is not checked out; run: git submodule update --init' >&2
+    exit 64
+fi
+TRANSCRIPT_DEPLOY_ROOT=$root exec bash "$helper" "$@"
