@@ -1,101 +1,47 @@
-# Transcript Archive
+# HasanAra deployment
 
-Transcript Archive is a configurable, citation-first application for long-form
-recordings. It ingests videos, stores timestamped transcripts, supports full-text search
-and archive browsing, and lets people save and share passages with their source context.
-
-This repository contains the shared application core. Each client deployment supplies a
-versioned public profile and assets while running the same application images. Branding
-changes do not require a source fork or frontend rebuild.
-
-## Application stack
-
-- React 19 and Vite frontend
-- FastAPI application and worker services
-- PostgreSQL as the source of truth
-- Redis for caches and coordination
-- Optional OpenSearch acceleration with PostgreSQL fallback
-- Docker Compose, Kubernetes, Helm, Ansible and Terraform deployment assets
-
-The core includes durable ingestion jobs, scoped API keys, OAuth accounts, saved searches
-and moments, pseudonymous analytics, archive intelligence, passage sharing, and an
-optional creator community. Client-facing features remain controlled by server settings;
-the public branding profile does not grant entitlements or contain secrets.
-
-## Local development
-
-Supported versions are Python 3.11, Node.js 20, and Docker with Compose.
-
-```bash
-python3.11 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
-npm --prefix frontend ci
-npm --prefix e2e ci
-cp .env.example .env
-ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION=true docker compose up --build
-```
-
-The frontend defaults to `http://localhost:5173`; the API defaults to
-`http://localhost:8000`, with interactive API documentation at `/docs`. The migration
-opt-in above is for a fresh controlled bootstrap. Follow the migration runbook for an
-existing deployment.
-
-The main source areas are:
+This repository deploys [HasanAra](https://hasanara.tv), a searchable archive of HasanAbi broadcasts. It contains no application code. The application is [transcript-create](https://git.subcult.tv/subculture-collective/transcript-create), pinned here as the `core` submodule, and runs from that project's released, digest-pinned images.
 
 | Path | Purpose |
 | --- | --- |
-| `app/` | FastAPI routes, domain services, persistence and schemas |
-| `worker/` | ingestion, transcription, formatting and background processing |
-| `frontend/` | React application and component tests |
-| `e2e/` | seeded Playwright journeys |
-| `alembic/` | ordered database migrations |
-| `config/branding/` | profile schema and safe example client configuration |
-| `clients/` | client release-profile validation and planning code |
-| `scripts/` | maintained verification, migration and operator utilities |
+| `core/` | transcript-create at the deployed release's `source_commit` |
+| `docker-compose.client.yml` | HasanAra overlay: origins, OAuth callback requirements, Almaz port bindings, `management` and `dev` networks, HasanAbi VOD channels, and brand mounts |
+| `branding/brand.json`, `branding/assets/` | Public brand profile and Piker Broadcasting Service artwork (`logo.svg`, `favicon.svg`, `badge.svg`, `social-card.svg`) |
+| `release-images.json` | The deployed release manifest. It is added when a core release is adopted |
+| `bin/compose-prod` | Runs the core's guarded production helper for this directory |
+| `scripts/validate.py` | Validates the profile and overlay against the pinned core without secrets |
 
-## Branding and client updates
+## Where changes go
 
-Start with the [Northstar example profile](config/branding/northstar.json), validate its
-fields against the [profile schema](config/branding/schema.json), and supply it through
-`SITE_PROFILE_PATH`. Store client secrets, infrastructure and release history outside the
-public profile.
+- Application behavior, shared production services, release tooling and the preflight contract belong in transcript-create. Merge them there, cut a release, then adopt it here.
+- HasanAra identity, domains, channel sources, host bindings and artwork belong here.
+- Secrets stay in the ignored `.env.prod` and diarization env file on the host. Both repositories are public.
 
-The [client branding guide](docs/deployment/client-branding.md) describes asset mounts,
-theme tokens, profile precedence, and the fleet update planner. The planner combines a
-verified digest-pinned release manifest with a client inventory and produces reviewable
-Compose overrides. It never edits client profiles, databases or secrets and does not
-perform a deployment.
+Do not copy core files into this repository or apply core fixes here.
 
-## Verification
-
-Run focused tests while developing, then run the canonical gate before delivery:
+## Checkout
 
 ```bash
-TEST_POSTGRES_PORT=55433 mise exec node@20 -- \
-  env PYTHON_BIN="$PWD/.venv/bin/python" make verify
+git clone --recurse-submodules <this repository>
+git submodule update --init   # for an existing clone
 ```
 
-The gate starts disposable PostgreSQL, Redis and OpenSearch services; applies every
-migration; checks Python and TypeScript quality; runs backend and frontend coverage;
-builds the production frontend; validates generated contracts and documentation; audits
-dependencies; and exercises the seeded Chromium journey. See the
-[testing guide](docs/development/testing.md) for focused commands, suite ownership and
-coverage expectations.
+## Validate
 
-## Documentation
+```bash
+python3 -m venv .validate-venv
+.validate-venv/bin/pip install -c core/constraints.txt pydantic
+.validate-venv/bin/python scripts/validate.py
+```
 
-- [Architecture](docs/development/architecture.md) and [transcript processing](docs/development/transcript-processing.md)
-- [API reference](docs/api-reference.md), generated [OpenAPI](docs/api/openapi.json), and [access matrix](docs/access-matrix.md)
-- [Client branding and shared updates](docs/deployment/client-branding.md)
-- [Passage-sharing contract](docs/product/passage-sharing.md)
-- [Deployment matrix](docs/deployment/README.md) and [production readiness](docs/operations/production-readiness.md)
-- [Database migrations](docs/MIGRATIONS.md)
-- [Accessibility](docs/ACCESSIBILITY.md) and [design system](docs/DESIGN_SYSTEM.md)
-- [Documentation index](docs/STATUS.md)
+The validator renders the full production Compose model with inert values and applies the core preflight's service, diarization and network checks. CI runs it on every pull request.
 
-`/api` is v1-stable: changes are additive, deprecations remain for at least two releases,
-and breaking changes require `/api/v2`.
+## Adopt a core release
 
-[Apache-2.0 license](LICENSE) · [third-party notices](docs/THIRD_PARTY_NOTICES.md)
+1. Merge the change in transcript-create and publish a release candidate there. Keep its verified `release-images.json`.
+2. Here, check out that release's `source_commit` in `core`, commit the new submodule pointer together with the new `release-images.json`, and open a pull request.
+3. After merge, on the host: `git pull --recurse-submodules`, then `bin/compose-prod preflight` and `bin/compose-prod deploy`.
+
+The preflight fails unless both trees are clean, the core checkout matches the manifest's `source_commit`, and every rendered image matches the manifest. See the core [client branding guide](core/docs/deployment/client-branding.md#production-deployment-layout) for the layout contract, and [the Almaz cutover runbook](docs/almaz-cutover.md) for moving the running installation to this layout.
 
 https://www2.onnwee.me
