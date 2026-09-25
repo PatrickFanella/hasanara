@@ -1,6 +1,6 @@
 # Almaz cutover to the deployment layout
 
-**Status:** not performed. Written 2026-09-24 from a read-only inspection of Almaz; recheck every observation before starting.
+**Status:** performed 2026-09-25 (outage 14:30:37–14:32:33 UTC). Production now runs from `/mnt/spektr/server/projects/hasanara-deploy`. The evidence and rollback steps are in `/mnt/spektr/server/projects/hasanara-cutover-20260925T142329Z/`. The notes below were written before the cutover; see "Lessons from the 2026-09-25 cutover" for what differed.
 
 ## Starting state (observed 2026-09-24)
 
@@ -35,3 +35,10 @@ Run on Almaz as the owning user. `OLD=/mnt/spektr/server/projects/hasanara`, `NE
 Before step 7 succeeds: stop anything started from `NEW`, `mv` the state directories and env files back to `OLD`, and restore the original `.env.prod` from `ARCHIVE`. Then run `scripts/compose_prod.sh deploy` from `OLD`, which still pins the previous image digests.
 
 After new migrations have run, image rollback alone is not enough. Restore the database from the step 2 backup according to the core disaster-recovery runbook.
+
+## Lessons from the 2026-09-25 cutover
+
+- `cache/` is owned by root. Moving it needed `sudo mv`; the other state directories moved as the owning user.
+- The old checkout's guarded `pitr-base-backup` refused to run because its tree was dirty. The same script ran directly with `docker exec hasanara-backup-1 /scripts/walg_base_backup.sh`, and `wal-g backup-list` confirmed the result.
+- The old stack stopped in 12 seconds because no downloads or transcriptions were in progress. Check `videos.state` before stopping; the worker's stop grace period is one hour.
+- After the restart, search timed out on a cold cache. `search_freshness()` counts the whole `search_index_outbox` table (22.9 million unconsumed rows) on every search and health request, and abandoned queries pile up. Cancel orphaned read-only queries, run the freshness query once to warm the cache, and don't poll search in a tight loop. Search then answered in 15–22 s. The permanent fix belongs in transcript-create.
