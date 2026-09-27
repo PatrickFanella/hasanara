@@ -1,26 +1,26 @@
 {
-  "schema_version": 1,
-  "source_commit": "d254951ece637b5bdcaa42432788ff5bfc7fc99e",
   "images": {
     "api": "git.subcult.tv/subculture-collective/hasanara-api@sha256:92f0979ed99a81e65c88f3150e20e707a7154d32abda659066d9ce0ae2136db9",
-    "frontend": "git.subcult.tv/subculture-collective/hasanara-frontend@sha256:8991c2e47ca61c075173db32b0e1eb82e9234b3062469fbf4392a91f866a6528",
+    "frontend": "git.subcult.tv/subculture-collective/hasanara-frontend@sha256:ffa352a9b220f6e3bb357ac39c1920d8d92648efc4a9d944a21423af1f7388eb",
     "ingest-cuda": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda@sha256:80e8ac9b30a6aec8b3f68081584500032e7e8ae1e059f1e2f40b0a20884e0993",
     "ml-cuda": "git.subcult.tv/subculture-collective/hasanara-ml-cuda@sha256:30c0f847807c9332f4aeaa99b92b52a9cf89f355c0f0b972fd97e7453a423370",
     "postgres-walg": "git.subcult.tv/subculture-collective/hasanara-postgres-walg@sha256:47e1318a8205a0d6a7d8aa80f8244f7c1c6a80bec38096b90ff6412bcb22179f",
     "redis": "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
   },
+  "schema_version": 1,
   "services": {
-    "db": "postgres-walg",
-    "backup": "postgres-walg",
-    "migrations": "api",
-    "api": "api",
     "analytics-retention": "api",
-    "summary-refresher": "api",
-    "archive-intelligence-refresher": "api",
+    "api": "api",
     "archive-enrichment-queue": "api",
-    "worker": "ingest-cuda",
+    "archive-intelligence-refresher": "api",
+    "backup": "postgres-walg",
+    "db": "postgres-walg",
     "diarization-worker": "ml-cuda",
     "frontend": "frontend",
-    "redis": "redis"
-  }
+    "migrations": "api",
+    "redis": "redis",
+    "summary-refresher": "api",
+    "worker": "ingest-cuda"
+  },
+  "source_commit": "f11f6a6e9fd6d3c5601e94d62c4f76f234055d99"
 }
