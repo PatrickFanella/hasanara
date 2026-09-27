@@ -68,9 +68,13 @@ services:
         volumes: *client-volumes
 
     frontend:
+        environment:
+            SITE_PROFILE_PATH: /config/branding/brand.json
+            FRONTEND_ORIGIN: https://hasanara.tv
         networks:
             - management
         ports:
             - 10.0.0.200:5173:80
         volumes:
             - ./branding/assets:/usr/share/nginx/html/branding:ro
+            - ./branding:/config/branding:ro
