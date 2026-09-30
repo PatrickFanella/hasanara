@@ -13,3 +13,7 @@ cookies*.txt
 /deploy-backups/
 /evidence/
 .validate-venv/
+
+# Python bytecode from deployment script tests.
+__pycache__/
+*.pyc

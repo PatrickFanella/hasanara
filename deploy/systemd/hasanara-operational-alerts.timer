@@ -1,0 +1,10 @@
+[Unit]
+Description=Check HasanAra availability every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=15s
+
+[Install]
+WantedBy=timers.target
