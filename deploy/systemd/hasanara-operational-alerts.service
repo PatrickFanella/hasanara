@@ -1,0 +1,13 @@
+[Unit]
+Description=HasanAra availability email alerts
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/subcult/email/hasanara.env
+ExecStart=/usr/bin/python3 %h/.local/lib/hasanara/operational-alerts.py --send --state %h/.local/state/hasanara/operational-alerts.json
+SuccessExitStatus=1
+TimeoutStartSec=60
+UMask=0077
+NoNewPrivileges=true

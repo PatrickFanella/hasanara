@@ -9,6 +9,7 @@ This repository deploys [HasanAra](https://hasanara.tv), a searchable archive of
 | `branding/brand.json`, `branding/assets/` | Public brand profile and Piker Broadcasting Service artwork (`logo.svg`, `favicon.svg`, `badge.svg`, `social-card.svg`) |
 | `release-images.json` | The deployed release manifest. It is added when a core release is adopted |
 | `bin/compose-prod` | Runs the core's guarded production helper for this directory |
+| `scripts/operational-alerts.py` | [Operator email alerts](docs/operational-email.md) for availability and recovery |
 | `scripts/validate.py` | Validates the profile and overlay against the pinned core without secrets |
 
 ## Where changes go
