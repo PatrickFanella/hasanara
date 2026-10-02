@@ -27,7 +27,8 @@ jobs:
         with:
           python-version: '3.11'
       - name: Test operational alert monitor without sending
-        run: "${{ steps.python.outputs.python-path }}" -B scripts/operational-alerts.test.py
+        run: |
+          "${{ steps.python.outputs.python-path }}" -B scripts/operational-alerts.test.py
       - name: Install the core profile loader dependency
         run: |
           "${{ steps.python.outputs.python-path }}" -m venv .validate-venv
