@@ -9,6 +9,7 @@ This repository deploys [HasanAra](https://hasanara.tv), a searchable archive of
 | `core/` | transcript-create at the deployed release's `source_commit` |
 | `docker-compose.client.yml` | HasanAra overlay: origins, OAuth callback requirements, Almaz port bindings, `management` and `dev` networks, HasanAbi VOD channels, and brand mounts |
 | `branding/brand.json`, `branding/assets/` | Public brand profile and Piker Broadcasting Service artwork (`logo.svg`, `favicon.svg`, `badge.svg`, `social-card.svg`) |
+| `branding/social-card.source.svg` | Editable social card with live text. `branding/assets/social-card.svg` is its outlined export |
 | `release-images.json` | The deployed release manifest. It is added when a core release is adopted |
 | `bin/compose-prod` | Runs the core's guarded production helper for this directory |
 | `scripts/operational-alerts.py` | [Operator email alerts](docs/operational-email.md) for availability and recovery |
@@ -21,6 +22,19 @@ This repository deploys [HasanAra](https://hasanara.tv), a searchable archive of
 - Secrets stay in the ignored `.env.prod` and diarization env file on the host. Both repositories are public.
 
 Do not copy core files into this repository or apply core fixes here.
+
+## Social card
+
+The frontend image rasterizes `social-card.svg` with only DejaVu fonts installed, so the served file has its text converted to outlines. Edit `branding/social-card.source.svg`, then export it with the HasanAra pack fonts from SUBCULT Studio (Newsreader, Inter Tight; `branding/2026-10-01-packs/brands/hasanara/fonts`):
+
+```bash
+printf '<?xml version="1.0"?><fontconfig><dir>%s</dir><cachedir>/tmp/hasanara-fc</cachedir></fontconfig>' \
+  /path/to/subcult-studio/branding/2026-10-01-packs/brands/hasanara/fonts > /tmp/hasanara-fonts.conf
+FONTCONFIG_FILE=/tmp/hasanara-fonts.conf inkscape --export-text-to-path --export-plain-svg \
+  --export-filename=branding/assets/social-card.svg branding/social-card.source.svg
+```
+
+Check the result with `rsvg-convert --width 1200 --height 630`, then restart the frontend so `/social-preview.png` is regenerated.
 
 ## Checkout
 
