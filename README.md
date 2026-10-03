@@ -1,30 +1,33 @@
 # HasanAra
 
-**Find the passage. Return to the broadcast. Share the context.**
+**He said it on stream. The record shows when.**
 
-HasanAra is a searchable archive of HasanAbi broadcasts. Search the transcript,
-open a result at its timestamp in the original recording, and share a passage
-with the surrounding conversation intact.
+This is HasanAra, the searchable record of the Piker Broadcasting Service: an
+archive of HasanAbi broadcasts with timestamped transcripts. Search by phrase
+and each result opens the original recording at its timestamp.
 
 [Search HasanAra](https://hasanara.tv) · [Product overview](https://subcult.tv/products/hasanara) · [Feedback and issues](https://git.subcult.tv/subculture-collective/hasanara/issues)
 
 ![HasanAra archive and transcript search](https://subcult.tv/screenshots/hasanara-home-1440.webp)
 
-## Long broadcasts, findable moments
+## Consulting the record
 
-- **Search what was said:** use transcript search to find a topic, phrase, or
-  discussion across the archive.
-- **Follow the source:** jump from a search result to its timestamp in the
-  original broadcast.
-- **Keep the context:** read the surrounding transcript and preview a selected
-  passage before sharing it.
-- **Return later:** save moments and searches with an account, or share a passage
-  link without creating one.
+A broadcast runs for hours. The transcript search finds a topic, phrase or
+discussion across the archive, and each result carries its timestamp, which
+works as the citation: follow it to that point in the original broadcast.
+
+The transcript around a result stays on the page, so a passage can be read with
+the conversation it came from and previewed before it is shared. A passage link
+needs no account. An account saves moments and searches for a later visit.
+
+## Corrections
+
+The transcripts are automatic and sometimes wrong. Check the recording before
+you quote a passage. The record is also incomplete: coverage depends on the
+recordings and transcripts available.
 
 HasanAra is an independent archive operated by [Subcult](https://subcult.tv).
-Broadcasts and trademarks belong to their respective owners. Archive coverage
-depends on the recordings and transcripts available; automated transcripts can
-contain errors, so use the original recording when quoting a passage.
+Broadcasts and trademarks belong to their respective owners.
 
 ## Powered by Rekolekt
 
