@@ -1,5 +1,7 @@
 # HasanAra
 
+![HasanAra: He said it on stream. The record shows when. Broadcast-archive artwork with the PBS mark.](docs/assets/readme/banner.png)
+
 **He said it on stream. The record shows when.**
 
 This is HasanAra, the searchable record of the Piker Broadcasting Service: an
@@ -31,7 +33,7 @@ Broadcasts and trademarks belong to their respective owners.
 
 ## Powered by Rekolekt
 
-[Rekolekt](https://git.subcult.tv/subculture-collective/transcript-create) is the
+[Rekolekt](https://git.subcult.tv/subculture-collective/rekolekt) is the
 shared application behind HasanAra's search, transcripts, and passage tools.
 This repository maintains HasanAra's branding, archive configuration, and
 deployment profile. Application features and fixes belong in Rekolekt.
