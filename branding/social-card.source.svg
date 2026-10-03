@@ -399,6 +399,7 @@ l0 76 -3 1 c-1 1 -2 1 -2 1 0 0 -3 -1 -6 -1z"/><path d="M1329 601 c-3 0 -6 -1 -6 
 0 31 1 33 2 1 1 2 12 0 14 -1 1 -10 1 -33 1 l-32 0 0 2 c-1 1 -1 13 -1 26 0
 21 0 24 2 24 0 1 16 1 33 1 31 0 32 0 33 2 1 3 1 13 0 14 -2 0 -72 1 -79 0z"/></g></g></g>
 <text x="650" y="280" fill="#eeeae1" font-family="Newsreader, Georgia, serif" font-size="96" font-weight="700">HasanAra</text>
-<text x="652" y="345" fill="#FF6633" font-family="Inter Tight, Helvetica, sans-serif" font-size="30" font-weight="700">Every broadcast, searchable.</text>
-<text x="652" y="395" fill="#b5afa3" font-family="Inter Tight, Helvetica, sans-serif" font-size="26">Read the transcript. Cite the moment.</text>
+<text x="652" y="345" fill="#FF6633" font-family="Inter Tight, Helvetica, sans-serif" font-size="30" font-weight="700">The record, searchable by phrase.</text>
+<text x="652" y="395" fill="#b5afa3" font-family="Inter Tight, Helvetica, sans-serif" font-size="26">Transcripts are automatic.</text>
+<text x="652" y="431" fill="#b5afa3" font-family="Inter Tight, Helvetica, sans-serif" font-size="26">Check the tape before you quote it.</text>
 </svg>
