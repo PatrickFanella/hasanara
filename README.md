@@ -1,6 +1,6 @@
 # HasanAra
 
-![HasanAra: He said it on stream. The record shows when. Broadcast-archive artwork with the PBS mark.](docs/assets/readme/banner.png)
+![HasanAra: He said it on stream. The record shows when. Broadcast-archive artwork with the PBS mark.](https://git.subcult.tv/api/v1/repos/subculture-collective/hasanara/raw/docs/assets/readme/banner.png?ref=d63850cd7818496f7cee426937c810b5a623f684)
 
 **He said it on stream. The record shows when.**
 
