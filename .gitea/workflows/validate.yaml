@@ -29,9 +29,74 @@ jobs:
       - name: Test operational alert monitor without sending
         run: |
           "${{ steps.python.outputs.python-path }}" -B scripts/operational-alerts.test.py
+      - name: Test image manifest checks and the deployment wrapper
+        run: |
+          "${{ steps.python.outputs.python-path }}" -B scripts/deploy_manifest.test.py
       - name: Install the core profile loader dependency
         run: |
           "${{ steps.python.outputs.python-path }}" -m venv .validate-venv
           .validate-venv/bin/python -m pip install --quiet -c core/constraints.txt pydantic
       - name: Validate brand profile and production Compose contract
         run: .validate-venv/bin/python scripts/validate.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout frontend and pinned core
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+      - name: Install frontend and browser-test dependencies
+        run: |
+          npm ci --prefix frontend
+          npm ci --prefix e2e
+      - name: Check API types against the pinned core's OpenAPI document
+        run: npm --prefix frontend run api:check
+      - name: Lint, format and type-check
+        run: |
+          npm --prefix frontend run lint
+          npm --prefix frontend run format:check
+          npm --prefix frontend run type-check
+      - name: Unit tests with coverage
+        run: npm --prefix frontend run test:coverage
+      - name: Build and check the bundle budget
+        run: |
+          npm --prefix frontend run build
+          npm --prefix frontend run bundle:check
+      - name: Dependency security gate
+        run: npm --prefix frontend run security:check
+      - name: Install Chromium
+        run: npx --prefix e2e playwright install --with-deps chromium
+      - name: Run browser tests against mocked API routes
+        working-directory: e2e
+        run: npx playwright test tests/archive-smoke.spec.ts --project=chromium --workers=1
+      - name: Upload browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: frontend-browser-tests
+          if-no-files-found: ignore
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+
+  web-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout web source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build the web image without publishing
+        run: |
+          docker build --file frontend/Dockerfile --build-arg GIT_COMMIT='${{ gitea.sha }}' \
+            --tag 'hasanara-web-ci:${{ gitea.run_id }}' .
+      - name: Smoke-test the image with the HasanAra profile
+        run: scripts/web_image_smoke.sh 'hasanara-web-ci:${{ gitea.run_id }}'
+      - name: Remove the local image
+        if: always()
+        run: docker image rm 'hasanara-web-ci:${{ gitea.run_id }}' >/dev/null 2>&1 || true

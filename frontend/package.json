@@ -9,6 +9,7 @@
     "bundle:check": "node scripts/check-bundle-budget.mjs",
     "api:generate": "openapi-typescript ../core/docs/api/openapi.json --output src/types/generated/api.ts && prettier --write src/types/generated/api.ts",
     "api:check": "node scripts/check-api-types.mjs",
+    "security:check": "node scripts/check-security.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
