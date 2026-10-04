@@ -1000,9 +1000,9 @@ test("core public routes do not overflow a 320px viewport", async ({
 
 
 test("client profiles apply identity, assets and both themes across responsive pages", async ({ page }) => {
-  const profile = JSON.parse(fs.readFileSync(path.resolve("../config/branding/northstar.json"), "utf8"));
+  const profile = JSON.parse(fs.readFileSync(path.resolve("../core/config/branding/northstar.json"), "utf8"));
   await page.route("**/api/site", route => route.fulfill({ json: { ...profile, public_passages_enabled: true, community_enabled: false } }));
-  await page.route("**/branding/*", route => route.fulfill({ path: path.resolve("../config/branding/northstar-assets", new URL(route.request().url()).pathname.split("/").pop()!), contentType: "image/svg+xml" }));
+  await page.route("**/branding/*", route => route.fulfill({ path: path.resolve("../core/config/branding/northstar-assets", new URL(route.request().url()).pathname.split("/").pop()!), contentType: "image/svg+xml" }));
   await page.addInitScript(() => localStorage.setItem('themePreference', 'dark'));
   // Start wide so the desktop theme toggle exists in mobile projects too; the
   // narrow half of this test resizes to 390px below.

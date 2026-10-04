@@ -1,4 +1,7 @@
-FROM node:20-alpine AS build
+# Base images are pinned to the digests behind the tags core used. The nginx
+# digest matches the base layers of the rc.18 web image hasanara.tv served
+# before HasanAra built its own (core 19124a7, sha256:236cb873...).
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 WORKDIR /app
 
@@ -9,7 +12,7 @@ COPY frontend/ ./
 ENV VITE_API_BASE=/api
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
 
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE

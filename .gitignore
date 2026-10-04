@@ -12,6 +12,8 @@ cookies*.txt
 /docker-volumes/
 /deploy-backups/
 /evidence/
+# Browser-test screenshots written by e2e/.
+/output/
 .validate-venv/
 
 # Python bytecode from deployment script tests.
