@@ -137,14 +137,21 @@ jobs:
           }
           trap cleanup EXIT
           docker volume create "$evidence_volume" >/dev/null
-          # As in the core release: push to a co-located Gitea directly.
+          # As in the core release: push to a co-located Gitea directly, over a
+          # temporary internal network. When the daemon has no free address
+          # pool for that network, share Gitea's network namespace instead.
           if docker container inspect gitea >/dev/null 2>&1; then
-            network="hasanara-web-push-${{ gitea.run_id }}"
-            network_args=(--network "$network")
-            destination="docker://registry-origin:3000/${repository}:${TAG}"
             destination_tls_verify=false
-            docker network create --internal "$network" >/dev/null
-            docker network connect --alias registry-origin "$network" gitea
+            if docker network create --internal "hasanara-web-push-${{ gitea.run_id }}" >/dev/null; then
+              network="hasanara-web-push-${{ gitea.run_id }}"
+              network_args=(--network "$network")
+              destination="docker://registry-origin:3000/${repository}:${TAG}"
+              docker network connect --alias registry-origin "$network" gitea
+            else
+              printf '%s\n' 'no address pool for a push network; using the Gitea network namespace'
+              network_args=(--network container:gitea)
+              destination="docker://127.0.0.1:3000/${repository}:${TAG}"
+            fi
           fi
           copied=false
           for attempt in 1 2 3; do
