@@ -34,9 +34,10 @@ Broadcasts and trademarks belong to their respective owners.
 ## Powered by Rekolekt
 
 [Rekolekt](https://git.subcult.tv/subculture-collective/rekolekt) is the
-shared application behind HasanAra's search, transcripts, and passage tools.
-This repository maintains HasanAra's branding, archive configuration, and
-deployment profile. Application features and fixes belong in Rekolekt.
+shared backend behind HasanAra's search, transcripts, and passage tools.
+This repository maintains HasanAra's web frontend, branding, archive
+configuration, and deployment profile. Backend features and fixes belong in
+Rekolekt.
 
 For profile validation, checkout instructions, and release adoption, read the
 [deployment and contributor guide](DEVELOPMENT.md). The
