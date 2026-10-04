@@ -1,0 +1,11 @@
+# The web image is the only image built from this repository. Its Dockerfile
+# copies from frontend/ only; keep the core checkout, operator state and secrets
+# out of the build context.
+*
+!frontend/
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.artifacts
+frontend/.env
+frontend/.env.*

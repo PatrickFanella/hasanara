@@ -1,0 +1,263 @@
+name: Web image
+
+# Builds, scans, publishes and signs HasanAra's own web image from reviewed
+# main, following the core's release image conventions: the same runner and
+# registry, a tag by commit, an immutable digest, a Cosign signature with this
+# repository's key, and SLSA provenance and SPDX SBOM attestations. The job
+# uploads the web-image.json to record in a follow-up pull request.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.dockerignore'
+      - 'scripts/web_image_smoke.sh'
+      - '.gitea/workflows/web-image.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: switchyard-production
+    timeout-minutes: 45
+    steps:
+      - name: Authorize publishing
+        env:
+          EVENT_NAME: ${{ gitea.event_name }}
+          REF: ${{ gitea.ref }}
+          ACTOR: ${{ gitea.actor }}
+          RELEASE_OPERATOR: ${{ vars.RELEASE_OPERATOR }}
+        run: |
+          set -euo pipefail
+          # Only main, whose merges pass the protected-branch checks. A manual
+          # run is reserved for the release operator.
+          [[ "$REF" == refs/heads/main ]]
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            [[ -n "$RELEASE_OPERATOR" && "$ACTOR" == "$RELEASE_OPERATOR" ]]
+          else
+            [[ "$EVENT_NAME" == push ]]
+          fi
+      - name: Validate publishing prerequisites
+        env:
+          REGISTRY_USER: ${{ vars.REGISTRY_USER }}
+          REGISTRY_PAT: ${{ secrets.REGISTRY_PAT }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PUBLIC_KEY_B64: ${{ vars.COSIGN_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          for required in REGISTRY_USER REGISTRY_PAT COSIGN_PRIVATE_KEY COSIGN_PUBLIC_KEY_B64; do
+            [[ -n "${!required}" ]] || { printf '%s is required\n' "$required" >&2; exit 1; }
+          done
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ gitea.sha }}
+      - name: Select immutable build target
+        id: target
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'image=git.subcult.tv/subculture-collective/hasanara-web' >> "$GITHUB_OUTPUT"
+          printf 'tag=web-%s\n' "$(printf '%s' '${{ gitea.sha }}' | cut -c1-12)" >> "$GITHUB_OUTPUT"
+          printf 'build_date=%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+          tree="$(git rev-parse '${{ gitea.sha }}:frontend')"
+          [[ "$tree" =~ ^[0-9a-f]{40}$ ]]
+          printf 'frontend_tree=%s\n' "$tree" >> "$GITHUB_OUTPUT"
+      - name: Log in to registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: git.subcult.tv
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PAT }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+        with:
+          name: hasanara-web-${{ gitea.run_id }}
+          driver: docker-container
+          driver-opts: |
+            cpu-period=100000
+            cpu-quota=200000
+            memory=4g
+            memory-swap=4g
+      - name: Build the web image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}
+          build-args: |
+            GIT_COMMIT=${{ gitea.sha }}
+            BUILD_DATE=${{ steps.target.outputs.build_date }}
+      - name: Smoke-test the image with the HasanAra profile
+        run: scripts/web_image_smoke.sh '${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}'
+      - name: Block high and critical application vulnerabilities
+        env:
+          IMAGE_REF: ${{ steps.target.outputs.image }}:${{ steps.target.outputs.tag }}
+        run: |
+          set -euo pipefail
+          trivy_image='docker.io/aquasec/trivy@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
+          docker run --rm --cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 \
+            -v /var/run/docker.sock:/var/run/docker.sock "$trivy_image" image \
+            --timeout 15m --scanners vuln --severity CRITICAL,HIGH --pkg-types library --exit-code 1 "$IMAGE_REF"
+          docker run --rm --cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 \
+            -v /var/run/docker.sock:/var/run/docker.sock "$trivy_image" image \
+            --timeout 15m --scanners vuln --severity CRITICAL,HIGH --pkg-types os --format sarif --exit-code 0 "$IMAGE_REF" \
+            > web-os.sarif
+          docker run --rm --cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 \
+            -v /var/run/docker.sock:/var/run/docker.sock "$trivy_image" image \
+            --timeout 15m --format spdx-json --exit-code 0 "$IMAGE_REF" > web.spdx.json
+      - name: Push the scanned image and resolve its digest
+        id: publish
+        env:
+          IMAGE: ${{ steps.target.outputs.image }}
+          TAG: ${{ steps.target.outputs.tag }}
+          REGISTRY_USER: ${{ vars.REGISTRY_USER }}
+          REGISTRY_PAT: ${{ secrets.REGISTRY_PAT }}
+        run: |
+          set -euo pipefail
+          skopeo_image='quay.io/skopeo/stable@sha256:47853bb9fb24202af9110531ebd6e43c5f97701254ca290596640290d17942f4'
+          repository="${IMAGE#git.subcult.tv/}"
+          network=""
+          network_args=()
+          destination="docker://${IMAGE}:${TAG}"
+          destination_tls_verify=true
+          evidence_volume="hasanara-web-push-evidence-${{ gitea.run_id }}"
+          cleanup() {
+            if [[ -n "$network" ]]; then
+              docker network disconnect "$network" gitea >/dev/null 2>&1 || true
+              docker network rm "$network" >/dev/null 2>&1 || true
+            fi
+            docker volume rm --force "$evidence_volume" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker volume create "$evidence_volume" >/dev/null
+          # As in the core release: push to a co-located Gitea directly.
+          if docker container inspect gitea >/dev/null 2>&1; then
+            network="hasanara-web-push-${{ gitea.run_id }}"
+            network_args=(--network "$network")
+            destination="docker://registry-origin:3000/${repository}:${TAG}"
+            destination_tls_verify=false
+            docker network create --internal "$network" >/dev/null
+            docker network connect --alias registry-origin "$network" gitea
+          fi
+          copied=false
+          for attempt in 1 2 3; do
+            if registry_token="$(curl --fail-with-body --silent --show-error --get \
+              --user "$REGISTRY_USER:$REGISTRY_PAT" \
+              --data-urlencode "service=container_registry" \
+              --data-urlencode "scope=repository:${repository}:pull,push" \
+              https://git.subcult.tv/v2/token | python3 -c 'import json, sys; payload = json.load(sys.stdin); token = payload.get("token") or payload.get("access_token"); assert isinstance(token, str) and token; print(token)')"; then
+              if REGISTRY_BEARER_TOKEN="$registry_token" docker run --rm "${network_args[@]}" \
+                --cpus=1 --memory=1g --memory-swap=1g --pids-limit=128 \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$evidence_volume:/evidence" \
+                -e REGISTRY_BEARER_TOKEN \
+                -e DESTINATION="$destination" \
+                -e DESTINATION_TLS_VERIFY="$destination_tls_verify" \
+                -e IMAGE \
+                -e TAG \
+                --entrypoint /bin/sh \
+                "$skopeo_image" -ec '
+                  rm -f /evidence/pushed.digest
+                  skopeo copy --dest-registry-token "$REGISTRY_BEARER_TOKEN" --dest-tls-verify="$DESTINATION_TLS_VERIFY" \
+                    --digestfile /evidence/pushed.digest \
+                    "docker-daemon:${IMAGE}:${TAG}" "$DESTINATION"
+                '; then
+                copied=true
+                break
+              fi
+            fi
+            if (( attempt < 3 )); then
+              sleep "$((attempt * 2))"
+            fi
+          done
+          [[ "$copied" == true ]]
+          pushed_digest="$(docker run --rm --cpus=0.25 --memory=128m --memory-swap=128m --pids-limit=32 -v "$evidence_volume:/evidence:ro" --entrypoint /bin/sh "$skopeo_image" -ec 'cat /evidence/pushed.digest')"
+          [[ "$pushed_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          canonical_digest="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
+          [[ "$canonical_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$canonical_digest" == "$pushed_digest" ]]
+          docker pull "$IMAGE@$canonical_digest" >/dev/null
+          printf 'digest=%s\n' "$canonical_digest" >> "$GITHUB_OUTPUT"
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - name: Sign, attest and verify the digest
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PUBLIC_KEY_B64: ${{ vars.COSIGN_PUBLIC_KEY_B64 }}
+          IMAGE_REF: ${{ steps.target.outputs.image }}@${{ steps.publish.outputs.digest }}
+          SOURCE_COMMIT: ${{ gitea.sha }}
+          RUN_ID: ${{ gitea.run_id }}
+          REPOSITORY_URI: https://git.subcult.tv/${{ gitea.repository }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$COSIGN_PUBLIC_KEY_B64" | base64 -d > cosign.pub
+          export TIMESTAMP="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("web.provenance.json").write_text(json.dumps({
+              "buildType": "https://hasanara.tv/web-image",
+              "builder": {"id": f"gitea-run/{os.environ['RUN_ID']}"},
+              "invocation": {"configSource": {"uri": os.environ["REPOSITORY_URI"], "digest": {"sha1": os.environ["SOURCE_COMMIT"]}, "entryPoint": "frontend/Dockerfile"}, "parameters": {"role": "frontend", "dockerfile": "frontend/Dockerfile"}},
+              "metadata": {"buildInvocationId": os.environ["RUN_ID"], "buildStartedOn": os.environ["TIMESTAMP"], "buildFinishedOn": os.environ["TIMESTAMP"], "completeness": {"parameters": True, "environment": False, "materials": True}, "reproducible": False},
+              "materials": [{"uri": os.environ["REPOSITORY_URI"], "digest": {"sha1": os.environ["SOURCE_COMMIT"]}}],
+          }) + "\n", encoding="utf-8")
+          PY
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$IMAGE_REF"
+          cosign attest --yes --key env://COSIGN_PRIVATE_KEY --type slsaprovenance --predicate web.provenance.json "$IMAGE_REF"
+          cosign attest --yes --key env://COSIGN_PRIVATE_KEY --type spdxjson --predicate web.spdx.json "$IMAGE_REF"
+          cosign verify --key cosign.pub "$IMAGE_REF" > web.signature.verify.json
+          cosign verify-attestation --key cosign.pub --type slsaprovenance "$IMAGE_REF" > web.provenance.verify.json
+          cosign verify-attestation --key cosign.pub --type spdxjson "$IMAGE_REF" > web.sbom.verify.json
+      - name: Write the web image manifest
+        env:
+          IMAGE: ${{ steps.target.outputs.image }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+          SOURCE_COMMIT: ${{ gitea.sha }}
+          FRONTEND_TREE: ${{ steps.target.outputs.frontend_tree }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("web-image.json").write_text(json.dumps({
+              "frontend_tree": os.environ["FRONTEND_TREE"],
+              "image": f"{os.environ['IMAGE']}@{os.environ['DIGEST']}",
+              "schema_version": 1,
+              "source_commit": os.environ["SOURCE_COMMIT"],
+          }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+          cat web-image.json
+      - name: Upload web image evidence
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: web-image-evidence
+          path: |
+            web-image.json
+            web.provenance.json
+            web.spdx.json
+            web-os.sarif
+            cosign.pub
+            web.signature.verify.json
+            web.provenance.verify.json
+            web.sbom.verify.json
+      - name: Log out of the registry
+        if: always()
+        run: docker logout git.subcult.tv >/dev/null 2>&1 || true
+      - name: Remove the local build tag
+        if: always()
+        env:
+          IMAGE: ${{ steps.target.outputs.image }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: |
+          if [[ -n "$IMAGE" && -n "$TAG" ]]; then
+            docker image rm "$IMAGE:$TAG" >/dev/null 2>&1 || true
+          fi
