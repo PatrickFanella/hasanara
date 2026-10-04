@@ -4,6 +4,8 @@
 Loads the public brand profile with the core loader, then renders the production
 Compose model with inert values and applies the core release preflight's service,
 diarization and external-network checks. Rendered configuration is never printed.
+Also checks HasanAra's web image manifest and renders the separate web Compose
+project (scripts/web_manifest.py).
 """
 
 from __future__ import annotations
@@ -47,6 +49,16 @@ def load_preflight() -> ModuleType:
     if not path.is_file():
         raise SystemExit("core submodule is not checked out; run: git submodule update --init")
     spec = importlib.util.spec_from_file_location("release_preflight", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_web_manifest() -> ModuleType:
+    path = ROOT / "scripts" / "web_manifest.py"
+    spec = importlib.util.spec_from_file_location("web_manifest", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -112,13 +124,17 @@ def validate_compose(preflight: ModuleType, scratch: Path) -> list[str]:
 
 def main() -> int:
     preflight = load_preflight()
+    manifests = load_web_manifest()
     try:
         validate_brand()
+        notices = manifests.check(ROOT, deploy=False)
         with tempfile.TemporaryDirectory() as scratch:
             networks = validate_compose(preflight, Path(scratch))
-    except preflight.PreflightError as error:
+    except (preflight.PreflightError, manifests.ManifestError) as error:
         print(f"deployment validation failed: {error}", file=sys.stderr)
         return 1
+    for notice in notices:
+        print(f"notice: {notice}")
     print(f"deployment validation passed; external networks required on the host: {', '.join(networks) or 'none'}")
     return 0
 

@@ -1,0 +1,30 @@
+# HasanAra's web container, in its own Compose project ("hasanara-web"),
+# outside the core "hasanara" project that the core release preflight
+# validates. Run it only through bin/compose-prod, which takes the image from
+# web-image.json. Paths are relative to this deployment directory.
+#
+# Caddy on Almaz proxies hasanara.tv (through umami-site-proxy) to
+# hasanara-web:80 on the management network and /api/* to hasanara-api:8000;
+# keep the container name, network and host port.
+name: hasanara-web
+
+networks:
+    management:
+        name: management
+        external: true
+
+services:
+    frontend:
+        image: ${HASANARA_WEB_IMAGE:?run through bin/compose-prod, which reads web-image.json}
+        container_name: hasanara-web
+        restart: unless-stopped
+        environment:
+            SITE_PROFILE_PATH: /config/branding/brand.json
+            FRONTEND_ORIGIN: https://hasanara.tv
+        networks:
+            - management
+        ports:
+            - 10.0.0.200:5173:80
+        volumes:
+            - ./branding/assets:/usr/share/nginx/html/branding:ro
+            - ./branding:/config/branding:ro

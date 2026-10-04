@@ -29,9 +29,9 @@ jobs:
       - name: Test operational alert monitor without sending
         run: |
           "${{ steps.python.outputs.python-path }}" -B scripts/operational-alerts.test.py
-      - name: Test image manifest checks and the deployment wrapper
+      - name: Test the web image manifest and the deployment wrapper
         run: |
-          "${{ steps.python.outputs.python-path }}" -B scripts/deploy_manifest.test.py
+          "${{ steps.python.outputs.python-path }}" -B scripts/web_manifest.test.py
       - name: Install the core profile loader dependency
         run: |
           "${{ steps.python.outputs.python-path }}" -m venv .validate-venv

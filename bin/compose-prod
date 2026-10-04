@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
-# Run the pinned core's guarded production helper for this deployment.
+# Run the pinned core's guarded production helper for this deployment, and
+# deploy HasanAra's own web container.
+#
+# The core helper manages the "hasanara" Compose project: backend services
+# from the core release manifest, release-images.json. The web container runs
+# in its own project, "hasanara-web" (docker-compose.web.yml), with the image
+# recorded in web-image.json:
+#
+#   bin/compose-prod web-preflight         check web-image.json and the web project
+#   bin/compose-prod deploy-web            both preflights, then replace only hasanara-web
+#   bin/compose-prod web ps|logs|images|config [arguments]
 set -Eeuo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
@@ -8,4 +18,71 @@ if [[ ! -f $helper ]]; then
     printf '%s\n' 'core submodule is not checked out; run: git submodule update --init' >&2
     exit 64
 fi
+readonly WEB_CONTAINER=hasanara-web WEB_PROJECT=hasanara-web
+clean_env=(env -i PATH="$PATH" HOME="$HOME" USER="${USER:-}")
+
+web_manifest() { (cd "$root" && "${clean_env[@]}" python3 "$root/scripts/web_manifest.py" "$@"); }
+web_compose() {
+    local image
+    image=$(web_manifest image)
+    "${clean_env[@]}" HASANARA_WEB_IMAGE="$image" docker compose --project-name "$WEB_PROJECT" \
+        --project-directory "$root" --env-file /dev/null --file "$root/docker-compose.web.yml" "$@"
+}
+core_helper() { TRANSCRIPT_DEPLOY_ROOT=$root bash "$helper" "$@"; }
+
+wait_healthy() {
+    local status deadline=$((SECONDS + 120))
+    while ((SECONDS < deadline)); do
+        status=$("${clean_env[@]}" docker container inspect \
+            --format '{{.State.Status}}/{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+            "$WEB_CONTAINER") || status=missing
+        case $status in
+            running/healthy) printf '%s is healthy\n' "$WEB_CONTAINER"; return 0 ;;
+            running/starting) sleep 2 ;;
+            *) break ;;
+        esac
+    done
+    printf '%s did not become healthy (%s)\n' "$WEB_CONTAINER" "${status:-unknown}" >&2
+    return 1
+}
+
+# Remove a hasanara-web container that the web project does not own: the
+# frontend service of the core project before HasanAra ran its own.
+remove_foreign_web_container() {
+    local owner
+    owner=$("${clean_env[@]}" docker container inspect \
+        --format '{{index .Config.Labels "com.docker.compose.project"}} {{.Image}}' "$WEB_CONTAINER" 2>/dev/null) || return 0
+    [[ ${owner%% *} != "$WEB_PROJECT" ]] || return 0
+    printf 'removing %s from project %s (image %s)\n' "$WEB_CONTAINER" "${owner%% *}" "${owner#* }"
+    "${clean_env[@]}" docker container stop --time 10 "$WEB_CONTAINER" >/dev/null
+    "${clean_env[@]}" docker container rm "$WEB_CONTAINER" >/dev/null
+}
+
+case ${1:-} in
+    web-preflight)
+        shift
+        if (($# != 0)); then printf '%s\n' 'web-preflight takes no arguments' >&2; exit 64; fi
+        web_manifest check --deploy
+        exit 0
+        ;;
+    deploy-web)
+        shift
+        if (($# != 0)); then printf '%s\n' 'deploy-web takes no arguments' >&2; exit 64; fi
+        web_manifest check --deploy
+        core_helper preflight
+        web_compose pull --quiet
+        remove_foreign_web_container
+        web_compose up -d --no-build --pull never
+        wait_healthy
+        exit 0
+        ;;
+    web)
+        shift
+        case ${1:-} in
+            ps | logs | images | config) web_compose "$@"; exit ;;
+            *) printf '%s\n' 'usage: bin/compose-prod web {ps|logs|images|config} [arguments]' >&2; exit 64 ;;
+        esac
+        ;;
+esac
+
 TRANSCRIPT_DEPLOY_ROOT=$root exec bash "$helper" "$@"

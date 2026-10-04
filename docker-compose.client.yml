@@ -67,14 +67,10 @@ services:
         environment: *client-environment
         volumes: *client-volumes
 
+    # HasanAra's web container runs in its own Compose project
+    # (docker-compose.web.yml, bin/compose-prod deploy-web). The core 19124a7
+    # release preflight still requires a frontend service in this project with
+    # the core manifest's image, so it stays defined here with no containers.
+    # Remove this block when adopting a backend-only core release.
     frontend:
-        environment:
-            SITE_PROFILE_PATH: /config/branding/brand.json
-            FRONTEND_ORIGIN: https://hasanara.tv
-        networks:
-            - management
-        ports:
-            - 10.0.0.200:5173:80
-        volumes:
-            - ./branding/assets:/usr/share/nginx/html/branding:ro
-            - ./branding:/config/branding:ro
+        scale: 0
