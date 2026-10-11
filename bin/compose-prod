@@ -59,6 +59,11 @@ remove_foreign_web_container() {
 }
 
 case ${1:-} in
+    apply-search-controls)
+        shift
+        if (($# != 0)); then printf '%s\n' 'apply-search-controls takes no arguments' >&2; exit 64; fi
+        exec python3 "$root/scripts/apply_search_controls.py"
+        ;;
     web-preflight)
         shift
         if (($# != 0)); then printf '%s\n' 'web-preflight takes no arguments' >&2; exit 64; fi

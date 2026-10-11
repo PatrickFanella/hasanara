@@ -1,0 +1,13 @@
+# Imported first inside hasanara.tv's route block.
+@hasanara_ahrefs_expensive {
+    path /topics/* /api/search /api/search/*
+    header_regexp User-Agent (?i)AhrefsBot
+}
+header @hasanara_ahrefs_expensive Retry-After 60
+header @hasanara_ahrefs_expensive Cache-Control "private, no-store"
+respond @hasanara_ahrefs_expensive "Crawler access to expensive archive searches is paused." 429
+handle /robots.txt {
+    root * /etc/caddy/sites/hasanara
+    header Cache-Control "public, max-age=300"
+    file_server
+}
