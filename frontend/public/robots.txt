@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /api/
+
+User-agent: AhrefsBot
+Disallow: /topics/
+Disallow: /api/
+Crawl-delay: 30

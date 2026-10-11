@@ -1,0 +1,14 @@
+{
+  "core_source_commit": "587dd24a3ab2126de02c58ef03d551e4b5389fbd",
+  "core_source_branch": "fix/anonymous-search-budget-20261011",
+  "core_worktree": "/home/onnwee/.local/state/hasanara/search-budget-20261011/core",
+  "base_image": "sha256:e9317e730e1a9a8fc99fc5b186605339659c94c0c5a1838b41796ce0104fc9a2",
+  "deployed_image": "sha256:ea2fc5521e91de43e2f55358918db322257babea1946464199baf9cc89849bd5",
+  "files_sha256": {
+    "budget.py": "c60098cabc71a9558dcc74134f46b7d610ecd9c05d82eb718560d67cd723bfd2",
+    "mention_cache.py": "e1f0cf60d80395c81655a138ed61aebafe14f21f5fd9bc589dd38949fde71f25",
+    "Dockerfile": "ed51634c4e8aa5bed073f6900d69985c73fd02ecf65993f9cc0664421b2e87f2",
+    "orchestrator.py": "e80021cddff5e54d25fe0a43a98df053b6edd2d7051c5652f8dc46de52fef5f3",
+    "search.py": "26994445d264b538d8026ad42ca4b9c4543d505fcb472b8071086da5ff25c25c"
+  }
+}
