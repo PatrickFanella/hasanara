@@ -1,0 +1,13 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/14352",
+  "source_commit": "beb645fd765eaec95136b521641962008daef459",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:3ddfe06763ac141d015a4c49974c961b29b20caefd56c1f3544207bed821c6b1",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "library_scan_high_critical": "passed",
+  "signature_provenance_sbom": "verified",
+  "canary": "source/version/health/shared-admission passed",
+  "schema_revision": "20261008_search_freshness (already applied)"
+}

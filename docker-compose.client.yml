@@ -40,6 +40,8 @@ services:
             OAUTH_TWITCH_REDIRECT_URI: ${OAUTH_TWITCH_REDIRECT_URI:?OAUTH_TWITCH_REDIRECT_URI is required}
             BOOTSTRAP_ADMIN_IDENTITIES: ${BOOTSTRAP_ADMIN_IDENTITIES:-}
             FORWARDED_ALLOW_IPS: 172.20.0.250
+            PGOPTIONS: "-c statement_timeout=30000"
+            ANONYMOUS_SEARCH_CONCURRENCY: "2"
             <<: *client-environment
         volumes: *client-volumes
 
@@ -67,11 +69,3 @@ services:
     archive-enrichment-queue:
         environment: *client-environment
         volumes: *client-volumes
-
-    # HasanAra's web container runs in its own Compose project
-    # (docker-compose.web.yml, bin/compose-prod deploy-web). The core 19124a7
-    # release preflight still requires a frontend service in this project with
-    # the core manifest's image, so it stays defined here with no containers.
-    # Remove this block when adopting a backend-only core release.
-    frontend:
-        scale: 0
