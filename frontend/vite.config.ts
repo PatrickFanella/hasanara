@@ -27,7 +27,7 @@ export default defineConfig(() => {
       coverage: {
         provider: 'v8',
         reportsDirectory: '.artifacts/coverage',
-        reporter: ['text', 'json', 'html'],
+        reporter: ['text'],
         exclude: [
           'node_modules/',
           'src/tests/',
