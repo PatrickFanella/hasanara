@@ -150,7 +150,11 @@ jobs:
 
   publish:
     needs: [contract, validate]
-    if: needs.contract.outputs.publish == 'true' && needs.validate.result == 'success'
+    # The main container check is intentionally skipped when publication owns
+    # its build. Evaluate after that skip, still requiring a successful gate.
+    if: >-
+      always() && needs.contract.result == 'success' &&
+      needs.contract.outputs.publish == 'true' && needs.validate.result == 'success'
     runs-on: switchyard-production
     timeout-minutes: 45
     steps:
