@@ -11,3 +11,5 @@ Private recovery inputs on Almaz are under /home/onnwee/.local/state/hasanara/re
 Published release: https://git.subcult.tv/subculture-collective/rekolekt/releases/tag/backend-api-beb645fd765e
 
 The pinned API specification changed since the old core source. The generated frontend TypeScript contract was refreshed and type-checking passed; this is a type-only source update, and the running web image remains unchanged. Clean preflight and public-safe deployment validation passed.
+
+Deployment CI also found the existing source-map-js 1.2.1 high-severity advisory GHSA-68fv-2mgg-jv7q. The frontend lockfile now resolves 1.2.2; its security gate and build passed. This does not alter the published API image.
