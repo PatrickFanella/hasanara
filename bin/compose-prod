@@ -59,10 +59,12 @@ remove_foreign_web_container() {
 }
 
 case ${1:-} in
-    apply-search-controls)
+    deploy-api)
         shift
-        if (($# != 0)); then printf '%s\n' 'apply-search-controls takes no arguments' >&2; exit 64; fi
-        exec python3 "$root/scripts/apply_search_controls.py"
+        if (($# != 0)); then printf '%s\n' 'deploy-api takes no arguments' >&2; exit 64; fi
+        core_helper preflight
+        TRANSCRIPT_DEPLOY_ROOT=$root bash -c 'source "$1"; run_compose up -d --no-deps --no-build --pull always api' _ "$helper"
+        exit 0
         ;;
     web-preflight)
         shift

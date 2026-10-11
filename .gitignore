@@ -19,3 +19,9 @@ cookies*.txt
 # Python bytecode from deployment script tests.
 __pycache__/
 *.pyc
+
+# Runtime state may be a symlink in an isolated release checkout.
+/backups
+/cache
+/data
+/docker-volumes
