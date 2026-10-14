@@ -45,7 +45,7 @@ fetch() { docker exec "$smoke" wget -q -O - "http://127.0.0.1$1"; }
 shell=$(fetch /)
 description=$(python3 -c 'import html, json, sys; print(html.escape(json.load(open(sys.argv[1]))["description"]))' "$root/branding/brand.json")
 for expected in \
-    '<title>HasanAra</title>' \
+    '<title>HasanAra — HasanAbi broadcast transcripts</title>' \
     "<meta name=\"description\" content=\"$description\" />" \
     '<meta property="og:title" content="HasanAra" />' \
     '<meta property="og:url" content="https://hasanara.tv/" />' \
