@@ -1001,6 +1001,7 @@ test("core public routes do not overflow a 320px viewport", async ({
 
 test("client profiles apply identity, assets and both themes across responsive pages", async ({ page }) => {
   const profile = JSON.parse(fs.readFileSync(path.resolve("../core/config/branding/northstar.json"), "utf8"));
+  await page.route("**/api/support", route => route.fulfill({ json: { donations_enabled: true, payment_url: "https://payments.example.org/northstar" } }));
   await page.route("**/api/site", route => route.fulfill({ json: { ...profile, public_passages_enabled: true, community_enabled: false } }));
   await page.route("**/branding/*", route => route.fulfill({ path: path.resolve("../core/config/branding/northstar-assets", new URL(route.request().url()).pathname.split("/").pop()!), contentType: "image/svg+xml" }));
   await page.addInitScript(() => localStorage.setItem('themePreference', 'dark'));
@@ -1022,7 +1023,8 @@ test("client profiles apply identity, assets and both themes across responsive p
   await page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Support', exact: true }).click();
   await expect(page.getByText('Support Northstar Archive')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  await expect(page.getByText(/HasanAra|HasanAbi|Subcult/)).toHaveCount(0);
+  await expect(page.getByText(/HasanAra|HasanAbi|Subcult/i)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Donate securely with Stripe/ })).toHaveAttribute('href', 'https://payments.example.org/northstar');
   await page.screenshot({ path: '../output/playwright/northstar-mobile.png', fullPage: true, animations: 'disabled' });
 });
 
