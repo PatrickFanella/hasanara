@@ -62,6 +62,19 @@ class MetadataTest(unittest.TestCase):
         metadata.render(self.root, self.env)
         self.assertEqual((self.root / "index.html").read_text(), document)
 
+    def test_information_pages_have_distinct_initial_metadata_and_canonicals(self):
+        metadata.render(self.root, self.env)
+        for path in ("about", "support"):
+            with self.subTest(path=path):
+                document = (self.root / f"{path}.html").read_text()
+                tags = Head(document).tags
+                self.assertEqual(tags["og:url"], f"https://hasanara.tv/{path}")
+                self.assertIn(f'<link rel="canonical" href="https://hasanara.tv/{path}"', document)
+                self.assertIn(f"https://hasanara.tv/{path}", (self.root / "sitemap.xml").read_text())
+        self.assertIn("studio", Head((self.root / "support.html").read_text()).tags["description"])
+        self.assertIn("noindex", (self.root / "private.html").read_text())
+        self.assertNotIn('rel="canonical"', (self.root / "app.html").read_text())
+
     def test_client_artwork_and_explicit_identity_override(self):
         (self.root / "branding").mkdir()
         shutil.copy(self.root / "social-card.svg", self.root / "branding/card.svg")

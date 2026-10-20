@@ -1,8 +1,5 @@
 import { useSite } from '../services/site';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../services';
-import type { SupportConfig } from '../types/api';
 
 const fundingLines = [
   {
@@ -24,26 +21,6 @@ const fundingLines = [
 
 export default function SupportPage() {
   const site = useSite();
-  const [config, setConfig] = useState<SupportConfig | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    api
-      .getSupportConfig()
-      .then((next) => {
-        if (active) setConfig(next);
-      })
-      .catch(() => {
-        if (active) setUnavailable(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const donationsEnabled = config?.donations_enabled && config.payment_url;
-
   return (
     <div className="space-y-5 lg:space-y-7">
       <section className="archive-masthead overflow-hidden">
@@ -55,32 +32,14 @@ export default function SupportPage() {
             </div>
             <h1 className="archive-display">Keep the public record searchable.</h1>
             <p className="max-w-2xl text-lg leading-8 text-muted sm:text-xl">
-              {site.name} turns years of livestreams into a searchable, timestamped archive.
-              Donations pay for the unglamorous machinery that keeps the record online, cited, and
-              open.
+              {site.name} turns years of livestreams into a searchable, timestamped archive. SUBCULT
+              maintains the tools behind it. You can support the studio’s work on archives and other
+              independent software.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              {donationsEnabled ? (
-                <a
-                  href={config.payment_url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn min-h-12 px-6"
-                >
-                  Donate securely with Stripe ↗
-                </a>
-              ) : (
-                <div
-                  className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm text-muted"
-                  role="status"
-                >
-                  {unavailable
-                    ? 'Donation status is temporarily unavailable.'
-                    : config
-                      ? 'Donations are not open yet. The archive remains public.'
-                      : 'Checking donation status…'}
-                </div>
-              )}
+              <a href="https://subcult.tv/support" className="btn min-h-12 px-6">
+                Support SUBCULT
+              </a>
               <Link to="/about" className="action-link text-sm font-semibold">
                 How the archive works →
               </Link>
@@ -93,9 +52,9 @@ export default function SupportPage() {
               {site.project_notice}
             </p>
             <p className="mt-4 text-sm leading-6 text-muted">
-              A donation supports {site.name}’s hosting and research infrastructure. It does not buy
-              editorial influence, special access, or content from the creator whose public
-              broadcasts are indexed here.
+              Contributions go to SUBCULT, not HasanAbi. They support the studio across its
+              projects; they do not buy editorial influence, special access or content from the
+              creators whose broadcasts are indexed here.
             </p>
           </aside>
         </div>
@@ -125,17 +84,17 @@ export default function SupportPage() {
         <div className="archive-section">
           <div className="archive-eyebrow">Payment boundary</div>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
-            Card details never touch {site.name}.
+            Support goes to the studio.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            The donation button opens a Stripe-hosted checkout. Stripe handles payment confirmation;{' '}
-            {site.name} does not collect or store your card number.
+            The Support page explains SUBCULT’s current offer and links to Patreon. Membership is
+            optional and separate from archive access. No payment details are collected here.
           </p>
         </div>
         <div className="archive-section">
           <div className="archive-eyebrow">No access tier</div>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
-            The archive stays public whether you donate or not.
+            The archive stays public whether you contribute or not.
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted">
             Search, transcripts, episode pages, and cited source links remain available without a

@@ -90,6 +90,21 @@ def render(root: Path, environ: dict) -> None:
         raise ValueError("Expected exactly one site metadata block in index.html")
     # Keep a neutral shell for deep links: their URLs must not canonicalize to home.
     (root / "app.html").write_text(result)
+    # Stable information pages get their own initial metadata, including for
+    # crawlers and link-preview clients that do not execute JavaScript.
+    pages = {
+        "about": (f"About the archive — {name}", f"How {name} keeps searchable transcripts and timestamped links to the original recordings."),
+        "support": (f"Support the studio behind {name}", "Support SUBCULT, the studio maintaining the archive tools. Contributions go to the studio, not to the creators in the recordings."),
+    }
+    for path, (page_title, page_description) in pages.items():
+        page = re.sub(r"<title>.*?</title>", lambda _: f"<title>{escape(page_title)}</title>", result)
+        for key, value in [("description", page_description), ("og:title", page_title),
+                           ("twitter:title", page_title), ("og:description", page_description),
+                           ("twitter:description", page_description), ("og:url", origin + path)]:
+            page = re.sub(r'(<meta (?:name|property)="' + re.escape(key) + r'" content=")[^"]*("\s*/?>)',
+                          lambda match: match[1] + escape(value) + match[2], page)
+        page = page.replace("</head>", f'<link rel="canonical" href="{escape(origin + path)}" /></head>')
+        (root / f"{path}.html").write_text(page)
     (root / "private.html").write_text(result.replace("</head>", '<meta name="robots" content="noindex,nofollow" /></head>'))
     intro = (
         '<main><section class="archive-masthead"><p class="archive-eyebrow">'
@@ -107,7 +122,9 @@ def render(root: Path, environ: dict) -> None:
     )
     (root / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'
-        + xml_escape(origin) + '</loc></url></urlset>\n'
+        + xml_escape(origin) + '</loc></url>'
+        + ''.join('<url><loc>' + xml_escape(origin + path) + '</loc></url>' for path in pages)
+        + '</urlset>\n'
     )
     temporary = root / "index.html.tmp"
     temporary.write_text(result)
