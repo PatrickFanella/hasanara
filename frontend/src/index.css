@@ -428,6 +428,11 @@ h3 {
   }
 
   /* ---------- Search snippets ---------- */
+  /* A result whose VOD title matched the query; the snippet is not a quote. */
+  .title-match-badge {
+    @apply mb-1 inline-flex items-center rounded-sm border border-border bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-muted;
+  }
+
   .archive-snippet {
     @apply text-[1.05rem] leading-7 text-ink;
     font-family: var(--font-reading);

@@ -469,3 +469,39 @@ describe('SearchPage', () => {
     expect(query).toHaveValue('rent control');
   });
 });
+
+describe('SearchPage title matches', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    currentSearchParams = new URLSearchParams({ q: 'rent' });
+    vi.spyOn(http, 'get').mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+  });
+
+  it('labels results whose VOD title matched instead of the transcript', async () => {
+    const group = groupedResult.groups[0];
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue({
+      ...groupedResult,
+      total_moments: 2,
+      groups: [
+        {
+          ...group,
+          moments: [
+            { ...group.moments[0], id: 1, title_match: true, snippet: 'The rent VOD' },
+            { ...group.moments[0], id: 2, start_ms: 40000, end_ms: 45000 },
+          ],
+        },
+      ],
+    } as never);
+
+    renderWithProviders(<SearchPage />);
+
+    expect(await screen.findByText('Title match')).toBeInTheDocument();
+    expect(screen.getAllByText('Title match')).toHaveLength(1);
+  });
+});

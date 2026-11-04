@@ -443,4 +443,32 @@ describe('TopicPage', () => {
     expect(screen.getByText('Pick a topic from search results first.')).toBeVisible();
     expect(mentionMapMock).not.toHaveBeenCalled();
   });
+
+  it('labels a cited mention whose VOD title matched instead of the transcript', async () => {
+    vi.spyOn(api, 'getTopicTimeline').mockResolvedValue({
+      topic: 'rent',
+      granularity: 'month',
+      buckets: [],
+    } as never);
+    vi.spyOn(api, 'getTopicOpinions').mockResolvedValue({ items: [] } as never);
+    const mentionMap = minimalMentionMap() as Record<string, unknown>;
+    vi.spyOn(api, 'getMentionMap').mockResolvedValue({
+      ...mentionMap,
+      latest_mention: {
+        id: 22,
+        video_id: 'video-2',
+        start_ms: 3000,
+        end_ms: 4000,
+        snippet: 'Rent strike VOD',
+        source: 'whisper',
+        title_match: true,
+        video: { id: 'video-2' },
+      },
+    } as never);
+
+    renderWithProviders(<TopicPage />);
+
+    expect(await screen.findByText('Latest mention')).toBeInTheDocument();
+    expect(screen.getByText('Title match')).toBeInTheDocument();
+  });
 });
