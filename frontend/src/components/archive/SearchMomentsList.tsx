@@ -67,6 +67,14 @@ export default function SearchMomentsList({
                   aria-label={`Play cited moment at ${formatTimestamp(moment.start_ms)}`}
                   onClick={() => onTrackResultClick(videoId, moment)}
                 >
+                  {moment.title_match && (
+                    <span
+                      className="title-match-badge"
+                      title="The VOD title matched; the transcript may not say this"
+                    >
+                      Title match
+                    </span>
+                  )}
                   <HighlightedSnippet
                     as="div"
                     className="archive-snippet"

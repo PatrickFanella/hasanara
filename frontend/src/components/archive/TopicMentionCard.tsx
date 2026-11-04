@@ -13,7 +13,17 @@ export default function TopicMentionCard({ label, moment }: TopicMentionCardProp
 
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
-      <div className="text-xs uppercase tracking-wide text-subtle">{label}</div>
+      <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-subtle">
+        <span>{label}</span>
+        {moment.title_match && (
+          <span
+            className="title-match-badge"
+            title="The VOD title matched; the transcript may not say this"
+          >
+            Title match
+          </span>
+        )}
+      </div>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
         <span>{formatTimestamp(moment.start_ms)}</span>
         {videoId && (

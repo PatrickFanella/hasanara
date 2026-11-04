@@ -83,6 +83,8 @@ export interface SearchHit {
   snippet: string;
   highlights?: HighlightRange[];
   source?: 'whisper' | 'youtube' | 'merged';
+  /** The query matched the video title; the snippet is the title, not a quote. */
+  title_match?: boolean;
 }
 
 export interface SearchMoment {
@@ -93,6 +95,7 @@ export interface SearchMoment {
   snippet: string;
   highlights?: HighlightRange[];
   source?: 'whisper' | 'youtube' | 'merged';
+  title_match?: boolean;
 }
 
 export interface EpisodeSearchGroup {
