@@ -541,7 +541,7 @@ export default function AdminVideoMetadata() {
           </label>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-muted">
@@ -773,7 +773,7 @@ export default function AdminVideoMetadata() {
           </label>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-muted">
@@ -879,7 +879,7 @@ export default function AdminVideoMetadata() {
           </button>
         </form>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-muted">

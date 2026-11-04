@@ -237,7 +237,7 @@ export default function AdminUsers() {
           </div>
         )}
         {!compact && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0}>
             <table className="min-w-full text-left text-sm">
               <caption className="sr-only">Archive users and authorization roles</caption>
               <thead className="border-b border-border bg-surface-muted/70 text-xs uppercase tracking-[0.16em] text-subtle">

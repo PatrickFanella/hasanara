@@ -95,6 +95,15 @@ export function buildMonthRange(year: number, month: number) {
   };
 }
 
+export function formatCount(
+  value: number | null | undefined,
+  singular: string,
+  plural = `${singular}s`
+) {
+  const count = value == null || Number.isNaN(value) ? 0 : value;
+  return `${formatNumber(count)} ${count === 1 ? singular : plural}`;
+}
+
 export type TranscriptSource = 'whisper' | 'youtube' | 'merged';
 
 export function canonicalMomentId(_source: TranscriptSource, startMs: number) {

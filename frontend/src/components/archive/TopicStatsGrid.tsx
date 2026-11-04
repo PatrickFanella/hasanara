@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { MentionMapResponse } from '../../types/api';
-import { formatNumber } from '../../features/archive/format';
+import { formatCount, formatNumber } from '../../features/archive/format';
 
 type TopicStatsGridProps = {
   mentionMap: MentionMapResponse | null;
@@ -28,7 +28,7 @@ export default function TopicStatsGrid({ mentionMap, topic, loading }: TopicStat
         </div>
         {!loading && mentionMap?.most_discussed_count ? (
           <div className="mt-1 text-xs text-muted">
-            {formatNumber(mentionMap.most_discussed_count)} moments
+            {formatCount(mentionMap.most_discussed_count, 'moment')}
           </div>
         ) : null}
       </div>

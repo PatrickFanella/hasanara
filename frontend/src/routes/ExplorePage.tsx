@@ -5,6 +5,7 @@ import type { ArchivePeriodOption, ExploreIntelligenceResponse } from '../types/
 import {
   formatDate,
   formatAggregateDuration,
+  formatCount,
   formatNumber,
   formatTimestamp,
 } from '../features/archive/format';
@@ -305,7 +306,7 @@ export default function ExplorePage() {
             </select>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-subtle">
               <span>{formatPeriodRange(currentPeriod)}</span>
-              <span>{formatNumber(selectedPeriodVods)} VODs</span>
+              <span>{formatCount(selectedPeriodVods, 'VOD')}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="meta-label">
@@ -420,7 +421,7 @@ export default function ExplorePage() {
                   >
                     <span className="block text-sm font-semibold text-ink">{option.label}</span>
                     <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.12em] text-subtle">
-                      {periodKindLabel(option.kind)} · {formatNumber(option.video_count)} VODs
+                      {periodKindLabel(option.kind)} · {formatCount(option.video_count, 'VOD')}
                     </span>
                     {option.description && (
                       <span className="mt-2 line-clamp-2 block text-xs leading-5 text-muted">

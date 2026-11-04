@@ -38,6 +38,10 @@ npm --prefix frontend run build && npm --prefix frontend run bundle:check && npm
 (cd e2e && npx playwright test tests/archive-smoke.spec.ts --project=chromium)
 ```
 
+The development server also serves `branding/assets/` at `/branding/`, the path nginx mounts in production, so the profile's logo and favicon render locally.
+
+`security:check` fails on any high or critical npm advisory, including development dependencies. An advisory with no patched release reachable from the dependency tree may be listed in `frontend/security/npm-advisory-exceptions.json` with the package, the GHSA id, a written reason and an `expires_on` date; the gate fails when an entry expires or no longer matches an advisory, so upgrade the dependency or renew the entry deliberately.
+
 The app reads the brand profile from `/api/site` at runtime. When the container starts, `frontend/scripts/render-site-metadata.py` writes the crawler title, description and social tags into `index.html` and rasterizes `/social-preview.png` from the profile's `social_image_url`. After adopting a core release, run `npm --prefix frontend run api:generate` if the core's OpenAPI document changed.
 
 CI builds the image on every pull request and smoke-tests it with `scripts/web_image_smoke.sh`. A merge to `main` that changes `frontend/` runs the web image workflow (`.gitea/workflows/web-image.yaml`) on the release runner: it builds, scans, pushes `git.subcult.tv/subculture-collective/hasanara-web:web-<commit>`, signs the digest with this repository's Cosign key, attests provenance and SBOM, and uploads `web-image.json`. Record it in a pull request:

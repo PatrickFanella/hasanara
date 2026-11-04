@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTimestampLink,
   formatAggregateDuration,
+  formatCount,
   formatVideoTitle,
 } from '../features/archive/format';
 
@@ -31,5 +32,15 @@ describe('archive moment links', () => {
 
   it('formats archive-scale runtime for humans', () => {
     expect(formatAggregateDuration(16_378.6 * 3600)).toMatch(/^16\.4k hours$/);
+  });
+});
+
+describe('archive count labels', () => {
+  it('agrees the noun with the count and keeps number formatting', () => {
+    expect(formatCount(1, 'VOD')).toBe('1 VOD');
+    expect(formatCount(2, 'VOD')).toBe('2 VODs');
+    expect(formatCount(0, 'moment')).toBe('0 moments');
+    expect(formatCount(1250, 'cited moment')).toBe('1,250 cited moments');
+    expect(formatCount(undefined, 'mention')).toBe('0 mentions');
   });
 });

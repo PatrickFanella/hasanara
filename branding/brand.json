@@ -14,7 +14,7 @@
     "dark": {
       "accent": "#ff3333",
       "accent-hover": "#ff6b6b",
-      "accent-soft": "#3d1212",
+      "accent-soft": "#2e0b0b",
       "accent-contrast": "#140303",
       "accent-2": "#ff6633",
       "accent-3": "#cd3333",
@@ -22,14 +22,14 @@
       "cta": "#ff6633"
     },
     "light": {
-      "accent": "#cd3333",
+      "accent": "#c22e2e",
       "accent-hover": "#a32424",
       "accent-soft": "#fbe3dc",
       "accent-contrast": "#ffffff",
       "accent-2": "#ff6633",
       "accent-3": "#cd3333",
       "player-accent": "#ff3333",
-      "cta": "#cd3333"
+      "cta": "#c22e2e"
     }
   }
 }
