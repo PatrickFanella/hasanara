@@ -1,5 +1,7 @@
 /**
- * Test fixtures for database seeding
+ * Fixtures for seeding a Rekolekt core database for manual browser testing
+ * against the real API. Columns follow the schema of the pinned core
+ * (`core/sql/schema.sql` and `core/alembic/versions`).
  */
 
 export interface TestUser {
@@ -7,14 +9,14 @@ export interface TestUser {
   email: string;
   name: string;
   plan: 'free' | 'pro';
-  daily_search_count?: number;
+  role: 'user' | 'moderator' | 'admin';
   created_at?: string;
 }
 
 export interface TestJob {
   id: string;
-  user_id: string;
-  url: string;
+  owner_user_id: string;
+  input_url: string;
   kind: 'single' | 'channel';
   state: 'pending' | 'expanded' | 'completed' | 'failed';
   created_at?: string;
@@ -28,6 +30,8 @@ export interface TestVideo {
   duration_seconds: number;
   idx: number;
   state: 'pending' | 'downloading' | 'transcoding' | 'transcribing' | 'completed' | 'failed';
+  channel_name?: string;
+  uploaded_at?: string;
   created_at?: string;
 }
 
@@ -40,12 +44,10 @@ export interface TestTranscript {
 }
 
 export interface TestSegment {
-  id: string;
   transcript_id: string;
   start_ms: number;
   end_ms: number;
   text: string;
-  speaker?: string | null;
   speaker_label?: string | null;
 }
 
@@ -58,21 +60,21 @@ export const testUsers: TestUser[] = [
     email: 'free-user@example.com',
     name: 'Free User',
     plan: 'free',
-    daily_search_count: 0,
+    role: 'user',
   },
   {
     id: '00000000-0000-0000-0000-000000000002',
     email: 'pro-user@example.com',
     name: 'Pro User',
     plan: 'pro',
-    daily_search_count: 0,
+    role: 'user',
   },
   {
     id: '00000000-0000-0000-0000-000000000003',
-    email: 'quota-reached-user@example.com',
-    name: 'Quota Reached User',
-    plan: 'free',
-    daily_search_count: 5, // Free tier limit
+    email: 'admin-user@example.com',
+    name: 'Admin User',
+    plan: 'pro',
+    role: 'admin',
   },
 ];
 
@@ -82,15 +84,15 @@ export const testUsers: TestUser[] = [
 export const testJobs: TestJob[] = [
   {
     id: '00000000-0000-0000-0000-000000000101',
-    user_id: '00000000-0000-0000-0000-000000000001',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    owner_user_id: '00000000-0000-0000-0000-000000000001',
+    input_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     kind: 'single',
     state: 'completed',
   },
   {
     id: '00000000-0000-0000-0000-000000000102',
-    user_id: '00000000-0000-0000-0000-000000000002',
-    url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+    owner_user_id: '00000000-0000-0000-0000-000000000002',
+    input_url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
     kind: 'single',
     state: 'completed',
   },
@@ -108,6 +110,8 @@ export const testVideos: TestVideo[] = [
     duration_seconds: 212,
     idx: 0,
     state: 'completed',
+    channel_name: 'Rick Astley',
+    uploaded_at: '2026-06-15T12:00:00Z',
   },
   {
     id: '00000000-0000-0000-0000-000000000202',
@@ -117,6 +121,8 @@ export const testVideos: TestVideo[] = [
     duration_seconds: 19,
     idx: 0,
     state: 'completed',
+    channel_name: 'jawed',
+    uploaded_at: '2026-05-20T12:00:00Z',
   },
 ];
 
@@ -139,43 +145,35 @@ export const testTranscripts: TestTranscript[] = [
 ];
 
 /**
- * Sample test segments
+ * Sample test segments. Segment ids are assigned by the database.
  */
 export const testSegments: TestSegment[] = [
   {
-    id: '00000000-0000-0000-0000-000000000401',
     transcript_id: '00000000-0000-0000-0000-000000000301',
     start_ms: 0,
     end_ms: 5000,
     text: "We're no strangers to love",
-    speaker: null,
     speaker_label: null,
   },
   {
-    id: '00000000-0000-0000-0000-000000000402',
     transcript_id: '00000000-0000-0000-0000-000000000301',
     start_ms: 5000,
     end_ms: 10000,
     text: 'You know the rules and so do I',
-    speaker: null,
     speaker_label: null,
   },
   {
-    id: '00000000-0000-0000-0000-000000000403',
     transcript_id: '00000000-0000-0000-0000-000000000302',
     start_ms: 0,
     end_ms: 3000,
     text: 'All right, so here we are in front of the elephants',
-    speaker: null,
     speaker_label: null,
   },
   {
-    id: '00000000-0000-0000-0000-000000000404',
     transcript_id: '00000000-0000-0000-0000-000000000302',
     start_ms: 3000,
     end_ms: 6000,
     text: 'The cool thing about these guys is that they have really, really, really long trunks',
-    speaker: null,
     speaker_label: null,
   },
 ];
