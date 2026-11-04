@@ -228,10 +228,10 @@ export default function AppLayout() {
 
       <header className="site-header" role="banner">
         <div className="mx-auto flex h-16 max-w-[100rem] items-center justify-between gap-4 px-4 lg:px-6">
-          <div className="flex items-center gap-4">
+          <div className="site-header-start flex min-w-0 flex-1 items-center gap-4">
             <Link
               to="/"
-              className="group flex items-center gap-3"
+              className="group flex shrink-0 items-center gap-3"
               aria-label={`Home - ${site.name}`}
             >
               <img
@@ -253,7 +253,7 @@ export default function AppLayout() {
             {!location.pathname.startsWith('/search') && <HeaderSearch />}
           </div>
 
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+          <nav className="hidden shrink-0 items-center gap-1 lg:flex" aria-label="Main navigation">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.to === '/'} className="nav-link">
                 {item.label}
@@ -316,7 +316,7 @@ export default function AppLayout() {
                 </span>
               ) : user ? (
                 <>
-                  <div className="hidden items-center gap-2 lg:flex">
+                  <div className="hidden items-center gap-2 xl:flex">
                     {user.avatar_url && (
                       <img
                         src={user.avatar_url}

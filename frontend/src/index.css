@@ -360,6 +360,14 @@ h3 {
     @apply bg-surface-muted text-ink;
   }
 
+  /* The desktop navigation first appears at 64rem; signed-in users add Account
+     and Logout, so tighten the links until the 80rem layout has room. */
+  @media (min-width: 64rem) and (max-width: 79.999rem) {
+    nav[aria-label='Main navigation'] .nav-link {
+      @apply px-2.5;
+    }
+  }
+
   .action-link {
     @apply inline-flex min-h-6 cursor-pointer items-center gap-1 font-medium text-accent transition-colors hover:text-accent-hover hover:underline focus-visible:underline;
     text-underline-offset: 3px;
@@ -1421,8 +1429,22 @@ h3 {
     backdrop-filter: blur(20px) saturate(1.4);
   }
 
+  /* Flexible so the brand, search, navigation and sign-in controls share one row
+     at every desktop width instead of overflowing the viewport near 1280px. */
+  .site-header-start {
+    container: site-header-start / inline-size;
+  }
+
   .header-search {
-    @apply relative ml-2 hidden w-[17rem] xl:block 2xl:w-[22rem];
+    @apply relative ml-2 hidden min-w-0 max-w-[17rem] flex-1 xl:block 2xl:max-w-[22rem];
+  }
+
+  /* Signed-in navigation is wider; drop the search box rather than squeeze it
+     below a usable width (the Search page keeps the full search form). */
+  @container site-header-start (max-width: 25rem) {
+    .header-search {
+      display: none;
+    }
   }
 
   .header-search svg {
