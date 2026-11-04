@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { StreamCard } from '../components/archive';
-import { buildTimestampLink, formatTimestamp } from '../features/archive/format';
+import { buildTimestampLink, formatCount, formatTimestamp } from '../features/archive/format';
 import { DEFAULT_LIMIT } from '../features/streams/library';
 import { api } from '../services';
 import type { MomentDiscoveryItem, PageInfo, TopicDiscoveryItem, VideoInfo } from '../types/api';
@@ -343,7 +343,8 @@ export default function StreamsPage() {
                   <span className="archive-eyebrow">Topic</span>
                   <h2>{item.topic.label}</h2>
                   <p>
-                    {item.topic.total_videos} VODs · {item.topic.total_moments} cited moments
+                    {formatCount(item.topic.total_videos, 'VOD')} ·{' '}
+                    {formatCount(item.topic.total_moments, 'cited moment')}
                   </p>
                   <span className="action-link">Explore evidence →</span>
                 </Link>

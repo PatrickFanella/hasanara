@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services';
 import type { TimelineBucket } from '../types/api';
-import { formatDate, formatDuration, formatNumber } from '../features/archive/format';
+import { formatCount, formatDate, formatDuration } from '../features/archive/format';
 
 function bucketRange(period: string) {
   if (/^\d{4}-\d{2}$/.test(period)) {
@@ -66,7 +66,7 @@ export default function TimelinePage() {
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="section-title">{bucket.label}</h2>
                   <div className="text-sm text-muted">
-                    {formatNumber(bucket.video_count)} VODs ·{' '}
+                    {formatCount(bucket.video_count, 'VOD')} ·{' '}
                     {formatDuration(bucket.total_duration_seconds)}
                   </div>
                 </div>
@@ -74,7 +74,7 @@ export default function TimelinePage() {
                 <article className="rounded-2xl border border-border bg-surface-muted p-4">
                   <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <p className="text-sm text-muted">
-                      {bucket.video_count} VODs in this archive period.
+                      {formatCount(bucket.video_count, 'VOD')} in this archive period.
                     </p>
                     {range && (
                       <Link

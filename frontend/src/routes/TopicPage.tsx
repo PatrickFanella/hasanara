@@ -7,7 +7,7 @@ import {
   buildTimestampLink,
   formatDate,
   formatDuration,
-  formatNumber,
+  formatCount,
   formatTimestamp,
 } from '../features/archive/format';
 import {
@@ -313,7 +313,7 @@ export default function TopicPage() {
                       </div>
                     </div>
                     <div className="text-sm text-muted">
-                      {formatNumber(entry.moments.length)} mentions
+                      {formatCount(entry.moments.length, 'mention')}
                     </div>
                   </div>
                   <div className="mt-3 text-xs uppercase tracking-wide text-subtle">
@@ -390,7 +390,9 @@ export default function TopicPage() {
                       {group.video.channel_name || 'Unknown channel'}
                     </div>
                   </div>
-                  <div className="text-sm text-muted">{group.moments.length} moments</div>
+                  <div className="text-sm text-muted">
+                    {formatCount(group.moments.length, 'moment')}
+                  </div>
                 </div>
                 <div className="mt-3 space-y-2">
                   {group.moments.slice(0, 3).map((moment) => (
