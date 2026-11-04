@@ -84,6 +84,17 @@ class MetadataTest(unittest.TestCase):
         self.assertEqual(Head((self.root / "index.html").read_text()).tags["og:title"], "HasanAra")
         self.assertEqual((self.root / "branding/card.svg").read_bytes(), original)
 
+    def test_local_svg_favicon_becomes_apple_touch_icon(self):
+        self.assertNotIn("apple-touch-icon", (self.root / "index.html").read_text())
+        (self.root / "branding").mkdir()
+        shutil.copy(SCRIPT.parents[1] / "public/icon.svg", self.root / "branding/favicon.svg")
+        self.profile.write_text(json.dumps({"favicon_url": "/branding/favicon.svg"}))
+        metadata.render(self.root, self.env)
+        self.assertIn('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />', (self.root / "index.html").read_text())
+        png = (self.root / "apple-touch-icon.png").read_bytes()
+        self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(struct.unpack(">II", png[16:24]), (180, 180))
+
     def test_remote_raster_is_preserved(self):
         self.profile.write_text(json.dumps({"social_image_url": "https://cdn.example/card.png"}))
         metadata.render(self.root, self.env)
