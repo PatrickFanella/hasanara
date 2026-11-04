@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "exceptions": [
+    {
+      "advisory": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
+      "vulnerable_range": "<4.6.6",
+      "reached_through": ["@atproto/oauth-client-browser"],
+      "expires_on": "2027-02-01",
+      "reason": "Every @atproto/* package that the AT Protocol browser OAuth client depends on still requires zod ^3, and no zod 3 release carries the 4.6.6 fix. The advisory is a memory-exhaustion denial of service while validating an attacker-supplied oversized array. In this frontend zod only validates OAuth and identity documents fetched from the account holder's own PDS inside their browser tab; no server or other visitor is affected. Remove this entry as soon as @atproto/oauth-client-browser depends on zod >=4.6.6."
+    }
+  ]
+}
