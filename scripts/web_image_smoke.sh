@@ -50,7 +50,8 @@ for expected in \
     '<meta property="og:title" content="HasanAra" />' \
     '<meta property="og:url" content="https://hasanara.tv/" />' \
     '<meta property="og:image" content="https://hasanara.tv/social-preview.png" />' \
-    '<meta name="twitter:card" content="summary_large_image" />'; do
+    '<meta name="twitter:card" content="summary_large_image" />' \
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />'; do
     if [[ $shell != *"$expected"* ]]; then
         printf 'served shell lacks: %s\n' "$expected" >&2
         exit 1
@@ -62,6 +63,12 @@ import struct, sys
 png = sys.stdin.buffer.read()
 assert png[:8] == b"\x89PNG\r\n\x1a\n", "social preview is not a PNG"
 assert struct.unpack(">II", png[16:24]) == (1200, 630), "social preview is not 1200x630"
+'
+fetch /apple-touch-icon.png | python3 -c '
+import struct, sys
+png = sys.stdin.buffer.read()
+assert png[:8] == b"\x89PNG\r\n\x1a\n", "apple-touch-icon is not a PNG"
+assert struct.unpack(">II", png[16:24]) == (180, 180), "apple-touch-icon is not 180x180"
 '
 for asset in /branding/logo.svg /branding/favicon.svg /favicon.ico /healthz; do
     fetch "$asset" >/dev/null

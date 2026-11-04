@@ -56,10 +56,24 @@ def render(root: Path, environ: dict) -> None:
     image = urljoin(origin, image)
     if urlsplit(image).scheme not in {"http", "https"}:
         raise ValueError("Social image must be an HTTP(S) URL")
+    # Home-screen icon from the profile's local SVG favicon, rasterized like the social card.
+    touch_icon = []
+    favicon = profile.get("favicon_url") or ""
+    if urlsplit(favicon).path.lower().endswith(".svg") and favicon.startswith("/") and not favicon.startswith("//"):
+        source = (root / urlsplit(favicon).path.lstrip("/")).resolve()
+        if not source.is_relative_to(root.resolve()) or not source.is_file():
+            raise ValueError("Favicon must exist inside the public directory")
+        temporary = root / "apple-touch-icon.tmp.png"
+        subprocess.run(
+            ["rsvg-convert", "--width", "180", "--height", "180", "--output", str(temporary), str(source)],
+            check=True,
+        )
+        temporary.replace(root / "apple-touch-icon.png")
+        touch_icon = ['<link rel="apple-touch-icon" href="/apple-touch-icon.png" />']
     escape = html.escape
     creator = profile.get("creator_name", "")
     title = f"{name} — {creator} broadcast transcripts" if creator else name
-    tags = [f"<title>{escape(title)}</title>", f'<meta name="description" content="{escape(description)}" />']
+    tags = [f"<title>{escape(title)}</title>", f'<meta name="description" content="{escape(description)}" />', *touch_icon]
     for key, value in [
         ("og:type", "website"),
         ("og:site_name", name),
