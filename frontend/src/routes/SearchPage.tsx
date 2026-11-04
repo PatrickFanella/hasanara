@@ -15,6 +15,7 @@ import {
   buildTimestampLink,
   formatDate,
   formatDuration,
+  formatCount,
   formatNumber,
 } from '../features/archive/format';
 import { buildCurrentFilters, readFilters, serializeFilters } from '../features/search/filters';
@@ -322,7 +323,7 @@ export default function SearchPage() {
                 <span>
                   {loading
                     ? 'Scanning transcripts…'
-                    : `Showing ${formatNumber(totalMoments)} moments in ${formatNumber(totalVideos)} VODs`}
+                    : `Showing ${formatCount(totalMoments, 'moment')} in ${formatCount(totalVideos, 'VOD')}`}
                 </span>
                 {!loading && (
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
@@ -407,33 +408,41 @@ export default function SearchPage() {
             )}
             <section className="archive-section space-y-4">
               <div className="archive-rule-title">Research tools</div>
-              <div className="flex flex-wrap gap-2" aria-label="Every mention exports">
-                {(['json', 'csv', 'm3u'] as const).map((format) => {
-                  const params = new URLSearchParams(exportParams);
-                  params.set('format', format);
-                  return (
-                    <a
-                      key={format}
-                      className="action-link"
-                      href={buildApiUrl('search/mentions/export', params)}
-                    >
-                      Export {format.toUpperCase()}
-                    </a>
-                  );
-                })}
-              </div>
-              <button type="button" className="action-link" onClick={queueEveryMention}>
-                Add every mention to queue
-              </button>
-              <Link
-                to={`/topics/${encodeURIComponent(filters.q)}`}
-                className="block rounded-lg border border-border bg-surface-muted p-3 text-sm text-ink transition-colors hover:border-accent/50"
-              >
-                <strong className="block">Mention map</strong>
-                <span className="mt-1 block text-xs leading-5 text-muted">
-                  See this topic across time and broadcasts.
-                </span>
-              </Link>
+              {!loading && totalMoments === 0 ? (
+                <p className="text-sm text-muted">
+                  Exports, the playback queue and the mention map need at least one matching moment.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2" aria-label="Every mention exports">
+                    {(['json', 'csv', 'm3u'] as const).map((format) => {
+                      const params = new URLSearchParams(exportParams);
+                      params.set('format', format);
+                      return (
+                        <a
+                          key={format}
+                          className="action-link"
+                          href={buildApiUrl('search/mentions/export', params)}
+                        >
+                          Export {format.toUpperCase()}
+                        </a>
+                      );
+                    })}
+                  </div>
+                  <button type="button" className="action-link" onClick={queueEveryMention}>
+                    Add every mention to queue
+                  </button>
+                  <Link
+                    to={`/topics/${encodeURIComponent(filters.q)}`}
+                    className="block rounded-lg border border-border bg-surface-muted p-3 text-sm text-ink transition-colors hover:border-accent/50"
+                  >
+                    <strong className="block">Mention map</strong>
+                    <span className="mt-1 block text-xs leading-5 text-muted">
+                      See this topic across time and broadcasts.
+                    </span>
+                  </Link>
+                </>
+              )}
               <Link
                 to={`/saved?${buildCurrentFilters(q, dateFrom, dateTo, sortBy, filters).toString()}`}
                 className="block rounded-lg border border-border bg-surface-muted p-3 text-sm text-ink transition-colors hover:border-accent/50"

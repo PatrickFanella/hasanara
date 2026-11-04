@@ -213,11 +213,7 @@ describe('SearchPage', () => {
   it('exports and queues every matching mention', async () => {
     currentSearchParams = new URLSearchParams({ q: 'rent' });
     vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
-    vi.spyOn(api, 'searchGrouped').mockResolvedValue({
-      total_moments: 0,
-      total_videos: 0,
-      groups: [],
-    } as never);
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
     vi.spyOn(api, 'getMentionCollection').mockResolvedValue({
       items: [
         {
@@ -285,6 +281,11 @@ describe('SearchPage', () => {
       await screen.findByRole('heading', { name: 'No transcript matches' })
     ).toBeInTheDocument();
     expect(screen.getByText(/Try fewer words, remove the date range/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Export CSV' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add every mention to queue' })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/need at least one matching moment/)).toBeInTheDocument();
   });
 
   it('loads the next raw-moment page without replacing visible VOD groups', async () => {
@@ -325,7 +326,7 @@ describe('SearchPage', () => {
         expect.any(AbortSignal)
       )
     );
-    expect(await screen.findByText('Showing 2 moments in 1 VODs')).toBeInTheDocument();
+    expect(await screen.findByText('Showing 2 moments in 1 VOD')).toBeInTheDocument();
     expect(screen.getByText('00:00:12')).toBeInTheDocument();
   });
 
