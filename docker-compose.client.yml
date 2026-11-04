@@ -55,12 +55,18 @@ services:
         environment: *client-environment
         volumes: *client-volumes
 
+    # Every 6 hours, one CPU at low priority; the refresh peaks near 3.1 GB.
     archive-intelligence-refresher:
-        environment: *client-environment
+        environment:
+            <<: *client-environment
+            ARCHIVE_INTELLIGENCE_REFRESH_SECONDS: '21600'
         volumes: *client-volumes
         networks:
             - default
             - dev
+        cpus: 1.0
+        cpu_shares: 256
+        mem_limit: 3500m
 
     analytics-retention:
         environment: *client-environment
