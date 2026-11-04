@@ -35,6 +35,8 @@ import type {
   VideoChaptersResponse,
 } from '../types/api';
 
+import { MAX_AUTOMATIC_RETRY_AFTER_MS, recordRateLimitedResponse } from './rateLimit';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 let csrfToken: string | null = null;
 
@@ -71,7 +73,12 @@ export const http = ky.create({
   prefixUrl: API_BASE,
   timeout: 15000,
   credentials: 'include',
+  // A rate-limited response is retried only when the server asks for a short
+  // wait; longer Retry-After windows surface as a visible notice instead of a
+  // page that stays blank for the whole window.
+  retry: { limit: 2, maxRetryAfter: MAX_AUTOMATIC_RETRY_AFTER_MS },
   hooks: {
+    afterResponse: [(_request, _options, response) => recordRateLimitedResponse(response)],
     beforeRequest: [
       ({ method, headers }) => {
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase()) && csrfToken) {

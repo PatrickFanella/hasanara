@@ -10,6 +10,7 @@ import {
 import { useSite } from '../services/site';
 import { useAuth, useTheme } from '../services';
 import TheWire from '../components/TheWire';
+import RateLimitNotice from '../components/RateLimitNotice';
 
 const baseNavItems = [
   { to: '/', label: 'Home' },
@@ -527,6 +528,8 @@ export default function AppLayout() {
           </div>
         )}
       </header>
+
+      <RateLimitNotice />
 
       <main
         id="main-content"
