@@ -260,7 +260,7 @@ export default function AdminEvents() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0}>
               <table className="min-w-full text-sm">
                 <caption className="sr-only">Archive events</caption>
                 <thead>

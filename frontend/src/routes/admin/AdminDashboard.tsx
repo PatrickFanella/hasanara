@@ -181,7 +181,7 @@ function SimpleLineChart({ data, labels }: { data: number[]; labels: string[] })
     .join(' ');
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       <span className="sr-only">
         {labels.map((label, index) => `${label}: ${data[index] ?? 0}`).join(', ')}
       </span>
@@ -291,9 +291,9 @@ export default function AdminDashboard() {
         </div>
       )}
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="page-title">Admin Dashboard</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

@@ -461,7 +461,7 @@ export default function AdminLabelIntelligence() {
                     <span className="text-sm text-muted">Loading assignments…</span>
                   )}
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0}>
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead className="text-left text-xs uppercase tracking-wide text-muted">
                       <tr>

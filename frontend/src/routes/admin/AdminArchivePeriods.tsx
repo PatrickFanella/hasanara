@@ -579,7 +579,7 @@ export default function AdminArchivePeriods() {
           </div>
         )}
         {!compact && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0}>
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-muted">
