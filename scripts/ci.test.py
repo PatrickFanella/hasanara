@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -44,6 +45,10 @@ class PlanTests(unittest.TestCase):
                 self.assertTrue(result["frontend"])
                 self.assertTrue(result["image"])
 
+    def test_main_workflow_changes_exercise_publication_and_delivery(self):
+        self.assertEqual(plan([".gitea/workflows/validate.yaml"], "push", "refs/heads/main"),
+                         {"frontend": True, "image": False, "publish": True})
+
     def test_manual_main_release_checks_frontend_and_publishes(self):
         self.assertEqual(plan([], "workflow_dispatch", "refs/heads/main"),
                          {"frontend": True, "image": False, "publish": True})
@@ -59,6 +64,22 @@ class PlanTests(unittest.TestCase):
 
 
 class GateTests(unittest.TestCase):
+    def test_production_delivery_cannot_succeed_when_activation_is_skipped(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".gitea/workflows/validate.yaml").read_text()
+        step = workflow.split("- name: Require publication and activation\n", 1)[1]
+        script = textwrap.dedent(step.split("run: |\n", 1)[1])
+        for publication, deployment, expected in [
+            ("success", "success", 0),
+            ("success", "skipped", 1),
+            ("success", "failure", 1),
+            ("success", "cancelled", 1),
+            ("failure", "skipped", 1),
+        ]:
+            with self.subTest(publication=publication, deployment=deployment):
+                result = subprocess.run(["bash", "-eu", "-c", script],
+                                        env={"PUBLISH_RESULT": publication, "DEPLOY_RESULT": deployment})
+                self.assertEqual(result.returncode, expected)
+
     def test_intentional_skips_pass(self):
         self.assertEqual(failures("success", "skipped", "skipped", False, False), [])
 
