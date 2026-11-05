@@ -13,43 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  diagnose-context:
-    name: Diagnose deployment context
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Read public workflow identity
-        env:
-          GITEA_HOST: ${{ gitea.server_url }}
-          GITHUB_HOST: ${{ github.server_url }}
-          GITEA_REF: ${{ gitea.ref }}
-          GITHUB_REF: ${{ github.ref }}
-          GITEA_EVENT: ${{ gitea.event_name }}
-          GITHUB_EVENT: ${{ github.event_name }}
-        run: python3 -c 'import json,os; print(json.dumps({k:os.environ.get(k) for k in ("GITEA_HOST","GITHUB_HOST","GITEA_REF","GITHUB_REF","GITEA_EVENT","GITHUB_EVENT")}))'
-
-  diagnose-gitea-host:
-    name: Probe gitea host at job scheduling
-    if: always() && gitea.server_url == 'https://git.subcult.tv'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'gitea host condition passed'
-
-  diagnose-github-host:
-    name: Probe github host at job scheduling
-    if: always() && github.server_url == 'https://git.subcult.tv'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'github host condition passed'
-
-  diagnose-needs:
-    name: Probe successful dependency at job scheduling
-    needs: diagnose-context
-    if: always() && needs.diagnose-context.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'dependency result condition passed'
-
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -446,10 +409,7 @@ jobs:
     needs: publish
     # The main image-check job is deliberately skipped. Override inherited skip
     # propagation, while still requiring successful signed publication.
-    if: >-
-      always() && gitea.server_url == 'https://git.subcult.tv' &&
-      gitea.ref == 'refs/heads/main' && needs.publish.result == 'success' &&
-      (gitea.event_name == 'push' || gitea.event_name == 'workflow_dispatch')
+    if: always() && needs.publish.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
@@ -459,6 +419,16 @@ jobs:
       DEPLOY_REVISION: ${{ gitea.sha }}
       IMAGE_REF: ${{ needs.publish.outputs.image_ref }}
     steps:
+      - name: Authorize production activation
+        shell: bash
+        env:
+          DEPLOY_SERVER_URL: ${{ gitea.server_url }}
+          DEPLOY_REF: ${{ gitea.ref }}
+          DEPLOY_EVENT: ${{ gitea.event_name }}
+        run: |
+          test "$DEPLOY_SERVER_URL" = 'https://git.subcult.tv'
+          test "$DEPLOY_REF" = 'refs/heads/main'
+          [[ "$DEPLOY_EVENT" == push || "$DEPLOY_EVENT" == workflow_dispatch ]]
       - name: Log in to the image registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
