@@ -150,6 +150,8 @@ jobs:
 
   publish:
     needs: [contract, validate]
+    outputs:
+      image_ref: ${{ steps.target.outputs.image }}@${{ steps.publish.outputs.digest }}
     # The main container check is intentionally skipped when publication owns
     # its build. Evaluate after that skip, still requiring a successful gate.
     if: >-
@@ -401,3 +403,70 @@ jobs:
           if [[ -n "$IMAGE" && -n "$TAG" ]]; then
             docker image rm "$IMAGE:$TAG" >/dev/null 2>&1 || true
           fi
+
+  deploy:
+    name: Deploy verified frontend to Almaz
+    needs: publish
+    if: >-
+      gitea.server_url == 'https://git.subcult.tv' &&
+      gitea.ref == 'refs/heads/main' && needs.publish.result == 'success' &&
+      (gitea.event_name == 'push' || gitea.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: hasanara-web-deploy
+      cancel-in-progress: false
+    env:
+      DEPLOY_REVISION: ${{ gitea.sha }}
+      IMAGE_REF: ${{ needs.publish.outputs.image_ref }}
+    steps:
+      - name: Log in to the image registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: git.subcult.tv
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PAT }}
+      - name: Activate the published image and verify its public revision
+        shell: bash
+        env:
+          DEPLOY_KEY: ${{ secrets.HOMELAB_DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.HOMELAB_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$IMAGE_REF" =~ ^git\.subcult\.tv/subculture-collective/hasanara-web@sha256:[0-9a-f]{64}$ ]]
+          test -n "$DEPLOY_KEY"
+          test -n "$DEPLOY_KNOWN_HOSTS"
+          umask 077
+          deploy_dir=$(mktemp -d)
+          cleanup() {
+            rm -rf -- "$deploy_dir"
+            if [[ -n "${transfer_image:-}" ]]; then
+              docker image rm "$transfer_image" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$deploy_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$deploy_dir/known_hosts"
+          unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
+          ssh_args=(-i "$deploy_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$deploy_dir/known_hosts"
+            -o ConnectTimeout=15 onnwee@10.0.0.200)
+          ssh "${ssh_args[@]}" status
+          docker pull "$IMAGE_REF" >/dev/null
+          transfer_image="fleet-deploy/hasanara-web/frontend:$DEPLOY_REVISION"
+          docker tag "$IMAGE_REF" "$transfer_image"
+          # The receiver accepts only current main and the frontend service.
+          # Its immutable artifact check also refuses a conflicting retry.
+          # shellcheck disable=SC2029
+          docker save "$transfer_image" | ssh "${ssh_args[@]}" "receive $DEPLOY_REVISION frontend"
+          # shellcheck disable=SC2029
+          ssh "${ssh_args[@]}" "deploy $DEPLOY_REVISION"
+          curl --fail --silent --show-error --retry 4 --retry-all-errors --max-time 30 \
+            https://hasanara.tv/build-info.json > "$deploy_dir/live-build.json"
+          python3 -c 'import json, sys; assert json.load(open(sys.argv[1]))["source_commit"] == sys.argv[2]' \
+            "$deploy_dir/live-build.json" "$DEPLOY_REVISION"
+          printf 'Live frontend matches published revision %s\n' "$DEPLOY_REVISION"
+      - name: Log out of the registry
+        if: always()
+        run: docker logout git.subcult.tv >/dev/null 2>&1 || true

@@ -44,7 +44,13 @@ The development server also serves `branding/assets/` at `/branding/`, the path 
 
 The app reads the brand profile from `/api/site` at runtime. When the container starts, `frontend/scripts/render-site-metadata.py` writes the crawler title, description and social tags into `index.html` and rasterizes `/social-preview.png` from the profile's `social_image_url` and a 180×180 `/apple-touch-icon.png` from a local SVG `favicon_url`. After adopting a core release, run `npm --prefix frontend run api:generate` if the core's OpenAPI document changed.
 
-CI builds the image on every pull request and smoke-tests it with `scripts/web_image_smoke.sh`. A merge to `main` that changes `frontend/` runs the web image workflow (`.gitea/workflows/web-image.yaml`) on the release runner: it builds, scans, pushes `git.subcult.tv/subculture-collective/hasanara-web:web-<commit>`, signs the digest with this repository's Cosign key, attests provenance and SBOM, and uploads `web-image.json`. Record it in a pull request:
+CI builds the image on every pull request and smoke-tests it with `scripts/web_image_smoke.sh`. A merge to `main` that changes `frontend/` runs the gated publisher in `.gitea/workflows/validate.yaml`: it builds, scans, pushes `git.subcult.tv/subculture-collective/hasanara-web:web-<commit>`, signs the digest with this repository's Cosign key, attests provenance and SBOM, and uploads `web-image.json`.
+
+After successful publication, the deployment job pulls that exact digest and sends it to Almaz through the app-specific forced-command SSH receiver from the private `subculture-collective/fleet-deploy` repository. Its host profile selects only the existing `hasanara-web` container and retains its runtime settings, brand mounts, port, and network. The receiver refuses stale main revisions, verifies the public `/build-info.json` against the image, and restores the previous image if activation or readiness fails. Backend services and data keep their separate release procedure. PRs cannot activate production.
+
+The homelab operator owns the `HOMELAB_DEPLOY_KEY` and pinned `HOMELAB_KNOWN_HOSTS` secrets; the initial key rotation deadline is 2027-02-03. Register and test the receiver and secrets before merging the pipeline. Private host receipts retain the receiver revision, key fingerprint, previous image IDs, and exact rollback commands. Keep those release files and images for recovery, and inspect subsequent deployments before using a recorded rollback.
+
+The workflow's web image evidence and the host activation receipt identify the automated release. For an operator-managed deployment with `bin/compose-prod deploy-web`, first record the published manifest in a pull request:
 
 ```bash
 python3 scripts/web_manifest.py record git.subcult.tv/subculture-collective/hasanara-web@sha256:<digest> <built commit>

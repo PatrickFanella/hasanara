@@ -42,6 +42,8 @@ until [[ $(docker inspect --format '{{.State.Health.Status}}' "$smoke") == healt
 done
 
 fetch() { docker exec "$smoke" wget -q -O - "http://127.0.0.1$1"; }
+revision=$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
+fetch /build-info.json | python3 -c 'import json, sys; assert json.load(sys.stdin)["source_commit"] == sys.argv[1]' "$revision"
 shell=$(fetch /)
 description=$(python3 -c 'import html, json, sys; print(html.escape(json.load(open(sys.argv[1]))["description"]))' "$root/branding/brand.json")
 for expected in \

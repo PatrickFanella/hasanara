@@ -15,13 +15,15 @@ FROM nginx:1.31.7-alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d9
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE
 LABEL org.opencontainers.image.revision=$GIT_COMMIT \
-      org.opencontainers.image.created=$BUILD_DATE
+      org.opencontainers.image.created=$BUILD_DATE \
+      org.opencontainers.image.source="https://git.subcult.tv/subculture-collective/hasanara"
 
 RUN apk add --no-cache python3 rsvg-convert font-dejavu
 COPY --chmod=755 frontend/scripts/render-site-metadata.py /docker-entrypoint.d/40-site-metadata.sh
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+RUN printf '{"source_commit":"%s"}\n' "$GIT_COMMIT" > /usr/share/nginx/html/build-info.json
 
 EXPOSE 80
 
