@@ -359,7 +359,7 @@ describe('ExplorePage', () => {
       ).toBeInTheDocument()
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Weeks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Weeks' }));
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /Week 22, 2026/ })).toBeInTheDocument()
     );
@@ -448,7 +448,7 @@ describe('ExplorePage', () => {
         screen.getByRole('heading', { name: 'Explore the recording archive' })
       ).toBeInTheDocument()
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Weeks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Weeks' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Predefined archive periods');
     expect(screen.getByRole('button', { name: 'Retry predefined periods' })).toBeEnabled();
