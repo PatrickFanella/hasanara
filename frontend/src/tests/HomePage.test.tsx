@@ -62,7 +62,7 @@ describe('HomePage', () => {
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByPlaceholderText('A topic, quote, guest, or phrase…')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Topic or phrase…')).toBeInTheDocument();
     expect(screen.getByLabelText('Search Transcript Archive')).toBeInTheDocument();
     expect(screen.getByText('Searchable VODs')).toBeInTheDocument();
     expect(screen.getAllByText('Newest VOD').length).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe('HomePage', () => {
       '/v/video-1?t=0#moment-0'
     );
 
-    const input = screen.getByPlaceholderText('A topic, quote, guest, or phrase…');
+    const input = screen.getByPlaceholderText('Topic or phrase…');
     await user.type(input, 'archive');
     await user.click(screen.getByRole('button', { name: 'Search archive' }));
     expect(input).toHaveValue('archive');

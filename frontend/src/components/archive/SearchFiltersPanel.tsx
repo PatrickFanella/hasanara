@@ -36,7 +36,7 @@ export default function SearchFiltersPanel({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="archive-command">
-        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-w-0 items-center gap-3 px-3">
             <svg
               className="h-5 w-5 shrink-0 text-subtle"
@@ -58,8 +58,8 @@ export default function SearchFiltersPanel({
               autoComplete="off"
               value={q}
               onChange={(event) => onQChange(event.target.value)}
-              placeholder="Search a topic, quote, guest, or exact phrase…"
-              className="min-h-[54px] w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
+              placeholder="Topic or phrase…"
+              className="min-h-[54px] min-w-0 w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
             />
           </div>
           <button
@@ -72,14 +72,14 @@ export default function SearchFiltersPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <label className="space-y-1.5 text-xs text-muted" htmlFor="search-match-mode">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <label className="min-w-0 space-y-1.5 text-xs text-muted" htmlFor="search-match-mode">
             <span className="meta-label">Matching</span>
             <select
               id="search-match-mode"
               name="match_mode"
-              className="form-control min-h-[42px] w-full"
+              className="form-control min-h-[42px] min-w-0 w-full"
               value={matchMode}
               onChange={(event) =>
                 onMatchModeChange(
@@ -92,34 +92,34 @@ export default function SearchFiltersPanel({
               <option value="exact_phrase">Exact phrase</option>
             </select>
           </label>
-          <label className="space-y-1.5 text-xs text-muted" htmlFor="search-date-from">
+          <label className="min-w-0 space-y-1.5 text-xs text-muted" htmlFor="search-date-from">
             <span className="meta-label">From</span>
             <input
               id="search-date-from"
               name="date_from"
               type="date"
-              className="form-control min-h-[42px]"
+              className="form-control min-h-[42px] min-w-0"
               value={dateFrom}
               onChange={(event) => onDateFromChange(event.target.value)}
             />
           </label>
-          <label className="space-y-1.5 text-xs text-muted" htmlFor="search-date-to">
+          <label className="min-w-0 space-y-1.5 text-xs text-muted" htmlFor="search-date-to">
             <span className="meta-label">To</span>
             <input
               id="search-date-to"
               name="date_to"
               type="date"
-              className="form-control min-h-[42px]"
+              className="form-control min-h-[42px] min-w-0"
               value={dateTo}
               onChange={(event) => onDateToChange(event.target.value)}
             />
           </label>
-          <label className="space-y-1.5 text-xs text-muted" htmlFor="search-sort-by">
+          <label className="min-w-0 space-y-1.5 text-xs text-muted" htmlFor="search-sort-by">
             <span className="meta-label">Sort</span>
             <select
               id="search-sort-by"
               name="sort_by"
-              className="form-control min-h-[42px] w-full"
+              className="form-control min-h-[42px] min-w-0 w-full"
               value={sortBy}
               onChange={(event) =>
                 onSortByChange(event.target.value as NonNullable<ArchiveSearchFilters['sort_by']>)
@@ -133,18 +133,20 @@ export default function SearchFiltersPanel({
             </select>
           </label>
         </div>
-        <p className="text-xs leading-5 text-muted sm:max-w-52">
-          Topic finds related word forms, such as “housing” and “house”.
-        </p>
-        {(q || dateFrom || dateTo || matchMode !== 'topic' || sortBy !== 'relevance') && (
-          <button
-            type="button"
-            className="btn-ghost self-start text-sm sm:self-auto"
-            onClick={onReset}
-          >
-            Clear query and dates
-          </button>
-        )}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="max-w-sm text-xs leading-5 text-muted">
+            Topic finds related word forms, such as “housing” and “house”.
+          </p>
+          {(q || dateFrom || dateTo || matchMode !== 'topic' || sortBy !== 'relevance') && (
+            <button
+              type="button"
+              className="btn-ghost self-start text-sm sm:self-auto"
+              onClick={onReset}
+            >
+              Reset search
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );

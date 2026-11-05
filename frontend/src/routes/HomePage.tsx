@@ -63,8 +63,8 @@ export default function HomePage() {
   return (
     <div className="space-y-5 lg:space-y-7">
       <section className="archive-masthead">
-        <div className="relative z-10 grid min-h-[34rem] gap-10 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)] lg:items-end lg:px-12 lg:py-14">
-          <div className="space-y-8">
+        <div className="home-masthead-grid relative z-10">
+          <div className="space-y-5">
             <div className="dateline">
               <span className="archive-eyebrow">{site.creator_name} archive</span>
               <span>
@@ -78,28 +78,16 @@ export default function HomePage() {
               <span>searchable transcripts</span>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <h1 className="archive-display">Find the moment. Read the record.</h1>
-              <p className="max-w-2xl text-lg leading-8 text-muted sm:text-xl">
+              <p className="max-w-2xl text-base leading-7 text-muted sm:text-lg">
                 Search years of broadcasts by topic or exact phrase, then move from the result
                 straight into the cited transcript and VOD.
               </p>
             </div>
-
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-              <Link to="/explore" className="action-link font-semibold">
-                Explore the archive →
-              </Link>
-              <Link to="/episodes" className="text-muted transition-colors hover:text-ink">
-                Browse every VOD
-              </Link>
-              <Link to="/support" className="text-muted transition-colors hover:text-ink">
-                Support the archive
-              </Link>
-            </div>
           </div>
 
-          <div className="space-y-4 lg:pb-1">
+          <div className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <img
               src={site.logo_url || '/icon.svg'}
               alt=""
@@ -131,8 +119,8 @@ export default function HomePage() {
                     autoComplete="off"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="A topic, quote, guest, or phrase…"
-                    className="min-h-[54px] w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
+                    placeholder="Topic or phrase…"
+                    className="min-h-[54px] min-w-0 w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
                   />
                 </div>
                 <button type="submit" className="btn min-h-[54px] px-7">
@@ -153,6 +141,18 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm lg:col-start-1 lg:self-start">
+            <Link to="/explore" className="action-link font-semibold">
+              Explore the archive →
+            </Link>
+            <Link to="/episodes" className="text-muted transition-colors hover:text-ink">
+              Browse every VOD
+            </Link>
+            <Link to="/support" className="text-muted transition-colors hover:text-ink">
+              Support the archive
+            </Link>
           </div>
         </div>
 

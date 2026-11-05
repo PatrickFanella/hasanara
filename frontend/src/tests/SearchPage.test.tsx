@@ -258,12 +258,38 @@ describe('SearchPage', () => {
     vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
 
     renderWithProviders(<SearchPage />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Clear query and dates' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Reset search' }));
 
     expect(searchParamsMock).toHaveBeenCalledOnce();
     expect(searchParamsMock.mock.calls[0]?.[0]).toEqual(new URLSearchParams());
     expect(screen.getByRole('searchbox', { name: 'Search query' })).toHaveValue('');
     expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('relevance');
+  });
+
+  it('distinguishes failed searches from no matches and retries the current query', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent', match_mode: 'exact_phrase' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    const search = vi
+      .spyOn(api, 'searchGrouped')
+      .mockRejectedValueOnce(new Error('Search service unavailable'))
+      .mockResolvedValue(groupedResult as never);
+
+    renderWithProviders(<SearchPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Search failed. Try again.');
+    expect(
+      screen.queryByRole('heading', { name: 'No transcript matches' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing 0 moments in 0 VODs')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry search' }));
+
+    expect(await screen.findByText('Showing 1 moment in 1 VOD')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(search).toHaveBeenLastCalledWith(
+      'rent',
+      expect.objectContaining({ match_mode: 'exact_phrase' }),
+      expect.any(AbortSignal)
+    );
   });
 
   it('renders a true no-match state after a successful empty search', async () => {
