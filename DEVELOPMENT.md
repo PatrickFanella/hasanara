@@ -52,6 +52,8 @@ python3 scripts/web_manifest.py record git.subcult.tv/subculture-collective/hasa
 
 The deploy checks refuse a `web-image.json` whose `frontend_tree` differs from the checked-out `frontend/`.
 
+The [clip export flow](docs/clip-exports.md) requires an enabled Rekolekt clip worker; the web app starts downloads automatically and saves ranges independently of cached media.
+
 ## Social card
 
 The frontend image rasterizes `social-card.svg` with only DejaVu fonts installed, so the served file has its text converted to outlines. Edit `branding/social-card.source.svg`, then export it with the HasanAra pack fonts from SUBCULT Studio (Newsreader, Inter Tight; `branding/2026-10-01-packs/brands/hasanara/fonts`):

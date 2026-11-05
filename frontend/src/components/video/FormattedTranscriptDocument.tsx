@@ -24,6 +24,7 @@ type Props = {
   onCloseSelection: () => void;
   onSaveMoment: (segment: Segment, segIndex: number, text: string) => void;
   onSharePassage?: (segment: Segment) => void;
+  onClipBoundary?: (segment: Segment, boundary: 'start' | 'end') => void;
   onCopyQuote: (segment: Segment, text: string, segIndex: number) => void;
   onCopyLink: (segment: Segment, segIndex: number) => void;
 };
@@ -198,6 +199,7 @@ function FormattedTranscriptDocument({
   onCopyQuote,
   onCopyLink,
   onSharePassage,
+  onClipBoundary,
 }: Props) {
   const preparedBlocks = useMemo(
     () =>
@@ -369,6 +371,11 @@ function FormattedTranscriptDocument({
                           onShare={
                             onSharePassage
                               ? () => onSharePassage(selectedPiece.firstSegment)
+                              : undefined
+                          }
+                          onClipBoundary={
+                            onClipBoundary
+                              ? (boundary) => onClipBoundary(selectedPiece.firstSegment, boundary)
                               : undefined
                           }
                           onClose={onCloseSelection}

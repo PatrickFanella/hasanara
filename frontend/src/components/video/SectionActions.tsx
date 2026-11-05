@@ -8,6 +8,7 @@ type Props = {
   onCopyLink: () => void;
   onSave: () => void;
   onShare?: () => void;
+  onClipBoundary?: (boundary: 'start' | 'end') => void;
   onClose: () => void;
 };
 
@@ -46,6 +47,7 @@ export default function SectionActions({
   onCopyLink,
   onSave,
   onShare,
+  onClipBoundary,
   onClose,
 }: Props) {
   return (
@@ -79,6 +81,17 @@ export default function SectionActions({
           Share passage
         </button>
       )}
+      {onClipBoundary &&
+        (['start', 'end'] as const).map((boundary) => (
+          <button
+            key={boundary}
+            type="button"
+            className="selection-action"
+            onClick={() => onClipBoundary(boundary)}
+          >
+            {boundary === 'start' ? 'Start clip here' : 'End clip here'}
+          </button>
+        ))}
       <button
         type="button"
         className="selection-action ml-auto"
