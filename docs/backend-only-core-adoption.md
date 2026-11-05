@@ -6,9 +6,9 @@ HasanAra already serves its own web image (`web-image.json`) from its own Compos
 
 The core API serves at the root (`/site`, `/videos`, `/search/...`); Caddy's `handle_path /api/*` strips the prefix before `hasanara-api:8000`. Leave that edge routing unchanged.
 
-Two conditions from October 3 still apply on Almaz until someone changes them:
+Current operational constraints:
 
-- The Almaz CUDA worker is stopped because its GTX 1080 is unusable. Kvant runs ingestion (`hasanara-kvant-worker.service`). `bin/compose-prod deploy` would start the Almaz worker, so the steps below recreate services individually and never start `worker`.
+- Almaz runs ingestion with the GTX 1080 and CUDA/int8. Drain the worker before adopting backend images or migrations, then recreate it from the adopted manifest after the backend checks pass.
 - `hasanara-api` runs the incident image. A release that includes PR 48 replaces it.
 
 Variables used throughout:
@@ -88,18 +88,18 @@ bin/compose-prod maintenance pitr-base-backup --approved
 bin/compose-prod maintenance pitr-list-backups --approved | tail -3 | tee $ev/pitr.before
 ```
 
-## 3. Kvant worker (Kvant)
+## 3. Drain the worker (Almaz)
 
-If step 1 showed changes under `alembic/versions` or `worker`, drain the Kvant worker before migrations run, and rebuild it from the new core source afterwards (step 6):
+Drain the active local worker before adopting the backend release. Its production stop grace period allows an active job to finish:
 
 ```bash
-systemctl --user stop hasanara-kvant-worker.service      # allows ten minutes to finish an active job
-systemctl --user is-active hasanara-kvant-worker.service  # expect inactive
+docker stop --time 3600 hasanara-worker
+docker inspect --format '{{.State.Status}}' hasanara-worker  # expect exited
 ```
 
-Otherwise leave it running.
+Restart it from the adopted manifest after the backend checks in step 5 pass.
 
-## 4. Deploy backend images without starting the Almaz worker (Almaz)
+## 4. Deploy backend images (Almaz)
 
 ```bash
 cd $DEPLOY
@@ -136,7 +136,7 @@ If `postgres-walg` or `redis` digests changed (compare `$ev/env.prod.before` wit
 ## 5. Verify (outside and on Almaz)
 
 ```bash
-docker ps -a --filter name=hasanara-worker --format '{{.Names}} {{.Status}}'   # still Exited
+docker ps -a --filter name=hasanara-worker --format '{{.Names}} {{.Status}}'   # drained; restarted in step 6
 docker inspect --format '{{.Name}} {{.Config.Image}} {{.State.Health.Status}}' hasanara-api hasanara-web
 grep -E '^HASANARA_API_IMAGE=' .env.prod                                     # equals hasanara-api's Config.Image
 curl -s -o /dev/null -w '%{http_code} %{time_total}\n' https://hasanara.tv/api/health
@@ -153,17 +153,18 @@ bin/compose-prod maintenance pitr-archive-status --approved
 
 Search for "people" must return 200 well under the frontend's ten-second request timeout; on October 3 it timed out at 90 s. Open search, an episode, about and support in a browser in both editions. Dozor's operational alert monitor should record two healthy scheduled checks.
 
-## 6. Kvant worker after the deploy (Kvant)
+## 6. Restart the worker from the adopted manifest (Almaz)
 
-If the worker was drained in step 3, rebuild its image from the new core source with the Kvant worker sources (`deploy/kvant-worker/`, deployment worktree commit `859fcb0`; see Machinum's HasanAra GPU failure report), then:
+Use the same guarded Compose configuration and pinned ingest image as the backend release:
 
 ```bash
-systemctl --user start hasanara-kvant-worker.service
-systemctl --user status hasanara-kvant-worker.service --no-pager | head -5
-docker logs --since 10m hasanara-kvant-worker 2>&1 | tail -20       # heartbeat and no schema errors
+cd $DEPLOY
+guarded up -d --no-deps --no-build --pull always worker
+docker inspect --format '{{.State.Status}} {{.Config.Image}}' hasanara-worker
+docker logs --since 10m hasanara-worker 2>&1 | tail -20
 ```
 
-If it was not drained, check that it is still active and heartbeating with the same commands.
+Verify a fresh database heartbeat, the intended ingest image, CUDA model loading and a representative transcription. A running container alone does not establish successful ingestion.
 
 ## 7. Rollback (Almaz)
 
@@ -171,10 +172,11 @@ Without new migrations (`alembic_version` equals `$ev/alembic.before`):
 
 ```bash
 cd $DEPLOY
+docker stop --time 3600 hasanara-worker
 git switch --detach "$(cat $ev/deploy-head)" && git submodule update --init
 install -m 600 $ev/env.prod.before .env.prod
 guarded() { TRANSCRIPT_DEPLOY_ROOT=$DEPLOY bash -c 'source core/scripts/compose_prod.sh && run_preflight && compose "$@"' _ "$@"; }
-guarded up -d --no-deps --no-build --pull never api analytics-retention summary-refresher \
+guarded up -d --no-deps --no-build --pull never api worker analytics-retention summary-refresher \
   archive-intelligence-refresher archive-enrichment-queue
 # Restore the October 3 incident API image (PR 48 by hand). Its helper refuses to
 # overwrite an existing receipt, so set the earlier receipt aside first.
