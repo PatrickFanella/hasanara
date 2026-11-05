@@ -296,9 +296,13 @@ h3 {
   }
 
   .archive-display {
-    @apply max-w-5xl text-[clamp(2.6rem,6vw,5.25rem)] font-extrabold leading-[0.92] tracking-[-0.045em] text-ink;
+    @apply max-w-5xl text-[clamp(2.25rem,5vw,4.5rem)] font-extrabold leading-[0.92] tracking-[-0.045em] text-ink;
     font-family: var(--font-display);
     text-wrap: balance;
+  }
+
+  .home-masthead-grid {
+    @apply grid gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)] lg:items-center lg:px-12 lg:py-10;
   }
 
   .archive-command {

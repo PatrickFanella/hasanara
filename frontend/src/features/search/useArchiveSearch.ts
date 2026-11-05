@@ -72,6 +72,7 @@ export function useArchiveSearch(filters: SearchFilters) {
     loadingMore: search.isFetchingNextPage,
     canLoadMore: Boolean(search.hasNextPage),
     loadMore: search.fetchNextPage,
+    retrySearch: search.refetch,
     queryError: search.isError ? 'Search failed. Try again.' : null,
   };
 }

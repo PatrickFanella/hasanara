@@ -128,6 +128,7 @@ export default function SearchPage() {
     loadingMore,
     canLoadMore,
     loadMore,
+    retrySearch,
     queryError,
   } = useArchiveSearch(filters);
   const canSubmitSearch = Boolean(q.trim());
@@ -299,8 +300,16 @@ export default function SearchPage() {
       </section>
 
       {error && (
-        <div className="alert-warning" role="alert">
+        <div
+          className="alert-warning flex flex-wrap items-center justify-between gap-3"
+          role="alert"
+        >
           {error}
+          {queryError && (
+            <button type="button" className="btn-secondary" onClick={() => void retrySearch()}>
+              Retry search
+            </button>
+          )}
         </div>
       )}
       {operationFeedback && (
@@ -323,7 +332,9 @@ export default function SearchPage() {
                 <span>
                   {loading
                     ? 'Scanning transcripts…'
-                    : `Showing ${formatCount(totalMoments, 'moment')} in ${formatCount(totalVideos, 'VOD')}`}
+                    : queryError && !grouped
+                      ? 'Search results unavailable'
+                      : `Showing ${formatCount(totalMoments, 'moment')} in ${formatCount(totalVideos, 'VOD')}`}
                 </span>
                 {!loading && (
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
@@ -379,7 +390,7 @@ export default function SearchPage() {
                 );
               })}
 
-            {!loading && groupedGroups.length === 0 && (
+            {!loading && !queryError && groupedGroups.length === 0 && (
               <div className="archive-section py-14 text-center">
                 <div className="font-mono text-4xl text-subtle">∅</div>
                 <h3 className="mt-4 text-xl font-semibold text-ink">No transcript matches</h3>
