@@ -409,10 +409,7 @@ jobs:
     needs: publish
     # The main image-check job is deliberately skipped. Override inherited skip
     # propagation, while still requiring successful signed publication.
-    if: >-
-      always() && gitea.server_url == 'https://git.subcult.tv' &&
-      gitea.ref == 'refs/heads/main' && needs.publish.result == 'success' &&
-      (gitea.event_name == 'push' || gitea.event_name == 'workflow_dispatch')
+    if: always() && needs.publish.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
@@ -422,6 +419,16 @@ jobs:
       DEPLOY_REVISION: ${{ gitea.sha }}
       IMAGE_REF: ${{ needs.publish.outputs.image_ref }}
     steps:
+      - name: Authorize production activation
+        shell: bash
+        env:
+          DEPLOY_SERVER_URL: ${{ gitea.server_url }}
+          DEPLOY_REF: ${{ gitea.ref }}
+          DEPLOY_EVENT: ${{ gitea.event_name }}
+        run: |
+          test "$DEPLOY_SERVER_URL" = 'https://git.subcult.tv'
+          test "$DEPLOY_REF" = 'refs/heads/main'
+          [[ "$DEPLOY_EVENT" == push || "$DEPLOY_EVENT" == workflow_dispatch ]]
       - name: Log in to the image registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:

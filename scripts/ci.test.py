@@ -14,6 +14,17 @@ from ci_plan import changed_paths, plan
 from ci_gate import failures
 
 
+def workflow_step_script(name):
+    workflow = (Path(__file__).resolve().parents[1] / ".gitea/workflows/validate.yaml").read_text()
+    step = workflow.split("- name: " + name + "\n", 1)[1]
+    lines = []
+    for line in step.split("run: |\n", 1)[1].splitlines():
+        if line.strip() and not line.startswith("          "):
+            break
+        lines.append(line)
+    return textwrap.dedent("\n".join(lines))
+
+
 class PlanTests(unittest.TestCase):
     def test_docs_skip_web_work(self):
         self.assertEqual(plan(["README.md", "docs/operations.md"], "pull_request", "refs/pull/1/head"),
@@ -64,10 +75,23 @@ class PlanTests(unittest.TestCase):
 
 
 class GateTests(unittest.TestCase):
+    def test_runtime_deployment_authorization_rejects_other_hosts_refs_and_events(self):
+        script = workflow_step_script("Authorize production activation")
+        for host, ref, event, expected in [
+            ("https://git.subcult.tv", "refs/heads/main", "push", 0),
+            ("https://git.subcult.tv", "refs/heads/main", "workflow_dispatch", 0),
+            ("https://other.invalid", "refs/heads/main", "push", 1),
+            ("https://git.subcult.tv", "refs/pull/1/head", "push", 1),
+            ("https://git.subcult.tv", "refs/heads/main", "pull_request", 1),
+        ]:
+            with self.subTest(host=host, ref=ref, event=event):
+                result = subprocess.run(["bash", "-eu", "-c", script], env={
+                    "DEPLOY_SERVER_URL": host, "DEPLOY_REF": ref, "DEPLOY_EVENT": event,
+                })
+                self.assertEqual(result.returncode, expected)
+
     def test_production_delivery_cannot_succeed_when_activation_is_skipped(self):
-        workflow = (Path(__file__).resolve().parents[1] / ".gitea/workflows/validate.yaml").read_text()
-        step = workflow.split("- name: Require publication and activation\n", 1)[1]
-        script = textwrap.dedent(step.split("run: |\n", 1)[1])
+        script = workflow_step_script("Require publication and activation")
         for publication, deployment, expected in [
             ("success", "success", 0),
             ("success", "skipped", 1),
