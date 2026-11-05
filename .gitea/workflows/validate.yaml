@@ -407,8 +407,10 @@ jobs:
   deploy:
     name: Deploy verified frontend to Almaz
     needs: publish
+    # The main image-check job is deliberately skipped. Override inherited skip
+    # propagation, while still requiring successful signed publication.
     if: >-
-      gitea.server_url == 'https://git.subcult.tv' &&
+      always() && gitea.server_url == 'https://git.subcult.tv' &&
       gitea.ref == 'refs/heads/main' && needs.publish.result == 'success' &&
       (gitea.event_name == 'push' || gitea.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
@@ -470,3 +472,18 @@ jobs:
       - name: Log out of the registry
         if: always()
         run: docker logout git.subcult.tv >/dev/null 2>&1 || true
+
+  delivery:
+    name: Require production delivery
+    needs: [contract, publish, deploy]
+    if: always() && needs.contract.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require publication and activation
+        env:
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        run: |
+          test "$PUBLISH_RESULT" = success
+          test "$DEPLOY_RESULT" = success
