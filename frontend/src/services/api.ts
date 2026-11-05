@@ -100,6 +100,7 @@ function appendSearchFilters(params: URLSearchParams, opts?: ArchiveSearchFilter
   if (opts.date_to) params.set('date_to', opts.date_to);
   if (opts.min_duration != null) params.set('min_duration', String(opts.min_duration));
   if (opts.max_duration != null) params.set('max_duration', String(opts.max_duration));
+  if (opts.match_mode) params.set('match_mode', opts.match_mode);
   if (opts.sort_by) params.set('sort_by', opts.sort_by);
 }
 
