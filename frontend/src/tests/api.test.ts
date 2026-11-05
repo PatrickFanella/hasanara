@@ -104,6 +104,22 @@ describe('api service', () => {
     });
   });
 
+  it.each(['topic', 'whole_word', 'exact_phrase'] as const)(
+    'sends the selected %s matching mode to grouped search',
+    async (matchMode) => {
+      const getMock = vi.fn().mockReturnValue({
+        json: vi.fn().mockResolvedValue({ total_moments: 0, total_videos: 0, groups: [] }),
+      });
+      vi.spyOn(http, 'get').mockImplementation(getMock);
+
+      await api.searchGrouped('public housing', { match_mode: matchMode });
+
+      const params = getMock.mock.calls[0][1].searchParams as URLSearchParams;
+      expect(params.get('q')).toBe('public housing');
+      expect(params.get('match_mode')).toBe(matchMode);
+    }
+  );
+
   describe('getMentionMap', () => {
     it('calls the mention map endpoint and returns mini-report fields', async () => {
       const mockResponse = {
