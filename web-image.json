@@ -1,6 +1,6 @@
 {
-  "frontend_tree": "f32d702fd3531379ba4a65719f8f0c3448d400a6",
-  "image": "git.subcult.tv/subculture-collective/hasanara-web@sha256:7621e62d24917278b448ec5ed8ee809ed3accd736146a2c33b7eba537f977ac8",
+  "frontend_tree": "e21377fd3b5443f570119485a432ffacbae48f92",
+  "image": "git.subcult.tv/subculture-collective/hasanara-web@sha256:d74075cfbd9d1a88b3909af566bc5cf2b7f74216b1f5debb71cacac44c1d5dca",
   "schema_version": 1,
-  "source_commit": "2fbcb39c5e9643f58358401ea249b68d0c2b24cc"
+  "source_commit": "b8ac7244ffca5159b2ad9c032a4178a1785634d1"
 }
