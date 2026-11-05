@@ -229,6 +229,28 @@ export default function VideoPage() {
     );
     setParams(url.searchParams);
   }
+  function setClipBoundary(segment: Segment, boundary: 'start' | 'end') {
+    if (boundary === 'end' && !passageRange) {
+      setOperationFeedback('Choose the first segment and select Start clip here first.');
+      return;
+    }
+    const startMs = boundary === 'start' ? segment.start_ms : passageRange!.startMs;
+    const endMs = segment.end_ms;
+    if (endMs <= startMs) {
+      setOperationFeedback('Choose an end segment after the start of the clip.');
+      return;
+    }
+    setIsPlayingMatches(false);
+    playerRef.current?.pause();
+    setParams(
+      new URL(buildPassageLink(videoId!, { startMs, endMs }), window.location.origin).searchParams
+    );
+    setOperationFeedback(
+      boundary === 'start'
+        ? 'Clip start selected. Choose the final transcript segment and select End clip here.'
+        : 'Clip range selected. Preview it, save the range, or export and download.'
+    );
+  }
   function closePassage() {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
@@ -1402,6 +1424,7 @@ export default function VideoPage() {
                         onCopyQuote={copyTranscriptQuote}
                         onCopyLink={copyTranscriptLink}
                         onSharePassage={sharePassage}
+                        onClipBoundary={site.clip_exports_enabled ? setClipBoundary : undefined}
                       />
                     ) : (
                       <PlainTranscriptTurns
@@ -1416,6 +1439,7 @@ export default function VideoPage() {
                         onCopyQuote={copyTranscriptQuote}
                         onCopyLink={copyTranscriptLink}
                         onSharePassage={sharePassage}
+                        onClipBoundary={site.clip_exports_enabled ? setClipBoundary : undefined}
                       />
                     )}
                     {continueReading}

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { buildTimestampLink } from '../../features/archive/format';
+import { buildPassageLink } from '../../features/passages/range';
 import type { TranscriptSource } from '../../features/archive/format';
 
 type RemoteSavedMoment = {
@@ -39,7 +40,10 @@ export default function SavedMomentItem(props: SavedMomentItemProps) {
       <li className="surface-card-compact flex items-start justify-between gap-4">
         <div>
           <div className="mb-2 line-clamp-2">{item.text}</div>
-          <Link className="action-link" to={buildTimestampLink(item.video_id, item.start_ms)}>
+          <Link
+            className="action-link"
+            to={buildPassageLink(item.video_id, { startMs: item.start_ms, endMs: item.end_ms })}
+          >
             Open moment
           </Link>
         </div>

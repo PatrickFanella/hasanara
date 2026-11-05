@@ -4,6 +4,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { AuthProvider } from '../services/auth';
 import { api, favorites } from '../services';
 import { http } from '../services/api';
+import * as siteService from '../services/site';
 import VideoPage from '../routes/VideoPage';
 import { render } from '@testing-library/react';
 import axe from 'axe-core';
@@ -138,6 +139,40 @@ describe('VideoPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open paragraph at 00:00:18' }));
     fireEvent.click(screen.getByRole('button', { name: /^Play from here/ }));
     expect(screen.queryByLabelText('End time')).not.toBeInTheDocument();
+  });
+
+  it('selects a beginning and end transcript segment for a clip and rejects a reversed end', async () => {
+    vi.spyOn(siteService, 'useSite').mockReturnValue({
+      name: 'HasanAra',
+      description: 'Archive',
+      creator_name: 'Hasan',
+      public_passages_enabled: true,
+      clip_exports_enabled: true,
+      community_enabled: false,
+    });
+    mockAuth();
+    mockEpisode();
+    renderVideo();
+    fireEvent.click(await screen.findByRole('button', { name: 'Open paragraph at 00:00:12' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End clip here' }));
+    expect(
+      screen.getByText('Choose the first segment and select Start clip here first.')
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start clip here' }));
+    expect(await screen.findByLabelText('Start time')).toHaveValue('00:00:12');
+    fireEvent.click(screen.getByRole('button', { name: 'Open paragraph at 00:00:18' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End clip here' }));
+    expect(await screen.findByLabelText('Start time')).toHaveValue('00:00:12');
+    expect(screen.getByLabelText('End time')).toHaveValue('00:00:24');
+    fireEvent.click(screen.getByRole('button', { name: 'Open paragraph at 00:00:18' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start clip here' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open paragraph at 00:00:12' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End clip here' }));
+    expect(
+      screen.getByText('Choose an end segment after the start of the clip.')
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Start time')).toHaveValue('00:00:18');
+    expect(screen.getByLabelText('End time')).toHaveValue('00:00:24');
   });
 
   it('renders people and content tags near the VOD metadata', async () => {
