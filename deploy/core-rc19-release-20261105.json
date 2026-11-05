@@ -1,0 +1,13 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18838",
+  "source_commit": "ff4406dbb2077c3d38dfb19c6b091115fcc7a154",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:a9b3912a200fd5b4209ee90ce64da508bc2e7da1ab6930f2ebe75974b10a51e2",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "library_scan_high_critical": "passed",
+  "signature_provenance_sbom": "verified",
+  "ingest_image_note": "ingest-cuda rebuild (run 18839) failed: pillow 13 needs Python >= 3.11 on the Ubuntu 22.04 CUDA base; the previous ingest digest is kept and stays schema-compatible",
+  "schema_revision": "20261105_broadcast_dates (applied by this rollout)"
+}
