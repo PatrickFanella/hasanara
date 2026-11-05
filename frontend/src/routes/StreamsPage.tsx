@@ -97,7 +97,7 @@ export default function StreamsPage() {
                   cursor: append ? (current.page?.next_cursor ?? undefined) : undefined,
                   sort: sort as 'latest' | 'relevance' | 'longest',
                   q: q || undefined,
-                  date_field: 'uploaded_at',
+                  date_field: 'broadcast_date',
                   date_from: dateFrom || undefined,
                   date_to: dateTo || undefined,
                 },
@@ -370,7 +370,7 @@ export default function StreamsPage() {
               <StreamCard
                 key={(item as VideoInfo).id}
                 video={item as VideoInfo}
-                dateField="uploaded_at"
+                dateField="broadcast_date"
               />
             );
           })}

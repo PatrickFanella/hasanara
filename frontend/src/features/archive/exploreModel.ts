@@ -22,7 +22,7 @@ export const PERIOD_KIND_TABS: Array<{ kind: PeriodKind; label: string }> = [
   { kind: 'anniversary', label: 'Anniversaries' },
   { kind: 'date', label: 'Dates' },
 ];
-export const PERIOD_OPTION_FETCH_LIMIT = 24;
+export const PERIOD_OPTION_FETCH_LIMIT = 120;
 export const topicHref = (label: string) => `/topics/${encodeURIComponent(label)}`;
 export const facetHref = (label: string) => `/search?q=${encodeURIComponent(label)}`;
 export const evidenceHref = (moment: ArchiveEvidenceMoment) =>

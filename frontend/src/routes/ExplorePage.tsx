@@ -3,7 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services';
 import type { ArchivePeriodOption, ExploreIntelligenceResponse } from '../types/api';
 import {
+  formatCoverage,
   formatDate,
+  videoDate,
   formatAggregateDuration,
   formatCount,
   formatNumber,
@@ -149,6 +151,9 @@ export default function ExplorePage() {
   const selectedPeriodEvidence = selectedPeriodRecord?.evidence ?? [];
   const selectedPeriodVideos = selectedPeriodRecord?.videos ?? [];
   const selectedPeriodIsEmpty = selectedPeriodVods === 0;
+  const selectedPeriodCoverage = formatCoverage(
+    currentPeriod?.coverage ?? selectedPeriodRecord?.coverage
+  );
 
   useEffect(() => {
     if (periodKind === 'latest' || cachedPeriodOptions !== undefined) {
@@ -308,6 +313,11 @@ export default function ExplorePage() {
               <span>{formatPeriodRange(currentPeriod)}</span>
               <span>{formatCount(selectedPeriodVods, 'VOD')}</span>
             </div>
+            {selectedPeriodCoverage && (
+              <p className="text-xs text-subtle" data-testid="period-coverage">
+                {selectedPeriodCoverage}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <label className="meta-label">
                 From
@@ -598,7 +608,7 @@ export default function ExplorePage() {
                             {video.title || 'Untitled VOD'}
                           </div>
                           <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-subtle">
-                            {formatDate(video.uploaded_at ?? null)}
+                            {formatDate(videoDate(video))}
                           </div>
                           {metadataChips(video).length > 0 && (
                             <VideoMetadataChips

@@ -26,6 +26,7 @@ import type { YouTubePlayerHandle } from '../components/YouTubePlayer';
 import {
   buildTimestampLink,
   formatDate,
+  videoDate,
   formatDuration,
   formatTimestamp,
   formatVideoTitle,
@@ -357,7 +358,7 @@ export default function VideoPage() {
 
   useEffect(() => {
     if (!video) return;
-    document.title = `${formatVideoTitle(video.title, video.uploaded_at)} | ${site.name}`;
+    document.title = `${formatVideoTitle(video.title, videoDate(video))} | ${site.name}`;
   }, [video, site.name]);
 
   useEffect(() => {
@@ -894,7 +895,7 @@ export default function VideoPage() {
     },
     [serverFavs, videoId]
   );
-  const episodeTitle = video ? formatVideoTitle(video.title, video.uploaded_at) : 'Loading VOD...';
+  const episodeTitle = video ? formatVideoTitle(video.title, videoDate(video)) : 'Loading VOD...';
 
   useEffect(() => {
     if (!video) return;
@@ -1082,7 +1083,7 @@ export default function VideoPage() {
               <span className="font-medium text-ink">
                 {video.channel_name || 'Unknown channel'}
               </span>
-              {video.uploaded_at && <span>{formatDate(video.uploaded_at)}</span>}
+              {videoDate(video) && <span>{formatDate(videoDate(video))}</span>}
               {video.duration_seconds ? (
                 <span className="font-mono text-[13px]">
                   {formatDuration(video.duration_seconds)}

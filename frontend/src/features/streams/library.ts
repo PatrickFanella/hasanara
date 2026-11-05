@@ -3,6 +3,7 @@ import type { StreamLibraryFilters, VideoInfo } from '../../types/api';
 export const DEFAULT_LIMIT = 24;
 
 export const DATE_FIELD_OPTIONS = [
+  { value: 'broadcast_date', label: 'Broadcast date' },
   { value: 'uploaded_at', label: 'Uploaded date' },
   { value: 'created_at', label: 'Created date' },
   { value: 'updated_at', label: 'Updated date' },
@@ -30,12 +31,7 @@ export function formatDuration(seconds?: number | null) {
     : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-export function formatDate(value?: string | null) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
-}
+export { formatDate } from '../archive/format';
 
 export function titleCase(value: string) {
   return value
@@ -49,7 +45,7 @@ export function parseFilters(params: URLSearchParams): FilterState {
   const dateFieldParam = params.get('date_field');
   const dateField = DATE_FIELD_OPTIONS.some((option) => option.value === dateFieldParam)
     ? (dateFieldParam as DateField)
-    : 'uploaded_at';
+    : 'broadcast_date';
 
   return {
     q: params.get('q') ?? '',

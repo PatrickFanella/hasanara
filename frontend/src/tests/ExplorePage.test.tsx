@@ -364,7 +364,7 @@ describe('ExplorePage', () => {
       expect(screen.getByRole('button', { name: /Week 22, 2026/ })).toBeInTheDocument()
     );
     await waitFor(() =>
-      expect(getExplorePeriods).toHaveBeenCalledWith({ kind: 'week', limit: 24 })
+      expect(getExplorePeriods).toHaveBeenCalledWith({ kind: 'week', limit: 120 })
     );
     fireEvent.click(screen.getByRole('button', { name: /Week 22, 2026/ }));
     await waitFor(() => {
@@ -376,7 +376,7 @@ describe('ExplorePage', () => {
       expect(screen.getByRole('button', { name: /Launch Day/ })).toBeInTheDocument()
     );
     await waitFor(() =>
-      expect(getExplorePeriods).toHaveBeenCalledWith({ kind: 'event', limit: 24 })
+      expect(getExplorePeriods).toHaveBeenCalledWith({ kind: 'event', limit: 120 })
     );
     fireEvent.click(screen.getByRole('button', { name: /Launch Day/ }));
 

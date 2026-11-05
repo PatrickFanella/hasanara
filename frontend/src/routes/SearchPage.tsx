@@ -14,6 +14,7 @@ import type { ArchiveSearchFilters, MentionExportItem, SearchHit, VideoInfo } fr
 import {
   buildTimestampLink,
   formatDate,
+  videoDate,
   formatDuration,
   formatCount,
   formatNumber,
@@ -74,8 +75,8 @@ function ResultHeader({
         </Link>
         <div className="flex flex-wrap gap-2">
           {video?.channel_name && <span className="source-pill">{video.channel_name}</span>}
-          {video?.uploaded_at && (
-            <span className="timestamp-pill">{formatDate(video.uploaded_at)}</span>
+          {videoDate(video) && (
+            <span className="timestamp-pill">{formatDate(videoDate(video))}</span>
           )}
           {video?.duration_seconds ? (
             <span className="source-pill">{formatDuration(video.duration_seconds)}</span>

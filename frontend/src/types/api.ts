@@ -189,11 +189,21 @@ export interface ArchiveTrendingSearch {
   source: 'search' | 'transcript' | 'hybrid' | string;
 }
 
+/** Day coverage of a period by broadcast date. */
+export interface PeriodCoverage {
+  days: number;
+  vod_days: number;
+  no_stream_days: number;
+  unknown_days: number;
+  missing_dates?: string[];
+}
+
 export interface ArchivePeriodIntelligence {
   period: string;
   label: string;
   video_count: number;
   total_duration_seconds: number;
+  coverage?: PeriodCoverage | null;
   videos: VideoInfo[];
   top_topics: ArchiveTopicCard[];
   summary: string;
@@ -211,6 +221,7 @@ export interface ArchivePeriodOption {
   recurring_day?: number | null;
   video_count: number;
   total_duration_seconds: number;
+  coverage?: PeriodCoverage | null;
 }
 
 export interface ArchiveNamedPeriodAdminResponse {
@@ -393,6 +404,7 @@ export interface TimelineBucket {
   label: string;
   video_count: number;
   total_duration_seconds: number;
+  coverage?: PeriodCoverage | null;
   videos: VideoInfo[];
 }
 
@@ -557,6 +569,10 @@ export interface VideoInfo {
   caption_ingest_state?: string | null;
   diarization_state?: string | null;
   uploaded_at?: string | null;
+  /** Calendar date (YYYY-MM-DD) the stream happened; upload dates lag by days. */
+  broadcast_date?: string | null;
+  broadcast_date_source?: 'title' | 'upload_date' | 'manual' | null;
+  broadcast_kind?: 'vod' | 'no_stream' | 'extra';
   created_at?: string | null;
   updated_at?: string | null;
   channel_name?: string | null;
@@ -590,7 +606,7 @@ export interface StreamLibraryFilters {
   sort?: 'latest' | 'relevance' | 'longest';
   completed_only?: boolean;
   q?: string;
-  date_field?: 'uploaded_at' | 'created_at' | 'updated_at';
+  date_field?: 'broadcast_date' | 'uploaded_at' | 'created_at' | 'updated_at';
   date_from?: string;
   date_to?: string;
   category?: string;
