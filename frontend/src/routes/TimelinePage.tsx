@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services';
 import type { TimelineBucket } from '../types/api';
-import { formatCount, formatDate, formatDuration } from '../features/archive/format';
+import {
+  formatCount,
+  formatCoverage,
+  formatDate,
+  formatDuration,
+  videoDate,
+} from '../features/archive/format';
 
 function bucketRange(period: string) {
   if (/^\d{4}-\d{2}$/.test(period)) {
@@ -75,6 +81,9 @@ export default function TimelinePage() {
                   <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <p className="text-sm text-muted">
                       {formatCount(bucket.video_count, 'VOD')} in this archive period.
+                      {formatCoverage(bucket.coverage) && (
+                        <span className="block">{formatCoverage(bucket.coverage)}</span>
+                      )}
                     </p>
                     {range && (
                       <Link
@@ -100,7 +109,7 @@ export default function TimelinePage() {
                           {video.channel_name || 'Unknown channel'}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-3 text-xs text-subtle">
-                          <span>{formatDate(video.uploaded_at ?? null)}</span>
+                          <span>{formatDate(videoDate(video))}</span>
                           <span>{formatDuration(video.duration_seconds)}</span>
                         </div>
                       </Link>

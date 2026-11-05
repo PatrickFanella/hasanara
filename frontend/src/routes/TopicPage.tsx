@@ -6,6 +6,7 @@ import type { GroupedSearchResponse, MentionMapResponse, SearchHit } from '../ty
 import {
   buildTimestampLink,
   formatDate,
+  videoDate,
   formatDuration,
   formatCount,
   formatTimestamp,
@@ -309,7 +310,7 @@ export default function TopicPage() {
                       </Link>
                       <div className="mt-1 text-sm text-muted">
                         {entry.video.channel_name || 'Unknown channel'} ·{' '}
-                        {formatDate(entry.video.uploaded_at ?? null)}
+                        {formatDate(videoDate(entry.video))}
                       </div>
                     </div>
                     <div className="text-sm text-muted">

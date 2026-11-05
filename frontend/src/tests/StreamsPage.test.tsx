@@ -114,7 +114,7 @@ describe('StreamsPage', () => {
       expect.objectContaining({
         limit: 24,
         cursor: undefined,
-        date_field: 'uploaded_at',
+        date_field: 'broadcast_date',
       }),
       expect.any(AbortSignal)
     );
@@ -129,7 +129,7 @@ describe('StreamsPage', () => {
       expect.objectContaining({
         limit: 24,
         cursor: 'next-cursor',
-        date_field: 'uploaded_at',
+        date_field: 'broadcast_date',
       }),
       undefined
     );
@@ -160,7 +160,7 @@ describe('StreamsPage', () => {
       expect(listMock).toHaveBeenCalledWith(
         expect.objectContaining({
           q: 'alpha',
-          date_field: 'uploaded_at',
+          date_field: 'broadcast_date',
           date_from: '2026-05-01',
           date_to: '2026-05-31',
         }),

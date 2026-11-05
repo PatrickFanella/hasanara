@@ -3,7 +3,10 @@ import {
   buildTimestampLink,
   formatAggregateDuration,
   formatCount,
+  formatCoverage,
+  formatDate,
   formatVideoTitle,
+  videoDate,
 } from '../features/archive/format';
 
 describe('archive moment links', () => {
@@ -42,5 +45,35 @@ describe('archive count labels', () => {
     expect(formatCount(0, 'moment')).toBe('0 moments');
     expect(formatCount(1250, 'cited moment')).toBe('1,250 cited moments');
     expect(formatCount(undefined, 'mention')).toBe('0 mentions');
+  });
+});
+
+describe('broadcast dates and coverage', () => {
+  it('shows calendar dates as the same day in every time zone', () => {
+    // Midnight UTC rendered in a US time zone used to show the previous day.
+    const expected = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2024, 10, 25)));
+    expect(formatDate('2024-11-25')).toBe(expected);
+    expect(formatDate('2024-11-25T00:00:00+00:00')).toBe(expected);
+  });
+
+  it('prefers the broadcast date over the upload date', () => {
+    expect(videoDate({ broadcast_date: '2024-11-25', uploaded_at: '2024-11-27T00:00:00Z' })).toBe(
+      '2024-11-25'
+    );
+    expect(videoDate({ uploaded_at: '2024-11-27T00:00:00Z' })).toBe('2024-11-27T00:00:00Z');
+    expect(videoDate(null)).toBeNull();
+  });
+
+  it('summarises day coverage', () => {
+    expect(formatCoverage({ days: 30, vod_days: 26, no_stream_days: 2, unknown_days: 2 })).toBe(
+      '26 of 30 days archived · 2 no-stream days · 2 unknown'
+    );
+    expect(formatCoverage({ days: 7, vod_days: 6, no_stream_days: 1, unknown_days: 0 })).toBe(
+      '6 of 7 days archived · 1 no-stream day'
+    );
+    expect(formatCoverage(null)).toBeNull();
   });
 });

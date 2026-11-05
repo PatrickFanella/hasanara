@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { EpisodeSearchGroup } from '../../types/api';
-import { formatVideoTitle } from '../../features/archive/format';
+import { formatVideoTitle, videoDate } from '../../features/archive/format';
 
 type Props = {
   query: string;
@@ -17,7 +17,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export function bucketMomentsByDate(groups: EpisodeSearchGroup[]): Bucket[] {
   const dated = groups
     .map((group) => ({
-      date: group.video.uploaded_at ? new Date(group.video.uploaded_at) : null,
+      date: videoDate(group.video) ? new Date(videoDate(group.video) as string) : null,
       count: group.moments.length,
     }))
     .filter((item): item is { date: Date; count: number } =>
@@ -120,7 +120,7 @@ export default function SearchInsights({ query, groups, related }: Props) {
                   className="insight-row"
                 >
                   <span className="line-clamp-1 min-w-0">
-                    {formatVideoTitle(group.video.title, group.video.uploaded_at)}
+                    {formatVideoTitle(group.video.title, videoDate(group.video))}
                   </span>
                   <span className="shrink-0 font-mono text-xs text-accent">
                     {group.moments.length}

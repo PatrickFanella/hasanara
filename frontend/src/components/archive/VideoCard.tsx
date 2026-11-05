@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { RecentVideo } from '../../types/api';
-import { formatDate, formatDuration } from '../../features/archive/format';
+import { formatDate, formatDuration, videoDate } from '../../features/archive/format';
 import VideoMetadataChips from './VideoMetadataChips';
 
 type VideoCardProps = {
@@ -43,7 +43,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
           <span className="truncate">{video.channel_name || 'Unknown channel'}</span>
           <span className="shrink-0 font-mono text-[10px] text-subtle">
-            {formatDate(video.uploaded_at ?? null)}
+            {formatDate(videoDate(video))}
           </span>
         </div>
         {metadata.length > 0 && (

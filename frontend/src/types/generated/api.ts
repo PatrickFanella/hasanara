@@ -1331,6 +1331,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/clips/from-favorite/{favorite_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Export Favorite
+     * @description Reuse a cached export or regenerate it from a saved range. The favorite never expires.
+     */
+    post: operations['export_favorite_clips_from_favorite__favorite_id__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/clips/{job_id}': {
     parameters: {
       query?: never;
@@ -3267,6 +3287,8 @@ export interface components {
     };
     /** ArchivePeriodIntelligence */
     ArchivePeriodIntelligence: {
+      /** @description Day coverage for the period, by broadcast date */
+      coverage?: components['schemas']['PeriodCoverage'] | null;
       /**
        * Evidence
        * @description Citations supporting the summary
@@ -3310,6 +3332,8 @@ export interface components {
     };
     /** ArchivePeriodOption */
     ArchivePeriodOption: {
+      /** @description Day coverage for the period, by broadcast date */
+      coverage?: components['schemas']['PeriodCoverage'] | null;
       /**
        * Date From
        * Format: date
@@ -3566,7 +3590,7 @@ export interface components {
     ArchiveSummary: {
       /**
        * Creator Name
-       * @description Archive display name
+       * @description Archive display name (the site name, kept under this field name for compatibility); the creator's name is the site profile's creator_name
        * @default Transcript Archive
        */
       creator_name: string;
@@ -3738,6 +3762,23 @@ export interface components {
     /** ArchiveVideoMetadataAdminVideo */
     ArchiveVideoMetadataAdminVideo: {
       /**
+       * Broadcast Date
+       * @description Local date of the broadcast, parsed from the title or approximated by the upload day
+       */
+      broadcast_date?: string | null;
+      /**
+       * Broadcast Date Source
+       * @description Where broadcast_date came from; upload_date means an approximation
+       */
+      broadcast_date_source?: ('title' | 'upload_date' | 'manual') | null;
+      /**
+       * Broadcast Kind
+       * @description vod (full broadcast), no_stream (placeholder for a day off) or extra (clip, interview)
+       * @default vod
+       * @enum {string}
+       */
+      broadcast_kind: 'vod' | 'no_stream' | 'extra';
+      /**
        * Caption Ingest State
        * @description YouTube caption ingest state
        */
@@ -3817,7 +3858,7 @@ export interface components {
       updated_at?: string | null;
       /**
        * Uploaded At
-       * @description YouTube upload or stream publish time
+       * @description YouTube upload time (not the broadcast date)
        */
       uploaded_at?: string | null;
       /**
@@ -5067,6 +5108,40 @@ export interface components {
       /** @description Pagination information */
       page_info: components['schemas']['PageInfo'];
     };
+    /**
+     * PeriodCoverage
+     * @description How completely the archive covers the days in a period.
+     *
+     *     Every counted day is exactly one of: covered by a full VOD, a confirmed day
+     *     off (a "no stream" placeholder upload), or unknown (nothing archived).
+     */
+    PeriodCoverage: {
+      /**
+       * Days
+       * @description Days in the period that have elapsed and fall within the archive's span
+       */
+      days: number;
+      /**
+       * Missing Dates
+       * @description Unknown days, oldest first, capped at 62 entries
+       */
+      missing_dates?: string[];
+      /**
+       * No Stream Days
+       * @description Days confirmed as no-stream days, with no archived broadcast
+       */
+      no_stream_days: number;
+      /**
+       * Unknown Days
+       * @description Days with neither an archived broadcast nor a no-stream notice
+       */
+      unknown_days: number;
+      /**
+       * Vod Days
+       * @description Days with at least one archived full broadcast
+       */
+      vod_days: number;
+    };
     /** Post */
     Post: {
       /**
@@ -5427,6 +5502,11 @@ export interface components {
      */
     SearchHit: {
       /**
+       * Broadcast Date
+       * @description Local date of the broadcast
+       */
+      broadcast_date?: string | null;
+      /**
        * Channel Name
        * @description Channel name for progressive archive UIs
        */
@@ -5468,6 +5548,12 @@ export interface components {
        * @description Start time in milliseconds
        */
       start_ms: number;
+      /**
+       * Title Match
+       * @description True when the query matched the video title rather than the transcript; the snippet is then the title and the timestamp is the first transcript segment
+       * @default false
+       */
+      title_match: boolean;
       /**
        * Uploaded At
        * @description Video upload time
@@ -5504,6 +5590,11 @@ export interface components {
      */
     SearchMoment: {
       /**
+       * Broadcast Date
+       * @description Local date of the broadcast
+       */
+      broadcast_date?: string | null;
+      /**
        * Channel Name
        * @description Channel name for progressive archive UIs
        */
@@ -5545,6 +5636,12 @@ export interface components {
        * @description Start time in milliseconds
        */
       start_ms: number;
+      /**
+       * Title Match
+       * @description True when the query matched the video title rather than the transcript; the snippet is then the title and the timestamp is the first transcript segment
+       * @default false
+       */
+      title_match: boolean;
       /**
        * Uploaded At
        * @description Video upload time
@@ -5752,6 +5849,8 @@ export interface components {
     };
     /** TimelineBucket */
     TimelineBucket: {
+      /** @description Day coverage for the bucket, by broadcast date */
+      coverage?: components['schemas']['PeriodCoverage'] | null;
       /**
        * Label
        * @description Human-readable bucket label
@@ -5999,6 +6098,23 @@ export interface components {
      */
     VideoInfo: {
       /**
+       * Broadcast Date
+       * @description Local date of the broadcast, parsed from the title or approximated by the upload day
+       */
+      broadcast_date?: string | null;
+      /**
+       * Broadcast Date Source
+       * @description Where broadcast_date came from; upload_date means an approximation
+       */
+      broadcast_date_source?: ('title' | 'upload_date' | 'manual') | null;
+      /**
+       * Broadcast Kind
+       * @description vod (full broadcast), no_stream (placeholder for a day off) or extra (clip, interview)
+       * @default vod
+       * @enum {string}
+       */
+      broadcast_kind: 'vod' | 'no_stream' | 'extra';
+      /**
        * Caption Ingest State
        * @description YouTube caption ingest state
        */
@@ -6078,7 +6194,7 @@ export interface components {
       updated_at?: string | null;
       /**
        * Uploaded At
-       * @description YouTube upload or stream publish time
+       * @description YouTube upload time (not the broadcast date)
        */
       uploaded_at?: string | null;
       /**
@@ -8837,6 +8953,37 @@ export interface operations {
       };
     };
   };
+  export_favorite_clips_from_favorite__favorite_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        favorite_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClipStatus'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   clip_status_clips__job_id__get: {
     parameters: {
       query?: never;
@@ -10589,8 +10736,8 @@ export interface operations {
         offset?: number | null;
         /** @description Search query for title, youtube ID, or channel name */
         q?: string | null;
-        /** @description Date field used for date filtering */
-        date_field?: 'uploaded_at' | 'created_at' | 'updated_at';
+        /** @description Date field used for date filtering; broadcast_date is when the stream happened */
+        date_field?: 'broadcast_date' | 'uploaded_at' | 'created_at' | 'updated_at';
         /** @description Inclusive YYYY-MM-DD date lower bound */
         date_from?: string | null;
         /** @description Inclusive YYYY-MM-DD date upper bound */

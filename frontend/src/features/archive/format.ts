@@ -40,11 +40,45 @@ export function formatAggregateDuration(seconds?: number | null) {
   return formatShortDuration(seconds);
 }
 
+const CALENDAR_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeZone: 'UTC',
+});
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const UTC_MIDNIGHT = /^\d{4}-\d{2}-\d{2}T00:00:00(?:\.0+)?(?:Z|[+-]00:?00)$/;
+
+/**
+ * Format a date for display. Calendar dates and date-only values stored as
+ * midnight UTC are shown as that calendar day in every time zone; converting
+ * them to local time would show the previous day west of UTC.
+ */
 export function formatDate(value?: string | null) {
   if (!value) return '—';
-  const date = new Date(value);
+  const calendarDay = CALENDAR_DATE.test(value) || UTC_MIDNIGHT.test(value);
+  const date = new Date(CALENDAR_DATE.test(value) ? `${value}T00:00:00Z` : value);
   if (Number.isNaN(date.getTime())) return value;
-  return DATE_FORMAT.format(date);
+  return (calendarDay ? CALENDAR_DATE_FORMAT : DATE_FORMAT).format(date);
+}
+
+/** The date a video's stream happened, falling back to its upload date. */
+export function videoDate(
+  video?: { broadcast_date?: string | null; uploaded_at?: string | null } | null
+) {
+  return video?.broadcast_date ?? video?.uploaded_at ?? null;
+}
+
+/** "26 of 30 days archived · 2 no-stream days · 2 unknown", or null without coverage. */
+export function formatCoverage(
+  coverage?: { days: number; vod_days: number; no_stream_days: number; unknown_days: number } | null
+) {
+  if (!coverage || coverage.days <= 0) return null;
+  const parts = [`${coverage.vod_days} of ${coverage.days} days archived`];
+  if (coverage.no_stream_days > 0)
+    parts.push(
+      `${coverage.no_stream_days} no-stream day${coverage.no_stream_days === 1 ? '' : 's'}`
+    );
+  if (coverage.unknown_days > 0) parts.push(`${coverage.unknown_days} unknown`);
+  return parts.join(' · ');
 }
 
 export function formatVideoTitle(title?: string | null, uploadedAt?: string | null) {
