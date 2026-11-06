@@ -1,0 +1,19 @@
+{
+  "applied": "2026-11-06 via ALTER SYSTEM and pg_reload_conf() on hasanara-db (no restart)",
+  "settings": {
+    "effective_io_concurrency": {"before": "1", "after": "200"},
+    "work_mem": {"before": "4MB", "after": "64MB"}
+  },
+  "reason": "Full-text search on common words runs bitmap heap scans over the 8.6 GB segments heap. With 4MB work_mem the bitmaps went lossy, and with effective_io_concurrency=1 the NVMe volume was read one page at a time.",
+  "measured": {
+    "same_size_scan_default": "literally: 101,631 heap blocks (69,608 lossy), 6.2 s I/O wait, 7.6 s total",
+    "same_size_scan_tuned": "actually: 120,672 heap blocks (0 lossy), 0.28 s I/O wait, 1.0 s total",
+    "live_first_request_before": "people: grouped search 16.5 s, mention map 11.8 s",
+    "live_first_request_after": "think: grouped search 4.0 s, mention map 4.5 s; something: 1.5 s, 1.7 s"
+  },
+  "memory_budget": "about 8 client connections; host has 31 GB RAM with about 14 GB available",
+  "persistence": "stored in the data directory's postgresql.auto.conf, which base backups include",
+  "evidence": "Almaz deploy-backups/core-rc21-20261106T063558Z/postgresql.auto.conf.before",
+  "rollback": "ALTER SYSTEM RESET effective_io_concurrency; ALTER SYSTEM RESET work_mem; SELECT pg_reload_conf();",
+  "not_changed": "shared_buffers (128MB) and random_page_cost (4) need a restart or change planner choices; left for a planned window"
+}
