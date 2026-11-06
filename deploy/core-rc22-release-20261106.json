@@ -1,0 +1,27 @@
+{
+  "workflow_runs": [
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18973",
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18974"
+  ],
+  "release_branch": "release/v0.1.0-rc.22",
+  "source_commit": "22fc301189eff2f41fa5703c96fe406a06f87d9c",
+  "change": "rekolekt #82: word timings move from segments.word_timestamps to segment_words; segments is rewritten with VACUUM FULL",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:445992b00714e75efab982b58ce0df1039d7dcc8f98adc8b13d4227cb72b6523",
+  "ingest_image": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda@sha256:2369ababd9b792f44162f14c3c8a628fbb01c24ef86dbb1170533f3ffe9b22be",
+  "rebuilt": [
+    "api",
+    "ingest-cuda"
+  ],
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "20261106_segment_words (applied by this rollout)",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main and ships the migration; ingest image imports worker.native_pipeline with the segment_words insert and sees 1 CUDA device",
+  "pitr_base_backup_before_migration": "base_000000020000018100000028 (2026-11-06T17:27:04Z)",
+  "database_settings_20261106": {
+    "shared_buffers": "128MB -> 4GB",
+    "random_page_cost": "4 -> 1.1",
+    "effective_cache_size": "4GB -> 12GB",
+    "applied": "ALTER SYSTEM, database restarted 17:14 UTC (7 s)",
+    "rollback": "ALTER SYSTEM RESET <name>; restart hasanara-db"
+  }
+}
