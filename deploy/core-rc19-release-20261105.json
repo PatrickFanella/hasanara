@@ -8,6 +8,17 @@
   "reused_artifacts_reverified": true,
   "library_scan_high_critical": "passed",
   "signature_provenance_sbom": "verified",
-  "ingest_image_note": "ingest-cuda rebuild (run 18839) failed: pillow 13 needs Python >= 3.11 on the Ubuntu 22.04 CUDA base; the previous ingest digest is kept and stays schema-compatible",
-  "schema_revision": "20261105_broadcast_dates (applied by this rollout)"
+  "schema_revision": "20261105_broadcast_dates (applied by this rollout)",
+  "superseded_by": "release/v0.1.0-rc.20 (rekolekt #80, 4a5dbc1)",
+  "rc19_api_outcome": "rc.19 API image a9b3912a crashed at start-up (worker.vocabulary missing from the image); production API was rolled back to 3ddfe067 after about ten minutes",
+  "rc20_workflow_runs": [
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18846",
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18847"
+  ],
+  "rc20_source_commit": "4a5dbc1f835345bec1d9bdb76edb824d679d54b9",
+  "rc20_rebuilt": [
+    "api",
+    "ingest-cuda"
+  ],
+  "rc20_pre_deploy_smoke": "on Almaz: API image imports app.main; ingest image sees 1 CUDA device with int8, Pillow 13.0.0"
 }
