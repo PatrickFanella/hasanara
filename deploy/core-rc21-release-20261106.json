@@ -1,0 +1,14 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/18931",
+  "release_branch": "release/v0.1.0-rc.21",
+  "source_commit": "fe67bb111ac1d01fd9d7c8ea13baf218f98f0881",
+  "change": "rekolekt #81: one-pass mention-map counts and corpus-versioned Redis cache for grouped search and mention maps",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:32b38c4aea9176c278b62a536b5b1d6e675b75fea4f339d812d05f439b31738b",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "unchanged (no migration)",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main and app.search.result_cache"
+}
