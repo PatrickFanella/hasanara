@@ -1,0 +1,14 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/19051",
+  "release_branch": "release/v0.1.0-rc.23",
+  "source_commit": "764d0d553bd25352aaf2c3a74f85aed831fed809",
+  "change": "rekolekt #83 (caption-only search uses the full-text index) and #84 (topic mention maps warmed after each intelligence refresh; result TTL 2 h)",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:868e87a9c6c8b0eecebb89038830f63d93a3cd0b7674435326664861ed79de58",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "unchanged (no migration)",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main, has warm_topic_mention_maps, the caption-only filter and a 7200 s result TTL; the refresher script calls the warm-up"
+}
