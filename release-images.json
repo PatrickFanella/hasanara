@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "source_commit": "fe67bb111ac1d01fd9d7c8ea13baf218f98f0881",
+  "source_commit": "22fc301189eff2f41fa5703c96fe406a06f87d9c",
   "images": {
-    "api": "git.subcult.tv/subculture-collective/hasanara-api@sha256:32b38c4aea9176c278b62a536b5b1d6e675b75fea4f339d812d05f439b31738b",
-    "ingest-cuda": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda@sha256:8f436d9414de902ce9533e7bfab7b827356c550ffa9bbd75237760713c6cda56",
+    "api": "git.subcult.tv/subculture-collective/hasanara-api@sha256:445992b00714e75efab982b58ce0df1039d7dcc8f98adc8b13d4227cb72b6523",
+    "ingest-cuda": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda@sha256:2369ababd9b792f44162f14c3c8a628fbb01c24ef86dbb1170533f3ffe9b22be",
     "ml-cuda": "git.subcult.tv/subculture-collective/hasanara-ml-cuda@sha256:30c0f847807c9332f4aeaa99b92b52a9cf89f355c0f0b972fd97e7453a423370",
     "postgres-walg": "git.subcult.tv/subculture-collective/hasanara-postgres-walg@sha256:47e1318a8205a0d6a7d8aa80f8244f7c1c6a80bec38096b90ff6412bcb22179f",
     "redis": "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
