@@ -1,0 +1,20 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/19187",
+  "release_branch": "release/v0.1.0-rc.24",
+  "source_commit": "5e1a3813b242bf376a0c50570404a378a6206e48",
+  "change": "rekolekt #85: captions overshadowed by a native transcript are flagged (triggers keep the flag current) and left out of new partial caption full-text indexes; unfiltered relevance searches for very common words rank only the newest broadcasts' matches",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:ecb72479e68abb9a9fd5883928a2b94a1ab8fd7741754c16528006eabfc5416b",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "20261107_caption_overshadowed (applied by this rollout; rewrites about 7.7M youtube_segments rows and runs VACUUM FULL youtube_segments)",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main, ships the 20261107 migration, COMMON_QUERY_MATCHES=20000 and the overshadowed caption filter",
+  "database_settings_20261107": {
+    "jit": "on -> off",
+    "reason": "JIT compilation took 2.3 s of a 3.5 s search for a common word",
+    "applied": "ALTER SYSTEM SET jit = off; pg_reload_conf() (no restart), 2026-11-07",
+    "rollback": "ALTER SYSTEM RESET jit; SELECT pg_reload_conf()"
+  }
+}
