@@ -1,0 +1,22 @@
+{
+  "workflow_runs": [
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/19866",
+    "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/19867"
+  ],
+  "release_branch": "release/v0.1.0-rc.26",
+  "source_commit": "2c99faaefea7b20e076d352ffeac4b29b986ac96",
+  "change": "rekolekt #87-#96: clip provenance handoff, Podcasting 2.0 chapters and recordings RSS feed, word timings via include=words, transcription engine provenance, per-channel sync inclusion rules, chunked diarization with audio re-fetch and speaker centroids, chat replay import, reviewed transcript corrections, speaker attribution and search by speaker",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:8ecad77a6ff017185f236696b4682f3c2d938a6258011ea69265a81a7ac9cbbc",
+  "ingest_image": "git.subcult.tv/subculture-collective/hasanara-ingest-cuda@sha256:63009df338f04414debcc9730ea6c05895ac3d9b6a26f3940b16f116f025c641",
+  "rebuilt": [
+    "api",
+    "ingest-cuda"
+  ],
+  "not_rebuilt": "ml-cuda: the selective release workflow cannot rebuild it, and no diarization worker runs in production",
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "20261107_caption_overshadowed -> 20261107_speaker_people (five migrations: transcript_engine, chat_messages, speaker_centroids, segment_corrections, speaker_people); new tables, nullable transcript columns and segments triggers, no table rewrites",
+  "feature_flags": "all new features default off: TRANSCRIPT_CORRECTIONS_ENABLED, CHAT_REPLAY_ENABLED, PODCAST_FEED_ENABLED, SPEAKER_AUTO_MATCH_ENABLED, MODEL_UPGRADE_TARGET_MODEL, CHANNEL_SYNC_CONFIG, DIARIZATION_REFETCH_AUDIO",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main and the corrections routes and ships the five migrations; ingest image imports worker.loop, channel_sync, whisper_runner and native_pipeline",
+  "frontend": "src/types/generated/api.ts regenerated from core docs/api/openapi.json; the web image is not redeployed by this change"
+}
