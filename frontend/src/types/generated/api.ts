@@ -324,6 +324,44 @@ export interface paths {
     patch: operations['admin_update_archive_person_admin_archive_metadata_people__slug__patch'];
     trace?: never;
   };
+  '/admin/archive/metadata/people/{slug}/voice-references': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List a person's enrolled voices (Admin) */
+    get: operations['admin_list_voice_references_admin_archive_metadata_people__slug__voice_references_get'];
+    put?: never;
+    /**
+     * Enroll a confirmed voice for a person (Admin)
+     * @description Mark segments of one recording's speaker label as this person. The label's stored voice embedding becomes a reference for automatic matching.
+     */
+    post: operations['admin_add_voice_reference_admin_archive_metadata_people__slug__voice_references_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/archive/metadata/people/{slug}/voice-references/{reference_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove an enrolled voice (Admin) */
+    delete: operations['admin_delete_voice_reference_admin_archive_metadata_people__slug__voice_references__reference_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/archive/metadata/seed-tags': {
     parameters: {
       query?: never;
@@ -951,6 +989,47 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/videos/{video_id}/speakers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List a recording's speaker labels (Admin)
+     * @description Distinct diarized labels with segment counts, sample segments, the current mapping and the best enrolled-voice suggestion.
+     */
+    get: operations['admin_list_video_speakers_admin_videos__video_id__speakers_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/videos/{video_id}/speakers/{speaker_label}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Map a speaker label to an archive person (Admin) */
+    put: operations['admin_set_video_speaker_admin_videos__video_id__speakers__speaker_label__put'];
+    post?: never;
+    /**
+     * Clear a speaker label's person (Admin)
+     * @description Records that the label is no known person. Automatic matching leaves cleared labels alone.
+     */
+    delete: operations['admin_clear_video_speaker_admin_videos__video_id__speakers__speaker_label__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api-keys': {
     parameters: {
       query?: never;
@@ -1385,6 +1464,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/clips/{job_id}/handoff': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Clip Handoff
+     * @description Describe a completed export: recording, range, request-time transcript and output hash.
+     */
+    get: operations['clip_handoff_clips__job_id__handoff_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/community/export': {
     parameters: {
       query?: never;
@@ -1631,6 +1730,23 @@ export interface paths {
      *         ```
      */
     post: operations['ingest_events_batch_events_batch_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/feeds/recordings.rss': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** RSS 2.0 feed of completed recordings with Podcasting 2.0 transcript and chapter links */
+    get: operations['get_recordings_feed_feeds_recordings_rss_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2280,6 +2396,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/videos/{video_id}/chat': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get chat messages for a time range
+     * @description Imported chat messages with `start_ms <= offset_ms < end_ms`, ordered by time. Returns at most `limit` messages; a truncated response gives `next_start_ms` to continue from. Returns 404 while chat replay is disabled.
+     */
+    get: operations['get_video_chat_videos__video_id__chat_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/videos/{video_id}/podcast-chapters.json': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get published chapters in the Podcasting 2.0 JSON chapters format */
+    get: operations['get_podcast_chapters_videos__video_id__podcast_chapters_json_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/videos/{video_id}/quoted-moments': {
     parameters: {
       query?: never;
@@ -2338,6 +2491,13 @@ export interface paths {
      *         - `cleaned`: Returns segments with cleanup applied (filler removal, normalization, punctuation)
      *         - `formatted`: Returns fully formatted text with speaker labels and paragraph structure
      *
+     *         **Word timings:** `include=words` adds a `words` list to each raw segment in `raw` and
+     *         `formatted` modes, plus `word_timings` (`available`, `partial` or `unavailable`) and
+     *         `word_timings_note`. A segment without usable stored timings has `words: null`. YouTube
+     *         captions and merged transcripts have no word timings. A response carries at most 100,000
+     *         words; later segments get `words: null` and the note `word_limit_reached`.
+     *         `mode=cleaned` does not support `include=words`.
+     *
      *         **Note:** Responses are cached per mode. ETags reflect the mode to avoid stale caches.
      */
     get: operations['get_transcript_videos__video_id__transcript_get'];
@@ -2359,6 +2519,11 @@ export interface paths {
     /**
      * Export Whisper transcript as JSON
      * @description Download Whisper-generated transcript in JSON format with full segment data.
+     *
+     *         `include=words` adds each Whisper segment's word timings (`words`, null when none are
+     *         stored) and the top-level `word_timings` and `word_timings_note` fields, with the same
+     *         rules and 100,000-word limit as `GET /videos/{video_id}/transcript`. YouTube and merged
+     *         exports report `word_timings: "unavailable"`.
      *
      *         **Authentication Required:** Yes
      */
@@ -2435,6 +2600,28 @@ export interface paths {
      *         **Authentication Required:** Yes
      */
     get: operations['get_native_transcript_vtt_videos__video_id__transcript_vtt_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/videos/{video_id}/transcript/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get native transcript metadata
+     * @description Return the language and the transcription engine (model, backend, device, compute type and
+     *         library version) that produced the video's native Whisper transcript. Transcripts stored
+     *         before engine provenance was recorded report `provenance: unknown` and a null `engine`.
+     */
+    get: operations['get_transcript_metadata_videos__video_id__transcript_metadata_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -4123,6 +4310,92 @@ export interface components {
         [key: string]: string;
       };
     };
+    /** ChatBadge */
+    ChatBadge: {
+      /** Id */
+      id: string;
+      /** Version */
+      version: string;
+    };
+    /** ChatEmote */
+    ChatEmote: {
+      /** Id */
+      id: string;
+      /** Text */
+      text: string;
+    };
+    /** ChatImportInfo */
+    ChatImportInfo: {
+      /**
+       * Alignment Confidence
+       * @description 0-1 for audio alignment; null for a manual offset
+       */
+      alignment_confidence?: number | null;
+      /**
+       * Alignment Method
+       * @enum {string}
+       */
+      alignment_method: 'manual' | 'audio';
+      /**
+       * Imported At
+       * Format: date-time
+       */
+      imported_at: string;
+      /** Message Count */
+      message_count: number;
+    };
+    /** ChatMessage */
+    ChatMessage: {
+      /**
+       * Author
+       * @description Display name as it appears in the imported log
+       */
+      author: string;
+      /** Badges */
+      badges?: components['schemas']['ChatBadge'][];
+      /** Color */
+      color?: string | null;
+      /** Emotes */
+      emotes?: components['schemas']['ChatEmote'][];
+      /**
+       * Offset Ms
+       * @description Time on the recording's timeline
+       */
+      offset_ms: number;
+      /** Text */
+      text: string;
+    };
+    /** ChatRangeResponse */
+    ChatRangeResponse: {
+      chat_import?: components['schemas']['ChatImportInfo'] | null;
+      /** End Ms */
+      end_ms: number;
+      /**
+       * Imported
+       * @description False when no chat log has been imported for this recording
+       */
+      imported: boolean;
+      /** Messages */
+      messages?: components['schemas']['ChatMessage'][];
+      /**
+       * Next Start Ms
+       * @description When truncated, request again from this start_ms
+       */
+      next_start_ms?: number | null;
+      /** Start Ms */
+      start_ms: number;
+      /**
+       * Truncated
+       * @description More messages exist in the range than were returned
+       * @default false
+       */
+      truncated: boolean;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
     /**
      * CleanedSegment
      * @description Transcript segment with cleaned text.
@@ -4159,6 +4432,8 @@ export interface components {
        * @description Speaker label from diarization
        */
       speaker_label?: string | null;
+      /** @description Archive person the speaker label is attributed to; omitted when no person is mapped */
+      speaker_person?: components['schemas']['SpeakerPerson'] | null;
       /**
        * Start Ms
        * @description Start time in milliseconds
@@ -4203,6 +4478,11 @@ export interface components {
     CleanedTranscriptResponse: {
       /** @description Cleanup configuration used */
       cleanup_config: components['schemas']['CleanupConfig'];
+      /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
       /**
        * Created At
        * Format: date-time
@@ -4389,12 +4669,47 @@ export interface components {
        */
       special_tokens_removed: number;
     };
+    /**
+     * ClipHandoff
+     * @description Token-free provenance document for clpr and other editors.
+     */
+    ClipHandoff: {
+      archive: components['schemas']['HandoffArchive'];
+      captions: components['schemas']['HandoffCaptions'];
+      /**
+       * Export Id
+       * Format: uuid
+       */
+      export_id: string;
+      /** Generated At */
+      generated_at: number;
+      media: components['schemas']['HandoffMedia'];
+      passage: components['schemas']['HandoffPassage'];
+      provenance: components['schemas']['HandoffProvenance'];
+      recording: components['schemas']['HandoffRecording'];
+      /**
+       * Schema
+       * @constant
+       */
+      schema: 'rekolekt.clip-handoff';
+      /**
+       * Schema Version
+       * @constant
+       */
+      schema_version: 1;
+      transcript: components['schemas']['HandoffTranscript'];
+    };
     /** ClipRequest */
     ClipRequest: {
       /** End Ms */
       end_ms: number;
       /** Start Ms */
       start_ms: number;
+      /**
+       * Transcript Source
+       * @description Transcript to record in the provenance handoff; defaults to native, then captions
+       */
+      transcript_source?: ('whisper' | 'youtube') | null;
       /**
        * Video Id
        * Format: uuid
@@ -4430,6 +4745,27 @@ export interface components {
       items: (components['schemas']['PostActivity'] | components['schemas']['ArchiveActivity'])[];
       /** Next Offset */
       next_offset: number | null;
+    };
+    /**
+     * CorrectionMark
+     * @description A segment range showing an accepted user correction instead of the machine text.
+     */
+    CorrectionMark: {
+      /**
+       * End Ms
+       * @description End of the corrected segment in milliseconds
+       */
+      end_ms: number;
+      /**
+       * Machine Text
+       * @description The machine transcript text this correction replaced
+       */
+      machine_text: string;
+      /**
+       * Start Ms
+       * @description Start of the corrected segment in milliseconds
+       */
+      start_ms: number;
     };
     /**
      * CreateAPIKeyRequest
@@ -4524,6 +4860,11 @@ export interface components {
       /** @description Cleanup configuration used */
       cleanup_config: components['schemas']['CleanupConfig'];
       /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
+      /**
        * Created At
        * Format: date-time
        * @description Timestamp of formatting
@@ -4609,6 +4950,136 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
+    };
+    /** HandoffArchive */
+    HandoffArchive: {
+      /** Name */
+      name: string;
+      /** Origin */
+      origin: string;
+    };
+    /** HandoffCaptions */
+    HandoffCaptions: {
+      /** Cues */
+      cues: components['schemas']['HandoffCue'][];
+      /** Cues Truncated */
+      cues_truncated: boolean;
+      /** Text Sha256 */
+      text_sha256: string | null;
+      /**
+       * Timing
+       * @enum {string}
+       */
+      timing: 'clip-relative' | 'unavailable';
+    };
+    /** HandoffCue */
+    HandoffCue: {
+      /**
+       * End Ms
+       * @description Milliseconds from the start of the clip; null when the source has no end
+       */
+      end_ms: number | null;
+      /**
+       * Start Ms
+       * @description Milliseconds from the start of the clip
+       */
+      start_ms: number;
+      /** Text */
+      text: string;
+      /**
+       * Text Truncated
+       * @default false
+       */
+      text_truncated: boolean;
+    };
+    /** HandoffMedia */
+    HandoffMedia: {
+      /** Bytes */
+      bytes: number;
+      /** Filename */
+      filename: string;
+      /** Sha256 */
+      sha256: string;
+      /**
+       * Type
+       * @constant
+       */
+      type: 'video/mp4';
+    };
+    /** HandoffMediaSource */
+    HandoffMediaSource: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'youtube-range' | 'registered-original';
+      /** Original Sha256 */
+      original_sha256?: string | null;
+      /** Timeline Aligned */
+      timeline_aligned?: boolean | null;
+      /** Youtube Id */
+      youtube_id?: string | null;
+    };
+    /** HandoffPassage */
+    HandoffPassage: {
+      /** Duration Ms */
+      duration_ms: number;
+      /** End Ms */
+      end_ms: number;
+      /** Player Url */
+      player_url: string;
+      /** Start Ms */
+      start_ms: number;
+      /** Url */
+      url: string;
+    };
+    /** HandoffProvenance */
+    HandoffProvenance: {
+      /**
+       * Basis
+       * @constant
+       */
+      basis: 'declared';
+      media_source: components['schemas']['HandoffMediaSource'];
+      /** Statement */
+      statement: string;
+    };
+    /** HandoffRecording */
+    HandoffRecording: {
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+      /** Youtube Id */
+      youtube_id?: string | null;
+    };
+    /** HandoffTranscript */
+    HandoffTranscript: {
+      /** Captured At */
+      captured_at: number;
+      /** Kind */
+      kind?: string | null;
+      /** Language */
+      language?: string | null;
+      /**
+       * Revision Sha256
+       * @description SHA-256 of every segment at request time
+       */
+      revision_sha256?: string | null;
+      /** Segment Count */
+      segment_count?: number | null;
+      /** Source */
+      source?: ('whisper' | 'youtube') | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'captured' | 'unavailable';
+      /** Timing */
+      timing?: 'segment' | null;
+      /** Transcript Id */
+      transcript_id?: string | null;
     };
     /**
      * HighlightRange
@@ -5743,6 +6214,8 @@ export interface components {
        * @description Speaker label from diarization (e.g., 'Speaker 1')
        */
       speaker_label?: string | null;
+      /** @description Archive person the speaker label is attributed to; omitted when no person is mapped */
+      speaker_person?: components['schemas']['SpeakerPerson'] | null;
       /**
        * Start Ms
        * @description Start time in milliseconds
@@ -5781,6 +6254,8 @@ export interface components {
     SiteConfig: {
       /** Atproto Enabled */
       atproto_enabled: boolean;
+      /** Chat Replay Enabled */
+      chat_replay_enabled: boolean;
       /** Clip Exports Enabled */
       clip_exports_enabled: boolean;
       /** Community Enabled */
@@ -5839,6 +6314,162 @@ export interface components {
        * @description Deprecated: frontends own their styling. Still served so existing frontends keep working.
        */
       theme?: components['schemas']['BrandTheme'];
+      /** Transcript Corrections Enabled */
+      transcript_corrections_enabled: boolean;
+    };
+    /** SpeakerMappingAdmin */
+    SpeakerMappingAdmin: {
+      /** Invalidated At */
+      invalidated_at?: string | null;
+      /** Invalidated Reason */
+      invalidated_reason?: string | null;
+      /**
+       * Method
+       * @enum {string}
+       */
+      method: 'manual' | 'auto';
+      /** Person Display Name */
+      person_display_name?: string | null;
+      /**
+       * Person Slug
+       * @description Mapped person; null when an administrator cleared the label
+       */
+      person_slug?: string | null;
+      /**
+       * Score
+       * @description Cosine similarity for automatic matches
+       */
+      score?: number | null;
+      /**
+       * Set At
+       * Format: date-time
+       */
+      set_at: string;
+      /**
+       * Set By
+       * @description Administrator who set it; null for automatic matches
+       */
+      set_by?: string | null;
+      /**
+       * Status
+       * @description stale after the recording's labels changed (reprocessing or rediarization)
+       * @enum {string}
+       */
+      status: 'active' | 'cleared' | 'stale';
+    };
+    /** SpeakerMappingResult */
+    SpeakerMappingResult: {
+      person?: components['schemas']['SpeakerPerson'] | null;
+      /** Reindexed Segments */
+      reindexed_segments: number;
+      /** Speaker Label */
+      speaker_label: string;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
+    /** SpeakerMappingUpdate */
+    SpeakerMappingUpdate: {
+      /**
+       * Enroll
+       * @description Also enroll the label's voice as a reference for the person
+       * @default false
+       */
+      enroll: boolean;
+      /** Person Slug */
+      person_slug: string;
+    };
+    /**
+     * SpeakerPerson
+     * @description The archive person a diarized speaker label is attributed to.
+     */
+    SpeakerPerson: {
+      /**
+       * Display Name
+       * @description Archive person display name
+       */
+      display_name: string;
+      /**
+       * Slug
+       * @description Archive person slug
+       */
+      slug: string;
+    };
+    /** SpeakerSample */
+    SpeakerSample: {
+      /** End Ms */
+      end_ms: number;
+      /**
+       * Id
+       * @description Segment id
+       */
+      id: number;
+      /** Start Ms */
+      start_ms: number;
+      /** Text */
+      text: string;
+    };
+    /** SpeakerSuggestion */
+    SpeakerSuggestion: {
+      /** Display Name */
+      display_name: string;
+      /**
+       * Score
+       * @description Cosine similarity with the person's closest enrolled voice
+       */
+      score: number;
+      /** Slug */
+      slug: string;
+    };
+    /** SpeakerVoiceReference */
+    SpeakerVoiceReference: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Model */
+      model: string;
+      /** Segment Ids */
+      segment_ids: number[];
+      /** Speaker Label */
+      speaker_label: string;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
+    /** SpeakerVoiceReferenceCreate */
+    SpeakerVoiceReferenceCreate: {
+      /**
+       * Segment Ids
+       * @description Confirmed segments of this voice
+       */
+      segment_ids: number[];
+      /** Speaker Label */
+      speaker_label: string;
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
+    /** SpeakerVoiceReferenceListResponse */
+    SpeakerVoiceReferenceListResponse: {
+      /** Items */
+      items: components['schemas']['SpeakerVoiceReference'][];
+      /** Person Slug */
+      person_slug: string;
     };
     /** SupportConfig */
     SupportConfig: {
@@ -5963,6 +6594,8 @@ export interface components {
        * @description Speaker label for the block
        */
       speaker_label?: string | null;
+      /** @description Archive person the speaker label is attributed to; omitted when no person is mapped */
+      speaker_person?: components['schemas']['SpeakerPerson'] | null;
       /**
        * Start Ms
        * @description Start time in milliseconds
@@ -5980,6 +6613,78 @@ export interface components {
       text: string;
     };
     /**
+     * TranscriptEngine
+     * @description The transcription engine that actually produced a native transcript.
+     */
+    TranscriptEngine: {
+      /**
+       * Backend
+       * @description Engine backend: faster-whisper or whisper
+       */
+      backend?: string | null;
+      /**
+       * Compute Type
+       * @description Compute type, for example float16 or int8
+       */
+      compute_type?: string | null;
+      /**
+       * Device
+       * @description Device the model ran on, for example cuda or cpu
+       */
+      device?: string | null;
+      /**
+       * Model
+       * @description Model that ran, after any fallback
+       */
+      model?: string | null;
+      /**
+       * Version
+       * @description Installed version of the backend library
+       */
+      version?: string | null;
+    };
+    /**
+     * TranscriptMetadata
+     * @description Metadata about a video's native (Whisper) transcript.
+     */
+    TranscriptMetadata: {
+      /**
+       * Created At
+       * Format: date-time
+       * @description When the transcript was stored
+       */
+      created_at: string;
+      /**
+       * Detected Language
+       * @description Detected language code
+       */
+      detected_language?: string | null;
+      /** @description Engine that produced the transcript; null if unknown */
+      engine?: components['schemas']['TranscriptEngine'] | null;
+      /**
+       * Language Probability
+       * @description Language detection confidence
+       */
+      language_probability?: number | null;
+      /**
+       * Model
+       * @description Model stored on the transcript. When provenance is unknown this is the configured model, which may not be the one that ran.
+       */
+      model?: string | null;
+      /**
+       * Provenance
+       * @description recorded when the engine was stored at transcription time; unknown for older transcripts
+       * @enum {string}
+       */
+      provenance: 'recorded' | 'unknown';
+      /**
+       * Video Id
+       * Format: uuid
+       * @description Video the transcript belongs to
+       */
+      video_id: string;
+    };
+    /**
      * TranscriptResponse
      * @description Complete transcript for a video with all segments.
      * @example {
@@ -5995,6 +6700,11 @@ export interface components {
      *     }
      */
     TranscriptResponse: {
+      /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
       /**
        * Segments
        * @description List of transcript segments in chronological order
@@ -6019,6 +6729,32 @@ export interface components {
        * @description Unique identifier for the video
        */
       video_id: string;
+    };
+    /**
+     * TranscriptWord
+     * @description One Whisper word timing inside a transcript segment.
+     */
+    TranscriptWord: {
+      /**
+       * End Ms
+       * @description Word end in milliseconds, within the segment
+       */
+      end_ms: number;
+      /**
+       * Probability
+       * @description Whisper word probability (0-1), when stored
+       */
+      probability?: number | null;
+      /**
+       * Start Ms
+       * @description Word start in milliseconds, within the segment
+       */
+      start_ms: number;
+      /**
+       * Text
+       * @description Word text as Whisper produced it, trimmed
+       */
+      text: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -6203,6 +6939,38 @@ export interface components {
        */
       youtube_id: string;
     };
+    /** VideoSpeakerAdmin */
+    VideoSpeakerAdmin: {
+      /**
+       * Has Embedding
+       * @description True when diarization stored a voice embedding for the label
+       */
+      has_embedding: boolean;
+      mapping?: components['schemas']['SpeakerMappingAdmin'] | null;
+      /** Samples */
+      samples: components['schemas']['SpeakerSample'][];
+      /** Segment Count */
+      segment_count: number;
+      /** Speaker Label */
+      speaker_label: string;
+      /**
+       * Speech Seconds
+       * @description Speaking time from the stored voice embedding
+       */
+      speech_seconds?: number | null;
+      /** @description Best enrolled voice, excluding references taken from this recording */
+      suggestion?: components['schemas']['SpeakerSuggestion'] | null;
+    };
+    /** VideoSpeakerAdminListResponse */
+    VideoSpeakerAdminListResponse: {
+      /** Items */
+      items: components['schemas']['VideoSpeakerAdmin'][];
+      /**
+       * Video Id
+       * Format: uuid
+       */
+      video_id: string;
+    };
     /**
      * VocabularyCreate
      * @description Request to create a custom vocabulary.
@@ -6287,6 +7055,176 @@ export interface components {
       replacement: string;
     };
     /**
+     * WordTimedFormattedTranscriptResponse
+     * @description Formatted transcript whose raw segments carry word timings, returned for `include=words`.
+     */
+    WordTimedFormattedTranscriptResponse: {
+      /**
+       * Blocks
+       * @description Formatted transcript blocks
+       */
+      blocks?: components['schemas']['TranscriptBlockResponse'][];
+      /** @description Cleanup configuration used */
+      cleanup_config: components['schemas']['CleanupConfig'];
+      /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Timestamp of formatting
+       */
+      created_at?: string;
+      /**
+       * Format
+       * @description Formatting style used
+       * @enum {string}
+       */
+      format: 'inline' | 'dialogue' | 'structured';
+      /**
+       * Segments
+       * @description Raw transcript segments with word timings
+       */
+      segments: components['schemas']['WordTimedSegment'][];
+      /**
+       * Source
+       * @description Transcript source used for this response
+       * @default whisper
+       * @enum {string}
+       */
+      source: 'whisper' | 'youtube' | 'merged';
+      /**
+       * Source Label
+       * @description Human-readable transcript source label
+       * @default Whisper transcript
+       */
+      source_label: string;
+      /**
+       * Text
+       * @description Formatted transcript text
+       */
+      text: string;
+      /**
+       * Video Id
+       * Format: uuid
+       * @description Unique identifier for the video
+       */
+      video_id: string;
+      /**
+       * Word Timings
+       * @description available: every segment has words; partial: some segments have words: null; unavailable: no segment has words
+       * @enum {string}
+       */
+      word_timings: 'available' | 'partial' | 'unavailable';
+      /**
+       * Word Timings Note
+       * @description Why segments lack words: not_stored (no stored or usable timings, e.g. fast preset, older rows, malformed data), word_limit_reached (response limit of 100,000 words), youtube_captions or merged_transcript
+       */
+      word_timings_note?:
+        | ('not_stored' | 'word_limit_reached' | 'youtube_captions' | 'merged_transcript')
+        | null;
+    };
+    /**
+     * WordTimedSegment
+     * @description A transcript segment with its word timings, returned for `include=words`.
+     * @example {
+     *       "end_ms": 3500,
+     *       "speaker_label": "Speaker 1",
+     *       "start_ms": 1000,
+     *       "text": "Hello and welcome to this video"
+     *     }
+     */
+    WordTimedSegment: {
+      /**
+       * End Ms
+       * @description End time in milliseconds
+       */
+      end_ms: number;
+      /**
+       * Speaker Label
+       * @description Speaker label from diarization (e.g., 'Speaker 1')
+       */
+      speaker_label?: string | null;
+      /** @description Archive person the speaker label is attributed to; omitted when no person is mapped */
+      speaker_person?: components['schemas']['SpeakerPerson'] | null;
+      /**
+       * Start Ms
+       * @description Start time in milliseconds
+       */
+      start_ms: number;
+      /**
+       * Text
+       * @description Transcribed text content
+       */
+      text: string;
+      /**
+       * Words
+       * @description Word timings in stored order, or null when this segment has no usable word timings
+       */
+      words: components['schemas']['TranscriptWord'][] | null;
+    };
+    /**
+     * WordTimedTranscriptResponse
+     * @description Raw transcript with word timings, returned for `include=words`.
+     * @example {
+     *       "segments": [
+     *         {
+     *           "end_ms": 3500,
+     *           "speaker_label": "Speaker 1",
+     *           "start_ms": 1000,
+     *           "text": "Hello and welcome to this video"
+     *         }
+     *       ],
+     *       "video_id": "123e4567-e89b-12d3-a456-426614174000"
+     *     }
+     */
+    WordTimedTranscriptResponse: {
+      /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
+      /**
+       * Segments
+       * @description Transcript segments with word timings
+       */
+      segments: components['schemas']['WordTimedSegment'][];
+      /**
+       * Source
+       * @description Transcript source used for this response
+       * @default whisper
+       * @enum {string}
+       */
+      source: 'whisper' | 'youtube' | 'merged';
+      /**
+       * Source Label
+       * @description Human-readable transcript source label
+       * @default Whisper transcript
+       */
+      source_label: string;
+      /**
+       * Video Id
+       * Format: uuid
+       * @description Unique identifier for the video
+       */
+      video_id: string;
+      /**
+       * Word Timings
+       * @description available: every segment has words; partial: some segments have words: null; unavailable: no segment has words
+       * @enum {string}
+       */
+      word_timings: 'available' | 'partial' | 'unavailable';
+      /**
+       * Word Timings Note
+       * @description Why segments lack words: not_stored (no stored or usable timings, e.g. fast preset, older rows, malformed data), word_limit_reached (response limit of 100,000 words), youtube_captions or merged_transcript
+       */
+      word_timings_note?:
+        | ('not_stored' | 'word_limit_reached' | 'youtube_captions' | 'merged_transcript')
+        | null;
+    };
+    /**
      * YTSegment
      * @description A segment from YouTube's native closed captions.
      */
@@ -6317,6 +7255,11 @@ export interface components {
        * @description Formatted caption blocks
        */
       blocks?: components['schemas']['TranscriptBlockResponse'][];
+      /**
+       * Corrections
+       * @description Segments whose text is an accepted correction, with the original machine text. Empty for merged transcripts.
+       */
+      corrections?: components['schemas']['CorrectionMark'][];
       /**
        * Full Text
        * @description Full transcript text concatenated
@@ -7021,6 +7964,102 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ArchivePersonAdmin'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_list_voice_references_admin_archive_metadata_people__slug__voice_references_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerVoiceReferenceListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_add_voice_reference_admin_archive_metadata_people__slug__voice_references_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SpeakerVoiceReferenceCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerVoiceReference'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_delete_voice_reference_admin_archive_metadata_people__slug__voice_references__reference_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+        reference_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -8379,6 +9418,105 @@ export interface operations {
       };
     };
   };
+  admin_list_video_speakers_admin_videos__video_id__speakers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VideoSpeakerAdminListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_set_video_speaker_admin_videos__video_id__speakers__speaker_label__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+        speaker_label: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SpeakerMappingUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerMappingResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  admin_clear_video_speaker_admin_videos__video_id__speakers__speaker_label__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+        speaker_label: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerMappingResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   list_api_keys_api_keys_get: {
     parameters: {
       query?: never;
@@ -9046,6 +10184,37 @@ export interface operations {
       };
     };
   };
+  clip_handoff_clips__job_id__handoff_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClipHandoff'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   export_posts_community_export_get: {
     parameters: {
       query?: {
@@ -9542,6 +10711,33 @@ export interface operations {
       };
     };
   };
+  get_recordings_feed_feeds_recordings_rss_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description RSS 2.0 feed without enclosures */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/rss+xml': unknown;
+        };
+      };
+      /** @description Feature disabled */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   health_check_health_get: {
     parameters: {
       query?: never;
@@ -9962,6 +11158,8 @@ export interface operations {
         language?: string | null;
         /** @description Filter videos with speaker diarization */
         has_speaker_labels?: boolean | null;
+        /** @description Only segments whose diarized speaker is attributed to this archive person (slug) */
+        speaker?: string | null;
         /** @description Filter by video category/type */
         category?: string | null;
         /** @description Matching rule: topic, exact_phrase, or whole_word */
@@ -10126,6 +11324,8 @@ export interface operations {
         language?: string | null;
         /** @description Filter videos with speaker diarization */
         has_speaker_labels?: boolean | null;
+        /** @description Only segments whose diarized speaker is attributed to this archive person (slug) */
+        speaker?: string | null;
         /** @description Filter by video category/type */
         category?: string | null;
         /** @description Matching rule: topic, exact_phrase, or whole_word */
@@ -10218,6 +11418,8 @@ export interface operations {
         language?: string | null;
         /** @description Filter videos with speaker diarization */
         has_speaker_labels?: boolean | null;
+        /** @description Only segments whose diarized speaker is attributed to this archive person (slug) */
+        speaker?: string | null;
         /** @description Filter by video category/type */
         category?: string | null;
         /** @description Matching rule: topic, exact_phrase, or whole_word */
@@ -10902,6 +12104,88 @@ export interface operations {
       };
     };
   };
+  get_video_chat_videos__video_id__chat_get: {
+    parameters: {
+      query: {
+        start_ms: number;
+        end_ms: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChatRangeResponse'];
+        };
+      };
+      /** @description Chat replay disabled, or video not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_podcast_chapters_videos__video_id__podcast_chapters_json_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description JSON chapters document, version 1.2.0 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json+chapters': unknown;
+        };
+      };
+      /** @description Feature disabled, recording missing, or no published chapters */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_quoted_moments_videos__video_id__quoted_moments_get: {
     parameters: {
       query?: {
@@ -10975,6 +12259,8 @@ export interface operations {
         mode?: 'raw' | 'cleaned' | 'formatted';
         /** @description Transcript source policy: whisper (default), youtube, merged, or best (merged if both sources exist) */
         source?: 'best' | 'merged' | 'whisper' | 'youtube';
+        /** @description Set to `words` to add stored Whisper word timings to raw segments (raw and formatted modes) */
+        include?: 'words' | null;
       };
       header?: never;
       path: {
@@ -10993,7 +12279,9 @@ export interface operations {
           'application/json':
             | components['schemas']['TranscriptResponse']
             | components['schemas']['CleanedTranscriptResponse']
-            | components['schemas']['FormattedTranscriptResponse'];
+            | components['schemas']['FormattedTranscriptResponse']
+            | components['schemas']['WordTimedTranscriptResponse']
+            | components['schemas']['WordTimedFormattedTranscriptResponse'];
         };
       };
       /** @description Video not found */
@@ -11036,7 +12324,10 @@ export interface operations {
   };
   get_native_transcript_json_videos__video_id__transcript_json_get: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Set to `words` to add Whisper word timings */
+        include?: 'words' | null;
+      };
       header?: never;
       path: {
         video_id: string;
@@ -11222,6 +12513,55 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  get_transcript_metadata_videos__video_id__transcript_metadata_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        video_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Transcript metadata retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TranscriptMetadata'];
+        };
+      };
+      /** @description Video not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description The video has no native transcript yet */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
       };
     };
   };
