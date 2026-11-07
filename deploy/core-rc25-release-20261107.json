@@ -1,0 +1,15 @@
+{
+  "workflow_run": "https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/19317",
+  "release_branch": "release/v0.1.0-rc.25",
+  "source_commit": "7fb87aa76542e9c02f5db923277eb6a8826340cb",
+  "change": "rekolekt #86: the topic-mention refresh streams six columns instead of loading 1.25M 23-column rows (the refresher was OOM-killed at its 3.4 GiB limit on 2026-11-07 04:34 UTC); the topic warm-up also caches related topics and keeps warmed maps for 7 h, longer than the 6 h refresher interval",
+  "api_image": "git.subcult.tv/subculture-collective/hasanara-api@sha256:f499678370101d5d1173e17dcf07147b2a27025352b5f0253b16f3722fe2bf82",
+  "rebuilt": [
+    "api"
+  ],
+  "reused_artifacts_reverified": true,
+  "signature_provenance_sbom": "verified",
+  "schema_revision": "20261107_caption_overshadowed (unchanged; no migration)",
+  "pre_deploy_smoke": "on Almaz: API image imports app.main, WARMED_TTL_SECONDS=25200, refresh_topic_mentions streams through query_stream",
+  "pre_release_proof": "patched refresh_topic_mentions run against live data inside the refresher container (3.4 GiB limit), rolled back: 21 topics, 883,923 mentions, 819 s, peak RSS 1.29 GiB"
+}
