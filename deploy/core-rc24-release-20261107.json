@@ -16,5 +16,21 @@
     "reason": "JIT compilation took 2.3 s of a 3.5 s search for a common word",
     "applied": "ALTER SYSTEM SET jit = off; pg_reload_conf() (no restart), 2026-11-07",
     "rollback": "ALTER SYSTEM RESET jit; SELECT pg_reload_conf()"
-  }
+  },
+  "migration_attempts": [
+    {
+      "attempt": 1,
+      "started": "about 02:01 UTC, 2026-11-07, with the API and background jobs still running",
+      "result": "deadlock about 30 s in: the migration held youtube_transcripts and waited on youtube_segments while a live search held the reverse; PostgreSQL cancelled the migration and the transaction rolled back, leaving the schema at 20261106_segment_words",
+      "noticed": "about two hours later; the waiter looked for an end-of-run line that the failed run never wrote",
+      "log": "deploy-backups/core-rc24-20261107T011910Z/migrations.attempt1-deadlock.log on Almaz"
+    },
+    {
+      "attempt": 2,
+      "started": "04:02 UTC after stopping api, summary-refresher, archive-intelligence-refresher, archive-enrichment-queue, analytics-retention and worker",
+      "result": "succeeded at about 04:21 UTC; services restarted, site down from about 04:03 to 04:23 UTC",
+      "log": "deploy-backups/core-rc24-20261107T011910Z/migrations.log on Almaz"
+    }
+  ],
+  "lesson": "Stop every database client before a migration that alters more than one search table, and wait on the migrations container's exit code rather than a log line."
 }
