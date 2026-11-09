@@ -76,19 +76,26 @@ export default function PlainTranscriptTurns({
                   return (
                     <span key={id}>
                       <span id={canonicalMomentId(source, seg.start_ms)} aria-hidden="true" />
-                      <button
+                      <span
                         id={`seg-${id}`}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         data-transcript-sentence="true"
                         data-start-ms={seg.start_ms}
                         data-end-ms={seg.end_ms}
                         onClick={() => onClickSegment(seg, id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onClickSegment(seg, id);
+                          }
+                        }}
                         aria-expanded={activeSegId === id}
                         className={`transcript-sentence text-left ${activeSegId === id ? 'transcript-sentence-active' : ''} ${match ? 'transcript-sentence-match' : ''} ${saved ? 'transcript-sentence-saved' : ''}`}
                         aria-label={`Open ${turn.speaker ?? 'paragraph'} at ${formatTimestamp(seg.start_ms)}`}
                       >
                         {normalizeTranscriptText(seg.text)}{' '}
-                      </button>
+                      </span>
                     </span>
                   );
                 })}

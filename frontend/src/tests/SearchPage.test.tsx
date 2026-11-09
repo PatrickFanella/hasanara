@@ -198,6 +198,45 @@ describe('SearchPage', () => {
     expect(searchGroupedMock).not.toHaveBeenCalled();
   });
 
+  it('sorts the submitted search immediately without submitting draft filters', async () => {
+    currentSearchParams = new URLSearchParams({
+      q: 'rent',
+      match_mode: 'exact_phrase',
+      date_from: '2026-01-01',
+      video_id: 'video-1',
+      offset: '20',
+    });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    renderWithProviders(<SearchPage />);
+    await screen.findByText('Showing 1 moment in 1 VOD');
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search query' }), ' control');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort' }), 'date_asc');
+
+    expect(searchParamsMock).toHaveBeenCalledOnce();
+    expect(searchParamsMock.mock.calls[0]?.[0]).toEqual(
+      new URLSearchParams({
+        q: 'rent',
+        match_mode: 'exact_phrase',
+        date_from: '2026-01-01',
+        sort_by: 'date_asc',
+        video_id: 'video-1',
+      })
+    );
+    expect(screen.getByRole('searchbox', { name: 'Search query' })).toHaveValue('rent control');
+  });
+
+  it('keeps the sort choice as a draft before the first search', async () => {
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    const search = vi.spyOn(api, 'searchGrouped');
+    renderWithProviders(<SearchPage />);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort' }), 'date_desc');
+
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('date_desc');
+    expect(searchParamsMock).not.toHaveBeenCalled();
+    expect(search).not.toHaveBeenCalled();
+  });
+
   it('announces transcript scanning while search results load', async () => {
     currentSearchParams = new URLSearchParams({ q: 'rent' });
     vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
