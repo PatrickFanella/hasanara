@@ -47,7 +47,7 @@ export default function SupportPage() {
   return (
     <div className="space-y-5 lg:space-y-7">
       <section className="archive-masthead overflow-hidden">
-        <div className="relative z-10 grid min-h-[31rem] gap-10 px-5 py-9 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.7fr)] lg:items-end lg:px-12 lg:py-14">
+        <div className="relative z-10 grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.7fr)] lg:items-end lg:px-5 lg:py-5">
           <div className="max-w-4xl space-y-7">
             <div className="flex flex-wrap items-center gap-2">
               <span className="archive-eyebrow">Support {site.name}</span>
@@ -110,7 +110,7 @@ export default function SupportPage() {
         <div className="grid gap-8 lg:grid-cols-[minmax(14rem,0.45fr)_minmax(0,1fr)]">
           <div>
             <div className="archive-eyebrow">Where support goes</div>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
+            <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
               A small public utility with real operating costs.
             </h2>
           </div>

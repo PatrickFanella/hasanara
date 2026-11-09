@@ -4,20 +4,17 @@ import { api } from '../services';
 import type { ArchivePeriodOption, ExploreIntelligenceResponse } from '../types/api';
 import {
   formatCoverage,
-  formatDate,
-  videoDate,
   formatAggregateDuration,
   formatCount,
   formatNumber,
   formatTimestamp,
 } from '../features/archive/format';
-import { VideoMetadataChips } from '../components/archive';
+import PeriodVods from '../components/archive/PeriodVods';
 import { AsyncError } from '../components/async/AsyncFeedback';
 import {
   evidenceHref,
   facetHref,
   formatPeriodRange,
-  metadataChips,
   normalizePeriodKind,
   PERIOD_KIND_TABS,
   PERIOD_OPTION_FETCH_LIMIT,
@@ -51,7 +48,8 @@ export default function ExplorePage() {
   const [periodOptionsError, setPeriodOptionsError] = useState<string | null>(null);
   const [periodOptionsRetry, setPeriodOptionsRetry] = useState(0);
   const [periodSearch, setPeriodSearch] = useState('');
-  const [topicLimit, setTopicLimit] = useState(6);
+  const [topicLimit, setTopicLimit] = useState(12);
+  const [topicOrder, setTopicOrder] = useState<string[]>([]);
   const [evidenceLimit, setEvidenceLimit] = useState(3);
   const cachedPeriodOptions = periodKind === 'latest' ? undefined : periodOptionsByKind[periodKind];
 
@@ -61,12 +59,16 @@ export default function ExplorePage() {
     setError(null);
     try {
       const result = await api.getExploreIntelligence({
+        topic_limit: 20,
         ...(queryPeriod ? { period: queryPeriod } : {}),
         ...(granularity !== 'month' ? { granularity } : {}),
         ...(dateFrom ? { date_from: dateFrom } : {}),
         ...(dateTo ? { date_to: dateTo } : {}),
       });
       setData(result);
+      setTopicLimit(12);
+      setTopicOrder([]);
+      setEvidenceLimit(3);
       if (result.selected_period?.slug) setSelectedPeriodSlug(result.selected_period.slug);
       else if (queryPeriod) setSelectedPeriodSlug(queryPeriod);
     } catch (err: unknown) {
@@ -149,7 +151,23 @@ export default function ExplorePage() {
   const selectedPeriodDuration =
     currentPeriod?.total_duration_seconds ?? selectedPeriodRecord?.total_duration_seconds ?? 0;
   const selectedPeriodEvidence = selectedPeriodRecord?.evidence ?? [];
-  const selectedPeriodVideos = selectedPeriodRecord?.videos ?? [];
+  // Both sets come from the selected window; lead with the period's explicit topics.
+  const periodTopics = [
+    ...(selectedPeriodRecord?.top_topics ?? []),
+    ...(data?.topic_cards ?? []),
+  ].filter((topic, index, all) => all.findIndex((item) => item.slug === topic.slug) === index);
+  const topics = [...periodTopics].sort((a, b) => {
+    if (!topicOrder.length) return 0;
+    return topicOrder.indexOf(a.slug) - topicOrder.indexOf(b.slug);
+  });
+  const shuffleTopics = () => {
+    const slugs = periodTopics.map((topic) => topic.slug);
+    for (let i = slugs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slugs[i], slugs[j]] = [slugs[j], slugs[i]];
+    }
+    setTopicOrder(slugs);
+  };
   const selectedPeriodIsEmpty = selectedPeriodVods === 0;
   const selectedPeriodCoverage = formatCoverage(
     currentPeriod?.coverage ?? selectedPeriodRecord?.coverage
@@ -228,11 +246,7 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div
-        className="archive-masthead min-h-[34rem] animate-pulse p-8"
-        role="status"
-        aria-live="polite"
-      >
+      <div className="archive-masthead min-h-40 animate-pulse p-4" role="status" aria-live="polite">
         <h1 className="sr-only">Explore the recording archive</h1>
         <div className="h-5 w-28 rounded bg-surface-muted" />
         <div className="mt-7 h-14 max-w-3xl rounded bg-surface-muted" />
@@ -271,8 +285,8 @@ export default function ExplorePage() {
         </AsyncError>
       )}
 
-      <section className="archive-masthead">
-        <div className="relative z-10 grid gap-8 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.7fr)] lg:items-end lg:p-10">
+      <section className="archive-masthead explore-header">
+        <div className="explore-heading-grid">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="archive-eyebrow">Explore</div>
@@ -281,16 +295,14 @@ export default function ExplorePage() {
               )}
               <span className="source-pill">{selectedPeriodKindLabel}</span>
             </div>
-            <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[0.92] tracking-[-0.06em] text-ink sm:text-7xl">
-              Explore the recording archive
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+            <h1 className="page-title mt-2">Explore the recording archive</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
               Follow a period, topic, person, or recurring stream label into the broadcasts and
               cited transcript moments behind it.
             </p>
           </div>
 
-          <div className="archive-panel space-y-4">
+          <div className="explore-range space-y-2">
             <div className="archive-rule-title">Choose a window</div>
             <label htmlFor="selected-period" className="meta-label">
               Selected period
@@ -318,45 +330,48 @@ export default function ExplorePage() {
                 {selectedPeriodCoverage}
               </p>
             )}
-            <div className="grid grid-cols-2 gap-2">
-              <label className="meta-label">
-                From
-                <input
-                  name="date_from"
-                  type="date"
-                  className="form-control mt-1 min-h-11 w-full"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                />
-              </label>
-              <label className="meta-label">
-                To
-                <input
-                  name="date_to"
-                  type="date"
-                  className="form-control mt-1 min-h-11 w-full"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
-              </label>
-              <label className="meta-label">
-                Granularity
-                <select
-                  name="granularity"
-                  className="form-control mt-1 min-h-11 w-full"
-                  value={granularity}
-                  onChange={(event) =>
-                    setGranularity(event.target.value === 'week' ? 'week' : 'month')
-                  }
-                >
-                  <option value="week">Week</option>
-                  <option value="month">Month</option>
-                </select>
-              </label>
-              <button type="button" className="btn min-h-11 self-end" onClick={applyRange}>
-                Apply range
-              </button>
-            </div>
+            <details className="explore-custom-range">
+              <summary>Custom date range</summary>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="meta-label">
+                  From
+                  <input
+                    name="date_from"
+                    type="date"
+                    className="form-control mt-1 min-h-11 w-full"
+                    value={dateFrom}
+                    onChange={(event) => setDateFrom(event.target.value)}
+                  />
+                </label>
+                <label className="meta-label">
+                  To
+                  <input
+                    name="date_to"
+                    type="date"
+                    className="form-control mt-1 min-h-11 w-full"
+                    value={dateTo}
+                    onChange={(event) => setDateTo(event.target.value)}
+                  />
+                </label>
+                <label className="meta-label">
+                  Granularity
+                  <select
+                    name="granularity"
+                    className="form-control mt-1 min-h-11 w-full"
+                    value={granularity}
+                    onChange={(event) =>
+                      setGranularity(event.target.value === 'week' ? 'week' : 'month')
+                    }
+                  >
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                  </select>
+                </label>
+                <button type="button" className="btn min-h-11 self-end" onClick={applyRange}>
+                  Apply range
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -458,7 +473,7 @@ export default function ExplorePage() {
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
               <div>
                 <div className="archive-eyebrow">Current window</div>
-                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.055em] text-ink sm:text-5xl">
+                <h2 className="mt-2 text-2xl font-bold text-ink">
                   {currentPeriod?.label ?? 'Latest archive window'}
                 </h2>
                 <p className="mt-3 font-mono text-xs uppercase tracking-[0.1em] text-subtle">
@@ -475,7 +490,7 @@ export default function ExplorePage() {
                 {[
                   ['VODs', formatNumber(selectedPeriodVods)],
                   ['Runtime', formatAggregateDuration(selectedPeriodDuration)],
-                  ['Labels', formatNumber(data.topic_cards.length)],
+                  ['Labels', formatNumber(topics.length)],
                   ['Evidence', formatNumber(selectedPeriodEvidence.length)],
                 ].map(([label, value]) => (
                   <div key={label} className="bg-surface-muted p-4">
@@ -491,26 +506,30 @@ export default function ExplorePage() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="archive-eyebrow">Label discovery</div>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
-                  Detected topics and stream labels
+                <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
+                  Related topics and stream labels
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-muted">
-                  Transcript-derived subjects, recurring series, and people, ranked with evidence.
+                  Subjects found in this period. Shuffle to explore beyond the leading topics.
                 </p>
               </div>
               <div className="font-mono text-xs uppercase tracking-[0.18em] text-subtle">
-                {formatNumber(data.topic_cards.length)} labels
+                {formatNumber(topics.length)} labels
+                <button
+                  type="button"
+                  className="btn-ghost ml-2"
+                  onClick={shuffleTopics}
+                  disabled={topics.length < 2}
+                >
+                  Shuffle topics
+                </button>
               </div>
             </div>
 
-            {data.topic_cards.length > 0 ? (
+            {topics.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {data.topic_cards.slice(0, topicLimit).map((topic, index) => (
-                  <Link
-                    key={topic.slug}
-                    to={topicHref(topic.label)}
-                    className="signal-card min-h-[15rem]"
-                  >
+                {topics.slice(0, topicLimit).map((topic) => (
+                  <Link key={topic.slug} to={topicHref(topic.label)} className="signal-card">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="source-pill">{topicKindLabel(topic.kind)}</span>
@@ -518,9 +537,6 @@ export default function ExplorePage() {
                           {topic.label}
                         </h3>
                       </div>
-                      <span className="font-mono text-[10px] text-subtle">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
                     </div>
                     <div className="mt-5 grid grid-cols-3 gap-3 border-y border-border/70 py-3">
                       <div>
@@ -559,7 +575,7 @@ export default function ExplorePage() {
                 No topic cards are available for this window yet.
               </div>
             )}
-            {data.topic_cards.length > topicLimit && (
+            {topics.length > topicLimit && (
               <button
                 type="button"
                 className="btn-secondary w-full"
@@ -574,59 +590,26 @@ export default function ExplorePage() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="archive-eyebrow">Source material</div>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
+                <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
                   VODs and cited moments
                 </h2>
               </div>
               <div className="font-mono text-xs uppercase tracking-[0.18em] text-subtle">
-                {formatNumber(selectedPeriodVideos.length)} representative VODs
+                {formatCount(selectedPeriodVods, 'VOD')} in this period
               </div>
             </div>
 
-            {selectedPeriodRecord ? (
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.85fr)]">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {selectedPeriodVideos.length > 0 ? (
-                    selectedPeriodVideos.slice(0, 3).map((video) => (
-                      <Link
-                        to={`/v/${video.id}`}
-                        key={video.id}
-                        className="group overflow-hidden rounded-xl border border-border bg-surface-muted transition-colors hover:border-accent/60"
-                      >
-                        <div className="aspect-video overflow-hidden bg-canvas">
-                          <img
-                            src={`https://i.ytimg.com/vi/${video.youtube_id}/hqdefault.jpg`}
-                            alt={video.title || 'VOD thumbnail'}
-                            className="h-full w-full object-cover opacity-85 transition duration-500 group-hover:scale-[1.025] group-hover:opacity-100"
-                            loading="lazy"
-                            width="480"
-                            height="360"
-                          />
-                        </div>
-                        <div className="p-3">
-                          <div className="line-clamp-2 text-sm font-semibold text-ink group-hover:text-accent">
-                            {video.title || 'Untitled VOD'}
-                          </div>
-                          <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-subtle">
-                            {formatDate(videoDate(video))}
-                          </div>
-                          {metadataChips(video).length > 0 && (
-                            <VideoMetadataChips
-                              label="VOD metadata"
-                              items={metadataChips(video)}
-                              limit={3}
-                              className="mt-3 flex flex-wrap gap-1"
-                            />
-                          )}
-                        </div>
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-                      No representative VODs are available for this period yet.
-                    </div>
-                  )}
-                </div>
+            {currentPeriod ? (
+              <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,0.7fr)]">
+                {currentPeriod?.date_from && currentPeriod?.date_to ? (
+                  <PeriodVods
+                    key={`${currentPeriod.slug}:${currentPeriod.date_from}:${currentPeriod.date_to}`}
+                    dateFrom={currentPeriod.date_from}
+                    dateTo={currentPeriod.date_to}
+                  />
+                ) : (
+                  <p className="text-sm text-muted">Choose a dated period to browse its VODs.</p>
+                )}
 
                 <div className="overflow-hidden rounded-xl border border-border bg-surface-muted/40">
                   <div className="border-b border-border px-4 py-3">
@@ -701,7 +684,7 @@ export default function ExplorePage() {
                         <Link
                           key={person.slug}
                           to={facetHref(person.display_name)}
-                          className="btn-secondary min-h-9 px-3 text-sm"
+                          className="metadata-link"
                         >
                           {person.display_name}
                         </Link>
@@ -716,12 +699,8 @@ export default function ExplorePage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {data.tags?.length ? (
                       data.tags.map((tag) => (
-                        <Link
-                          key={tag.slug}
-                          to={facetHref(tag.label)}
-                          className="btn-secondary min-h-9 px-3 text-sm"
-                        >
-                          {tag.label}
+                        <Link key={tag.slug} to={facetHref(tag.label)} className="metadata-link">
+                          #{tag.label}
                         </Link>
                       ))
                     ) : (

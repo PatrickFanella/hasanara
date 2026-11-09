@@ -41,6 +41,14 @@ function loadWire(): Promise<WireItem[]> {
 /** A scrolling ticker of what the archive is talking about right now. */
 export default function TheWire() {
   const [items, setItems] = useState<WireItem[]>([]);
+  const [visible, setVisible] = useState(() => {
+    try {
+      return localStorage.getItem('hasanara:wire') !== 'hidden';
+    } catch {
+      return true;
+    }
+  });
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
     let active = true;
     void loadWire().then((next) => {
@@ -66,11 +74,41 @@ export default function TheWire() {
     ));
 
   return (
-    <section className="wire" aria-label="Trending in the archive">
-      <span className="wire-label" aria-hidden="true">
-        The Wire
-      </span>
-      <div className="wire-track">
+    <section
+      className="wire"
+      aria-label="Trending in the archive"
+      data-visible={visible}
+      data-paused={paused}
+    >
+      <button
+        type="button"
+        className="wire-toggle"
+        aria-expanded={visible}
+        aria-controls="wire-content"
+        onClick={() =>
+          setVisible((current) => {
+            try {
+              localStorage.setItem('hasanara:wire', current ? 'hidden' : 'visible');
+            } catch {
+              /* preference is optional */
+            }
+            return !current;
+          })
+        }
+      >
+        {visible ? 'Hide The Wire' : 'Show The Wire'}
+      </button>
+      {visible && (
+        <button
+          type="button"
+          className="wire-pause"
+          aria-pressed={paused}
+          onClick={() => setPaused((current) => !current)}
+        >
+          {paused ? 'Resume ticker' : 'Pause ticker'}
+        </button>
+      )}
+      <div id="wire-content" className="wire-track" hidden={!visible}>
         {items.length > 0 && (
           <div className="wire-reel">
             <ul>{renderItems(false)}</ul>

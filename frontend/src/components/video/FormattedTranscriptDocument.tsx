@@ -267,7 +267,7 @@ function FormattedTranscriptDocument({
             ))}
             <section
               id={`block-${block.block_index}`}
-              className="transcript-block content-auto"
+              className="transcript-block"
               data-active={isActiveBlock ? 'true' : undefined}
             >
               {splitIntoParagraphs(pieces).map((paragraph, paragraphIndex) => {

@@ -45,18 +45,28 @@ The light theme uses dark red for readable links and white button text. Orange a
 
 ## Type and interface rules
 
-- Display: Inter Tight 800–900. Home and page titles use uppercase, tight tracking and compact line spacing. Episode titles and chapter headings use upright bold sans type.
+- Display: Inter Tight 800–900. Page titles use compact sentence case; the station wordmark retains its display treatment. Episode titles and chapter headings use upright bold sans type.
 - Body and controls: Inter Tight 400–700. Station labels use Inter Tight 800, 11px, uppercase, with 0.1em tracking.
 - Reading: Newsreader for transcript prose and search excerpts. Timecodes and counts keep JetBrains Mono.
 - Fonts load through the existing Google Fonts stylesheet; the application has system fallbacks. Studio bundles licensed font files. The startup share card uses outlined DejaVu Sans Bold for portability.
-- Retain the existing spacing, navigation, routes, search forms, archive grid and transcript layout. Corners stay between 0 and 3px.
-- Panels have a solid outline and a vermilion top rule. The home masthead uses a heavier outline and top rule. The search command has a small hard orange offset.
+- Keep content above the fold with 24–30px page titles, compact page introductions, and quiet inline metadata. Use the existing routes and search contracts; `/timeline` redirects to Explore month browsing. Corners stay between 0 and 3px.
+- Panels have a solid outline. Reserve the vermilion top rule for mastheads and selected broadcast components; ordinary content sections use a single border. The search command has a small hard orange offset.
 - Active navigation and primary actions use the theme's accent fill and accent-contrast text. Focus is a 2px accent outline with a 2px offset. Controls keep their current keyboard semantics and 44px primary targets.
 - Flat fills replace paper grain, halftone backgrounds and the blurred desktop header. Loading, empty, error and account states retain their existing copy and recovery actions.
-- The emblem remains visible on narrow screens. The desktop navigation collapses below 64rem, and stacked mobile sections retain their ordering. Reduced motion disables the ticker and nonessential animation.
+- The header emblem remains visible on narrow screens; the home page leads with search and recent recordings. The desktop navigation collapses below 64rem, and stacked mobile sections retain their ordering. Reduced motion disables the ticker and nonessential animation.
 
 ## Verification
 
 Use the existing frontend unit suite, build, lint and format checks. `e2e/tests/archive-smoke.spec.ts` covers search, archive browsing, keyboard behavior, mobile navigation, 320px reflow and both themes. For this branding pass, `output/brand-qa.json` and the matching screenshots record a separate browser check with the actual profile, seeded archive responses, both themes and 1440/390/320px widths. Fixture screenshots are not captures of production data.
 
 The Studio pack rebuild uses `BRAND_ONLY=hasanara PYTHONPATH=../studies/clpr-directions python3 build_packs.py` from `studio/brand-tools/`, followed by the filtered video renderer and another pack build to refresh the manifest. Recheck copied source hashes after a refresh. A source build, hosted CI, deployment and live-site verification remain separate results.
+
+## Archive interaction refinements
+
+Explore requests up to 20 topic cards, shows 12 initially, and offers a shuffle. Period topics lead the list. Its VOD collection uses the cursor-paginated broadcast-date library instead of the representative evidence sample; cards keep their natural height beside cited moments.
+
+The desktop Watch layout keeps the topic navigator on the left and places the player between transcript search and the transcript. The navigator and search controls can collapse. The header, search and player stay sticky while the transcript scrolls. Quote navigation accounts for the visible dock and does not enable playback following until requested. The mobile sheet layout remains separate.
+
+The main header contracts after scrolling. Its measured height supplies sticky offsets. The Wire has persistent visibility and a separate pause control. The VOD library uses a compact search row with date controls in a disclosure. Saved searches support fixed dates and rolling 7/30-day ranges resolved when reopened, using UTC calendar dates including today.
+
+Support follows Studio's `studio/content/patreon/support-redesign-2026-10/site-guidelines.md`: quiet footer/About placement and clear SUBCULT recipient wording, without reward or price claims. Studio social URLs follow `src/lib/social-links.ts` in subcult-tv and appear only for the SUBCULT operator profile. Other operators retain their configured identity and support flow.

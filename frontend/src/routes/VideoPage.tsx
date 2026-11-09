@@ -146,7 +146,9 @@ export default function VideoPage() {
   const [fullTranscript, setFullTranscript] = useState(false);
   const [viewMode, setViewMode] = useState<'standard' | 'theater' | 'reader'>('standard');
   const [isPlayingMatches, setIsPlayingMatches] = useState(false);
-  const [autoFollowEnabled, setAutoFollowEnabled] = useState(true);
+  const [autoFollowEnabled, setAutoFollowEnabled] = useState(
+    !window.location.hash && !params.has('t') && !params.has('t_ms')
+  );
   const [operationFeedback, setOperationFeedback] = useState<string | null>(null);
   const [isMobileEpisode, setIsMobileEpisode] = useState(() =>
     typeof window === 'undefined' ? false : window.matchMedia?.('(max-width: 1023px)').matches
@@ -156,6 +158,7 @@ export default function VideoPage() {
   );
   const [sheetSnap, setSheetSnap] = useState<'collapsed' | 'half' | 'expanded'>('half');
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
+  const layoutStart = useRef<number | null>(null);
   const autoFollowScrollTimeoutRef = useRef<number | null>(null);
   const sheetDragStartRef = useRef<number | null>(null);
 
@@ -287,9 +290,26 @@ export default function VideoPage() {
       autoFollowScrollTimeoutRef.current = window.setTimeout(() => {
         autoFollowScrollTimeoutRef.current = null;
       }, 1000);
-      element.scrollIntoView(options ?? { behavior: 'smooth', block: 'center' });
+      if (isMobileEpisode) {
+        element.scrollIntoView(options ?? { behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const headerHeight =
+        document.querySelector('.site-header')?.getBoundingClientRect().height ?? 0;
+      const dockHeight =
+        document.querySelector('.reader-dock')?.getBoundingClientRect().height ?? 0;
+      const top = headerHeight + dockHeight + 16;
+      const rect = element.getBoundingClientRect();
+      const available = Math.max(0, window.innerHeight - top);
+      window.scrollTo({
+        top: Math.max(
+          0,
+          window.scrollY + rect.top - top - Math.max(0, (available - rect.height) / 2)
+        ),
+        behavior: options?.behavior ?? 'smooth',
+      });
     },
-    [params]
+    [params, isMobileEpisode]
   );
 
   const resumeAutoFollow = useCallback(() => {
@@ -1004,7 +1024,10 @@ export default function VideoPage() {
                 }}
               />
             )}
-            {renderNavigator(currentMs)}
+            <details className="episode-topics" open>
+              <summary>Chapters, topics and saved moments</summary>
+              {renderNavigator(currentMs)}
+            </details>
           </>
         )
       }
@@ -1072,7 +1095,7 @@ export default function VideoPage() {
     <div className="episode-page">
       {video && isMobileEpisode && (
         <div className="mobile-player-dock" id="episode-player">
-          <PlayerPanel video={video} start={start} playerRef={playerRef} />
+          <PlayerPanel video={video} start={layoutStart.current ?? start} playerRef={playerRef} />
         </div>
       )}
       <VideoHeader
@@ -1170,27 +1193,27 @@ export default function VideoPage() {
         </div>
       )}
 
-      <div className={viewMode === 'standard' ? 'transcript-layout' : 'space-y-6'}>
+      <div
+        className={`episode-workspace ${viewMode === 'reader' ? 'reader-layout' : 'transcript-layout'} ${viewMode === 'theater' ? 'watch-layout' : ''}`}
+      >
         <aside
           aria-label="Player and episode navigator"
-          className={
-            viewMode === 'standard'
-              ? 'transcript-rail'
-              : viewMode === 'theater'
-                ? 'mx-auto max-w-6xl space-y-4'
-                : 'hidden'
-          }
+          className={viewMode === 'reader' ? 'hidden' : 'transcript-rail'}
         >
-          {video && !isMobileEpisode && (
+          {video && !isMobileEpisode && viewMode !== 'theater' && (
             <div id="episode-player">
-              <PlayerPanel video={video} start={start} playerRef={playerRef} />
+              <PlayerPanel
+                video={video}
+                start={layoutStart.current ?? start}
+                playerRef={playerRef}
+              />
             </div>
           )}
           {!isMobileEpisode && playbackSync}
         </aside>
 
         <section
-          className={`${viewMode === 'standard' ? 'min-w-0' : 'mx-auto max-w-5xl'} mobile-transcript-sheet`}
+          className={`${viewMode === 'reader' ? 'mx-auto max-w-5xl' : 'min-w-0'} mobile-transcript-sheet`}
           aria-labelledby="transcript-title"
           aria-expanded={sheetSnap === 'expanded'}
           aria-label={`${sheetSnap} episode reader`}
@@ -1261,108 +1284,136 @@ export default function VideoPage() {
           {isMobileEpisode && playbackSync}
           {(!isMobileEpisode || mobileTab === 'transcript') && (
             <div className="transcript-shell">
-              <header className="transcript-toolbar">
-                <h2 id="transcript-title" className="sr-only">
-                  Transcript
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="min-w-[14rem] flex-1">
-                    <TranscriptSearchBar
-                      initialQuery={params.get('q') ?? ''}
-                      onSearch={(value) => {
-                        const next = new URLSearchParams(params);
-                        if (value) next.set('q', value);
-                        else next.delete('q');
-                        setParams(next);
-                      }}
+              <div className="reader-dock">
+                <header className="transcript-toolbar">
+                  <details className="reader-search-controls" open>
+                    <summary>Transcript search and display</summary>
+                    <h2 id="transcript-title" className="sr-only">
+                      Transcript
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="min-w-[14rem] flex-1">
+                        <TranscriptSearchBar
+                          initialQuery={params.get('q') ?? ''}
+                          onSearch={(value) => {
+                            const next = new URLSearchParams(params);
+                            if (value) next.set('q', value);
+                            else next.delete('q');
+                            setParams(next);
+                          }}
+                        />
+                      </div>
+                      {matchIndices.length > 0 && (
+                        <div
+                          className="flex items-center gap-1.5"
+                          role="group"
+                          aria-label="Search navigation"
+                        >
+                          <span
+                            className="min-w-14 text-center font-mono text-xs text-muted"
+                            aria-live="polite"
+                            aria-atomic="true"
+                          >
+                            {matchCursor + 1} / {matchIndices.length}
+                          </span>
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            onClick={() => gotoMatch(-1)}
+                            aria-label="Go to previous match"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            onClick={() => gotoMatch(1)}
+                            aria-label="Go to next match"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            onClick={() => setIsPlayingMatches((value) => !value)}
+                            aria-label="Play all matching transcript moments"
+                          >
+                            {isPlayingMatches ? 'Stop' : 'Play matches'}
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {autoFollowEnabled ? (
+                          <span
+                            className="inline-flex min-h-11 items-center gap-2 px-2 text-xs font-semibold text-accent"
+                            role="status"
+                          >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-accent"
+                              aria-hidden="true"
+                            />
+                            Following live transcript
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="follow-live-button"
+                            onClick={resumeAutoFollow}
+                          >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-accent"
+                              aria-hidden="true"
+                            />
+                            Enable follow live
+                          </button>
+                        )}
+                        {viewMode === 'reader' && video && (
+                          <button
+                            type="button"
+                            className="toolbar-button"
+                            onClick={() => playerRef.current?.togglePlay()}
+                            aria-label="Toggle playback"
+                          >
+                            Play / pause
+                          </button>
+                        )}
+                        {!isMobileEpisode && (
+                          <div className="view-switch" role="group" aria-label="Transcript layout">
+                            {(['standard', 'theater', 'reader'] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                type="button"
+                                className={viewMode === mode ? 'view-switch-active' : ''}
+                                aria-pressed={viewMode === mode}
+                                onClick={() => {
+                                  layoutStart.current =
+                                    playerRef.current?.getCurrentTime() ?? start;
+                                  setViewMode(mode);
+                                }}
+                              >
+                                {mode === 'standard'
+                                  ? 'Split'
+                                  : mode === 'theater'
+                                    ? 'Watch'
+                                    : 'Read'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </details>
+                </header>
+                {viewMode === 'theater' && video && !isMobileEpisode && (
+                  <div id="episode-player" className="watch-player">
+                    <PlayerPanel
+                      video={video}
+                      start={layoutStart.current ?? start}
+                      playerRef={playerRef}
                     />
                   </div>
-                  {matchIndices.length > 0 && (
-                    <div
-                      className="flex items-center gap-1.5"
-                      role="group"
-                      aria-label="Search navigation"
-                    >
-                      <span
-                        className="min-w-14 text-center font-mono text-xs text-muted"
-                        aria-live="polite"
-                        aria-atomic="true"
-                      >
-                        {matchCursor + 1} / {matchIndices.length}
-                      </span>
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => gotoMatch(-1)}
-                        aria-label="Go to previous match"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => gotoMatch(1)}
-                        aria-label="Go to next match"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => setIsPlayingMatches((value) => !value)}
-                        aria-label="Play all matching transcript moments"
-                      >
-                        {isPlayingMatches ? 'Stop' : 'Play matches'}
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {autoFollowEnabled ? (
-                      <span
-                        className="inline-flex min-h-11 items-center gap-2 px-2 text-xs font-semibold text-accent"
-                        role="status"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-                        Following live transcript
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="follow-live-button"
-                        onClick={resumeAutoFollow}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-                        Enable follow live
-                      </button>
-                    )}
-                    {viewMode === 'reader' && video && (
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => playerRef.current?.togglePlay()}
-                        aria-label="Toggle playback"
-                      >
-                        Play / pause
-                      </button>
-                    )}
-                    {!isMobileEpisode && (
-                      <div className="view-switch" role="group" aria-label="Transcript layout">
-                        {(['standard', 'theater', 'reader'] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            className={viewMode === mode ? 'view-switch-active' : ''}
-                            aria-pressed={viewMode === mode}
-                            onClick={() => setViewMode(mode)}
-                          >
-                            {mode === 'standard' ? 'Split' : mode === 'theater' ? 'Watch' : 'Read'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </header>
+                )}
+              </div>
 
               <div className="transcript-body">
                 {transcriptStatus === 'loading' && (

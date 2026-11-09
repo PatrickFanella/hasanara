@@ -52,7 +52,7 @@ export default function PlainTranscriptTurns({
         return (
           <section
             key={turn.key}
-            className="transcript-block transcript-paragraph content-auto"
+            className="transcript-block transcript-paragraph"
             role="listitem"
             data-open={activeEntry ? 'true' : undefined}
           >

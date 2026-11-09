@@ -1400,10 +1400,6 @@ h3 {
   }
 }
 
-@utility content-auto {
-  content-visibility: auto;
-}
-
 @utility scrollbar-hidden {
   &::-webkit-scrollbar {
     display: none;
@@ -1839,8 +1835,249 @@ h3 {
   }
 }
 
+/* Content comes first; station graphics frame the archive rather than every panel. */
 @layer components {
-  .home-emblem {
-    @apply mx-auto mb-5 block h-auto w-56 max-w-full object-contain sm:w-64 lg:mx-0 lg:w-72;
+  .page-title {
+    @apply text-2xl font-bold normal-case leading-tight md:text-3xl;
+  }
+  .archive-display {
+    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    line-height: 1.05;
+    text-transform: none;
+  }
+  .archive-masthead {
+    border-width: 1px;
+    border-top-width: 3px;
+  }
+  .home-masthead-grid {
+    @apply gap-4 p-4 sm:p-5 lg:grid-cols-2 lg:p-5;
+  }
+  .home-masthead-grid .dateline {
+    @apply text-xs;
+  }
+  .home-masthead-grid .dateline > span:not(:first-child) {
+    display: none;
+  }
+  .home-masthead-grid .space-y-5 > :not(:last-child) {
+    margin-bottom: 0.75rem;
+  }
+  .home-masthead-grid p {
+    @apply text-sm leading-6;
+  }
+  .archive-data-cell {
+    @apply flex flex-wrap items-baseline gap-x-3 px-4 py-2;
+  }
+  .archive-data-cell > div {
+    margin-top: 0;
+    font-size: 0.875rem;
+  }
+  .archive-section {
+    @apply p-4 sm:p-4;
+    border-top: 1px solid var(--color-border);
+  }
+  .archive-panel,
+  .surface-card,
+  .rail-panel {
+    border-top: 1px solid var(--color-border);
+  }
+  .archive-section h2 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+  .archive-eyebrow,
+  .meta-label,
+  .archive-rule-title {
+    letter-spacing: 0.035em;
+  }
+  .archive-rule-title {
+    text-transform: none;
+  }
+  .metadata-link {
+    @apply inline-flex min-h-9 max-w-full items-center py-1 text-sm text-muted underline-offset-4 hover:text-accent hover:underline;
+  }
+  .episode-title {
+    font-size: clamp(1.25rem, 2vw, 1.9rem);
+  }
+  .episode-header {
+    @apply mb-3 gap-3;
+  }
+  .episode-facts {
+    @apply mt-2;
+  }
+  .episode-details {
+    @apply mb-3;
+  }
+  .profile-form > button[type='submit'] {
+    margin-top: auto;
+    align-self: flex-start;
+  }
+  .explore-heading-grid {
+    @apply grid items-start gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)];
+  }
+  .explore-custom-range summary,
+  .episode-topics summary,
+  .reader-search-controls summary {
+    @apply flex min-h-11 cursor-pointer items-center text-sm font-semibold text-muted;
+  }
+  .explore-custom-range summary::before,
+  .episode-topics summary::before,
+  .reader-search-controls summary::before {
+    content: '+';
+    margin-right: 0.5rem;
+  }
+  .explore-custom-range[open] summary::before,
+  .episode-topics[open] summary::before,
+  .reader-search-controls[open] summary::before {
+    content: '−';
+  }
+  .period-vod-grid {
+    @apply grid items-start gap-3 sm:grid-cols-2;
+  }
+  .period-vod {
+    @apply grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] items-start gap-3 overflow-hidden border border-border bg-surface-muted p-2 hover:border-accent;
+  }
+  .period-vod img {
+    @apply aspect-video w-full object-cover;
+  }
+  .period-vod > div {
+    min-width: 0;
+  }
+  .period-vod h3 {
+    @apply line-clamp-2 text-sm font-semibold;
+  }
+  .period-vod span {
+    @apply mt-1 block text-xs text-subtle;
+  }
+  .signal-card {
+    min-height: 0;
+    padding: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .signal-card > .mt-5 {
+    margin-top: 0.75rem;
+    padding-block: 0.5rem;
+  }
+  .site-header-row {
+    height: 4rem;
+  }
+  .site-header[data-compact='true'] .site-header-row {
+    height: 3rem;
+  }
+  .site-header[data-compact='true'] .brand-name {
+    font-size: 1.125rem;
+  }
+  .site-header[data-compact='true'] .site-logo {
+    width: 44px;
+    height: 32px;
+  }
+  .site-header[data-compact='true'] .brand-name + span {
+    display: none;
+  }
+  .wire-toggle,
+  .wire-pause {
+    @apply min-h-8 shrink-0 px-3 text-xs font-semibold text-muted hover:text-accent;
+  }
+  .wire[data-visible='false'] {
+    min-height: 0;
+    height: auto;
+  }
+  .wire [hidden] {
+    display: none;
+  }
+  .wire[data-paused='true'] .wire-reel {
+    animation-play-state: paused;
+  }
+  .feed-header {
+    top: var(--header-height);
+    backdrop-filter: none;
+    background: var(--color-canvas);
+  }
+  .feed-heading-row {
+    min-height: 2.25rem;
+  }
+  .feed-header[data-compact='true'] .feed-heading-row {
+    display: none;
+  }
+  .feed-header[data-compact='true'] .feed-tools {
+    margin-top: 0.5rem;
+  }
+  .feed-date-mobile {
+    display: block;
+  }
+}
+
+@media (min-width: 64rem) {
+  .transcript-layout {
+    grid-template-columns: minmax(17rem, 23rem) minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .watch-layout {
+    grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
+  }
+  .reader-layout {
+    display: block;
+  }
+  .reader-dock {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 20;
+    background: var(--color-canvas);
+  }
+  .reader-dock .transcript-toolbar {
+    position: static;
+    padding: 0.5rem 1rem;
+  }
+  .reader-search-controls {
+    width: 100%;
+  }
+  .reader-search-controls summary {
+    min-height: 2rem;
+  }
+  .reader-search-controls[open] > div {
+    padding-top: 0.25rem;
+  }
+  .watch-player {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-canvas);
+  }
+  .watch-player > div {
+    max-width: 38rem;
+    margin-inline: auto;
+  }
+  .episode-topics {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .episode-topics > .navigator {
+    height: calc(100dvh - var(--header-height) - 24rem);
+    min-height: 10rem;
+  }
+  .watch-layout .episode-topics > .navigator {
+    height: calc(100dvh - var(--header-height) - 10rem);
+  }
+  .episode-topics:not([open]) > .navigator {
+    display: none;
+  }
+}
+@media (max-width: 39.99rem) {
+  .wire-pause {
+    @apply sr-only;
+  }
+  .wire-pause:focus {
+    @apply not-sr-only;
+  }
+}
+@layer components {
+  .search-hero {
+    @apply p-4 sm:p-5 lg:p-5;
+  }
+  .search-hero-copy {
+    text-align: left;
+  }
+  .watch-player > div {
+    width: min(100%, 60.44vh);
   }
 }

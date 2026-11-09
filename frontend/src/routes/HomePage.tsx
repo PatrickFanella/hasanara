@@ -79,7 +79,7 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4">
-              <h1 className="archive-display">Find the moment. Read the record.</h1>
+              <h1 className="archive-display">Search the broadcast archive.</h1>
               <p className="max-w-2xl text-base leading-7 text-muted sm:text-lg">
                 Search years of broadcasts by topic or exact phrase, then move from the result
                 straight into the cited transcript and VOD.
@@ -88,13 +88,6 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-            <img
-              src={site.logo_url || '/icon.svg'}
-              alt=""
-              width="360"
-              height="264"
-              className="home-emblem"
-            />
             <div className="archive-rule-title">Search the record</div>
             <form onSubmit={onSubmit} className="archive-command">
               <label className="sr-only" htmlFor="home-search">
@@ -120,10 +113,10 @@ export default function HomePage() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Topic or phrase…"
-                    className="min-h-[54px] min-w-0 w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
+                    className="min-h-11 min-w-0 w-full bg-transparent text-lg text-ink outline-none placeholder:text-subtle"
                   />
                 </div>
-                <button type="submit" className="btn min-h-[54px] px-7">
+                <button type="submit" className="btn min-h-11 px-7">
                   Search archive
                 </button>
               </div>
@@ -149,9 +142,6 @@ export default function HomePage() {
             </Link>
             <Link to="/episodes" className="text-muted transition-colors hover:text-ink">
               Browse every VOD
-            </Link>
-            <Link to="/support" className="text-muted transition-colors hover:text-ink">
-              Support the archive
             </Link>
           </div>
         </div>
@@ -207,51 +197,12 @@ export default function HomePage() {
         </AsyncError>
       )}
 
-      <section className="archive-section">
-        {!authLoading && !user ? (
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-            <div>
-              <div className="archive-eyebrow">Save your archive trail</div>
-              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-ink">
-                Sign in to synchronize saved moments and searches.
-              </h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={login} className="btn min-h-11 px-4 text-sm">
-                Continue with Google
-              </button>
-              <button
-                type="button"
-                onClick={loginTwitch}
-                className="btn-secondary min-h-11 px-4 text-sm"
-              >
-                Continue with Twitch
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="archive-eyebrow">Archive trail</div>
-              <p className="mt-2 font-semibold text-ink">
-                {authLoading ? 'Checking your account…' : 'Your saves are synchronized.'}
-              </p>
-            </div>
-            {!authLoading && (
-              <Link to="/saved" className="btn-secondary min-h-11 px-4 text-sm">
-                Open my saves
-              </Link>
-            )}
-          </div>
-        )}
-      </section>
-
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="archive-section space-y-5">
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="archive-eyebrow">Latest signal</div>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
+              <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
                 Recently indexed
               </h2>
             </div>
@@ -326,26 +277,43 @@ export default function HomePage() {
         </section>
       </section>
 
-      <section className="archive-section grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:items-center">
-        <div>
-          <div className="archive-eyebrow">How it works</div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
-            From broadcast to evidence.
-          </h2>
-        </div>
-        <ol className="grid gap-3 sm:grid-cols-3">
-          {[
-            ['01', 'Search', 'Use a subject, name, or exact phrase.'],
-            ['02', 'Inspect', 'Compare matching moments across VODs.'],
-            ['03', 'Read', 'Open the transcript at the cited timestamp.'],
-          ].map(([number, title, copy]) => (
-            <li key={number} className="border-l border-border pl-4">
-              <div className="font-mono text-xs text-accent">{number}</div>
-              <div className="mt-2 font-semibold text-ink">{title}</div>
-              <p className="mt-1 text-sm leading-6 text-muted">{copy}</p>
-            </li>
-          ))}
-        </ol>
+      <section className="archive-section">
+        {!authLoading && !user ? (
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div>
+              <div className="archive-eyebrow">Save your archive trail</div>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-ink">
+                Sign in to synchronize saved moments and searches.
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={login} className="btn min-h-11 px-4 text-sm">
+                Continue with Google
+              </button>
+              <button
+                type="button"
+                onClick={loginTwitch}
+                className="btn-secondary min-h-11 px-4 text-sm"
+              >
+                Continue with Twitch
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="archive-eyebrow">Archive trail</div>
+              <p className="mt-2 font-semibold text-ink">
+                {authLoading ? 'Checking your account…' : 'Your saves are synchronized.'}
+              </p>
+            </div>
+            {!authLoading && (
+              <Link to="/saved" className="btn-secondary min-h-11 px-4 text-sm">
+                Open my saves
+              </Link>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

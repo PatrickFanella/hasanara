@@ -481,6 +481,7 @@ export interface QuotedMomentsResponse {
 }
 
 export interface SavedSearchFilters {
+  date_range?: 'past_7_days' | 'past_30_days';
   source?: 'best' | 'native' | 'youtube';
   category?: string;
   date_from?: string;

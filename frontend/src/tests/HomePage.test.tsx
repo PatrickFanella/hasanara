@@ -58,7 +58,7 @@ describe('HomePage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: 'Find the moment. Read the record.' })
+        screen.getByRole('heading', { name: 'Search the broadcast archive.' })
       ).toBeInTheDocument();
     });
 
@@ -67,9 +67,9 @@ describe('HomePage', () => {
     expect(screen.getByText('Searchable VODs')).toBeInTheDocument();
     expect(screen.getAllByText('Newest VOD').length).toBeGreaterThan(0);
     expect(screen.getByRole('group', { name: 'VOD metadata' })).toBeInTheDocument();
-    expect(screen.getByText('Guest One')).toBeInTheDocument();
-    expect(screen.getByText('Guest Two')).toBeInTheDocument();
-    expect(screen.getByText('Chadvice')).toBeInTheDocument();
+    expect(screen.getByText('#Guest One')).toBeInTheDocument();
+    expect(screen.getByText('#Guest Two')).toBeInTheDocument();
+    expect(screen.getByText('#Chadvice')).toBeInTheDocument();
     expect(screen.getByText('+1')).toBeInTheDocument();
     expect(screen.queryByText('Gaming')).not.toBeInTheDocument();
     expect(screen.getByText('rent')).toBeInTheDocument();
@@ -83,10 +83,8 @@ describe('HomePage', () => {
       'href',
       '/episodes'
     );
-    expect(screen.getByRole('link', { name: 'Support the archive' })).toHaveAttribute(
-      'href',
-      '/support'
-    );
+    expect(screen.queryByRole('link', { name: 'Support the archive' })).not.toBeInTheDocument();
+    expect(screen.queryByText('How it works')).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /Newest VOD/ })).toSatisfy((links: HTMLElement[]) =>
       links.some((link) => link.getAttribute('href') === '/v/video-1')
     );

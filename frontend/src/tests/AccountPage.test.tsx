@@ -137,7 +137,7 @@ describe('AccountPage', () => {
 
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: 'Your account, in order.' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Account' })).toBeVisible();
     expect(screen.getByText('Moderator')).toBeVisible();
     expect(screen.getByText('Google')).toBeVisible();
     expect(screen.getByText(/^Last used /)).toBeVisible();
@@ -160,9 +160,7 @@ describe('AccountPage', () => {
 
     const { container } = renderPage();
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Your account, in order.' })
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeVisible();
     for (const name of ['Profile', 'Linked sign-ins', 'Active sessions', 'Danger zone']) {
       expect(screen.getByRole('heading', { level: 2, name })).toBeVisible();
     }
@@ -197,7 +195,7 @@ describe('AccountPage', () => {
     });
     const events = userEvent.setup();
     renderPage();
-    await screen.findByRole('heading', { name: 'Your account, in order.' });
+    await screen.findByRole('heading', { name: 'Account' });
 
     await events.clear(screen.getByLabelText('Display name'));
     await events.type(screen.getByLabelText('Display name'), 'Updated Name');

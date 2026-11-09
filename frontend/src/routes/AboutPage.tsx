@@ -13,7 +13,7 @@ export default function AboutPage() {
   return (
     <div className="space-y-5 lg:space-y-7">
       <section className="archive-masthead">
-        <div className="relative z-10 grid min-h-[29rem] gap-10 px-5 py-9 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(19rem,0.65fr)] lg:items-end lg:px-12 lg:py-14">
+        <div className="relative z-10 grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(19rem,0.65fr)] lg:items-end lg:px-5 lg:py-5">
           <div className="space-y-7">
             <div className="archive-eyebrow">About {site.name}</div>
             <h1 className="archive-display">A broadcast archive built like a public record.</h1>
@@ -26,7 +26,9 @@ export default function AboutPage() {
                 Search the archive →
               </Link>
               <Link to="/support" className="text-muted transition-colors hover:text-ink">
-                Support the work
+                {site.operator_name?.toUpperCase() === 'SUBCULT'
+                  ? 'Support SUBCULT'
+                  : 'Support the archive'}
               </Link>
             </div>
           </div>
@@ -45,7 +47,7 @@ export default function AboutPage() {
         <div className="grid gap-8 lg:grid-cols-[15rem_1fr]">
           <div>
             <div className="archive-eyebrow">The method</div>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-ink">
+            <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
               Evidence before interpretation.
             </h2>
           </div>

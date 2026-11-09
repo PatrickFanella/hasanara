@@ -1,3 +1,4 @@
+import { resolveDateRange } from '../../features/search/dateRange';
 import { Link } from 'react-router-dom';
 import type { SavedSearch } from '../../types/api';
 import { formatDate } from '../../features/archive/format';
@@ -9,8 +10,8 @@ type SavedSearchItemProps = {
 
 function savedSearchUrl(saved: SavedSearch) {
   const params = new URLSearchParams({ q: saved.query });
-  Object.entries(saved.filters ?? {}).forEach(([key, value]) => {
-    if (key === 'source') return;
+  Object.entries(resolveDateRange(saved.filters ?? {})).forEach(([key, value]) => {
+    if (key === 'source' || key === 'date_range') return;
     if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
   });
   return `/search?${params.toString()}`;
@@ -26,6 +27,12 @@ export default function SavedSearchItem({ saved, onDelete }: SavedSearchItemProp
             Saved {formatDate(saved.created_at ?? null)}
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-subtle">
+            {saved.filters.date_range && (
+              <span>
+                {saved.filters.date_range === 'past_7_days' ? 'Past 7 days' : 'Past 30 days'} ·
+                rolling
+              </span>
+            )}
             {saved.filters.category && <span>Type {saved.filters.category}</span>}
             {saved.filters.date_from && <span>From {saved.filters.date_from}</span>}
             {saved.filters.date_to && <span>To {saved.filters.date_to}</span>}
