@@ -95,7 +95,7 @@ links remain usable.
 
 For the optional generated-original journey, use the procedure in
 [`e2e/README.md`](../e2e/README.md). On November 9, 2026, it passed with pinned
-Rekolekt `2c99faaefea7b20e076d352ffeac4b29b986ac96` and clpr
+Rekolekt `ec995c77ba71e7fba02c2c39017660b74973500b` and clpr
 `7cc0f7b17a9624c5f09baa7c248b222fbd5b904c`. The generated 0.500–2.500 second
 selection rendered a 2.000-second, 274,322-byte MP4. The browser downloaded it
 and its handoff through the existing producer routes, checked the byte count
