@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 264" role="img" aria-label="PBS — Piker Broadcasting Service">
+  <title>PBS — Piker Broadcasting Service</title>
+  <desc>A broadcast tower under a star, framed by three signal rings, above a block-letter PBS station plate.</desc>
+  <g fill="none" stroke="#efbd48" stroke-width="4">
+    <path d="M48 144a132 116 0 0 1 264 0M70 144a110 94 0 0 1 220 0M92 144a88 72 0 0 1 176 0"/>
+  </g>
+  <path d="m180 8 12 29 32 2-25 21 8 31-27-17-27 17 8-31-25-21 32-2Z" fill="#ff751a" stroke="#25272c" stroke-width="4"/>
+  <g fill="none" stroke="#efbd48" stroke-width="4" stroke-linejoin="bevel">
+    <path d="m180 62-34 82h68Zm0 0v82m-23-28h46m-36-24h26m-41 40 41-40m-26 0 41 40m-51-16 57 28m-11-28-57 28"/>
+  </g>
+  <circle cx="180" cy="62" r="5" fill="#efbd48"/>
+  <rect x="16" y="144" width="328" height="92" fill="#25272c" stroke="#ff751a" stroke-width="4"/>
+  <g fill="#ff751a" transform="translate(32 158)">
+    <path fill-rule="evenodd" d="M0 0h59q26 0 26 25T59 50H28v14H0Zm28 20v11h25q6 0 6-5.5T53 20Z"/>
+    <path fill-rule="evenodd" d="M97 0h59q24 0 24 17 0 10-10 14 13 3 13 15 0 18-27 18H97Zm27 16v10h27q5 0 5-5t-5-5Zm0 24v10h29q5 0 5-5t-5-5Z"/>
+    <path d="M294 0v19h-64q-7 0-7 4t7 4h36q29 0 29 18t-29 19h-73V45h66q7 0 7-4t-7-4h-35q-29 0-29-18 0-19 29-19Z"/>
+  </g>
+  <text x="180" y="258" fill="#efbd48" text-anchor="middle" font-family="DejaVu Sans,sans-serif" font-weight="bold" font-size="12" letter-spacing=".6">PIKER BROADCASTING SERVICE</text>
+</svg>

@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-08",
+  "direction": "Broadcast service / Screenprint",
+  "studio_repository": "subculture-collective/subcult-tv",
+  "studio_master": "studio/brand-tools/references/hasanara-broadcast-master.svg",
+  "interface_source": "frontend/src/index.css",
+  "selection": "Owner supplied the PBS merchandise references and requested palette, logo, design-system and Studio pack updates.",
+  "exports": [
+    {
+      "file": "branding/logo.source.svg",
+      "studio_source": "brand-tools/references/hasanara-broadcast-master.svg",
+      "sha256": "a84ed56793776d4e3e38a7b2d4b30ee9a5cfab2fe75d41d83db48efa8b17a59f",
+      "transformation": "unchanged copy"
+    },
+    {
+      "file": "branding/assets/logo.svg",
+      "studio_source": "brands/hasanara/product/logo.svg",
+      "sha256": "c22ed9c2a5a3394d9900bbf47b0a7b38bd04c2dc7b06566fad7b7b4a22f44a7a",
+      "transformation": "unchanged copy"
+    },
+    {
+      "file": "branding/assets/favicon.svg",
+      "studio_source": "brands/hasanara/product/favicon.svg",
+      "sha256": "b31411e43d6e0186fe5d747bb9a43199668a41daaa929599ef2e6b186b3cf416",
+      "transformation": "unchanged copy"
+    },
+    {
+      "file": "branding/assets/social-card.svg",
+      "studio_source": "brands/hasanara/product/social-card.svg",
+      "sha256": "a6555cfcbcd1287850fc867f2fbb58fbc113b5612023cc07d54a4b940a7f91bb",
+      "transformation": "unchanged copy"
+    },
+    {
+      "file": "branding/brand.json",
+      "studio_source": "brands/hasanara/product/brand.json",
+      "sha256": "07eb25826c5f7ee31d1465298fc38d937c52e1f95f73f2d0a41c3b187b2ebb74",
+      "transformation": "unchanged copy"
+    }
+  ]
+}
