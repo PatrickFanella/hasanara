@@ -7,6 +7,7 @@ export function savedSearchKey(query: string, filters: SavedSearchFilters) {
     query.trim(),
     filters.source ?? null,
     filters.category ?? null,
+    filters.date_range ?? null,
     filters.date_from ?? null,
     filters.date_to ?? null,
     filters.min_duration ?? null,

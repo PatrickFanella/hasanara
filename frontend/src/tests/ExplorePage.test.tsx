@@ -10,6 +10,10 @@ describe('ExplorePage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    vi.spyOn(api, 'listStreamLibrary').mockResolvedValue({
+      items: [{ id: 'video-2', youtube_id: 'thumb123', title: 'Period video' }],
+      page_info: { has_next_page: false },
+    } as never);
   });
 
   const selectedPeriod = {
@@ -247,7 +251,7 @@ describe('ExplorePage', () => {
 
     expect(screen.getByText('2 labels')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Detected topics and stream labels' })
+      screen.getByRole('heading', { name: 'Related topics and stream labels' })
     ).toBeInTheDocument();
     expect(screen.getByText('Topic')).toBeInTheDocument();
     expect(screen.getByText('Series')).toBeInTheDocument();
@@ -262,16 +266,15 @@ describe('ExplorePage', () => {
       screen.getByText('May 2026 contains 12 archived VODs and 1 highlighted topic.')
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Guest One' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Gaming' })).toBeInTheDocument();
-    expect(screen.getByAltText('Period video')).toHaveAttribute(
-      'src',
-      expect.stringContaining('thumb123')
-    );
+    expect(screen.getByRole('link', { name: '#Gaming' })).toBeInTheDocument();
+    expect(
+      (await screen.findByRole('link', { name: /Period video/ })).querySelector('img')
+    ).toHaveAttribute('src', expect.stringContaining('thumb123'));
     expect(screen.getAllByRole('link', { name: /Open cited moment/i }).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText(/Date from/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Date to/i)).not.toBeInTheDocument();
 
-    expect(getExploreIntelligence).toHaveBeenCalledWith({});
+    expect(getExploreIntelligence).toHaveBeenCalledWith({ topic_limit: 20 });
     expect((await axe.run(container)).violations).toEqual([]);
   }, 15_000);
 
@@ -368,7 +371,10 @@ describe('ExplorePage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /Week 22, 2026/ }));
     await waitFor(() => {
-      expect(getExploreIntelligence).toHaveBeenLastCalledWith({ period: '2026-w22' });
+      expect(getExploreIntelligence).toHaveBeenLastCalledWith({
+        topic_limit: 20,
+        period: '2026-w22',
+      });
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Events' }));
@@ -381,13 +387,16 @@ describe('ExplorePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Launch Day/ }));
 
     await waitFor(() => {
-      expect(getExploreIntelligence).toHaveBeenLastCalledWith({ period: 'launch-day' });
+      expect(getExploreIntelligence).toHaveBeenLastCalledWith({
+        topic_limit: 20,
+        period: 'launch-day',
+      });
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Latest' }));
 
     await waitFor(() => {
-      expect(getExploreIntelligence).toHaveBeenLastCalledWith({});
+      expect(getExploreIntelligence).toHaveBeenLastCalledWith({ topic_limit: 20 });
     });
   });
 
@@ -418,6 +427,7 @@ describe('ExplorePage', () => {
 
     await waitFor(() =>
       expect(getExploreIntelligence).toHaveBeenLastCalledWith({
+        topic_limit: 20,
         period: '2026-05',
         granularity: 'week',
         date_from: '2026-05-04',
@@ -488,8 +498,8 @@ describe('ExplorePage', () => {
     expect(await screen.findByText(/No archived VODs were found for this period/)).toBeVisible();
     expect(screen.getByText('No topic cards are available for this window yet.')).toBeVisible();
     expect(
-      screen.getByText('No representative VODs are available for this period yet.')
-    ).toBeVisible();
+      await screen.findByRole('link', { name: /Browse all VODs in this period/ })
+    ).toHaveAttribute('href', '/episodes?date_from=2026-05-01&date_to=2026-05-31');
     expect(
       screen.getByText('No cited moments are available for this selected period yet.')
     ).toBeVisible();
@@ -507,7 +517,7 @@ describe('ExplorePage', () => {
     );
 
     expect(
-      await screen.findByText('No calculated source material is available for this period yet.')
+      await screen.findByRole('link', { name: /Browse all VODs in this period/ })
     ).toBeVisible();
   });
 });

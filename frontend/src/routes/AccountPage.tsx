@@ -439,13 +439,13 @@ export default function AccountPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
-      <header className="archive-masthead px-6 py-8 sm:px-9 sm:py-10">
+      <header className="archive-masthead px-4 py-4 sm:px-5 sm:py-5">
         <div className="relative z-10 max-w-3xl">
           <div className="archive-eyebrow">Account / settings</div>
-          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="page-title">Your account, in order.</h1>
-              <p className="mt-4 max-w-2xl text-lg leading-7 text-muted">
+              <h1 className="page-title">Account</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
                 Keep your profile current, choose how you sign in, and see where your archive
                 account is active.
               </p>
@@ -502,15 +502,15 @@ export default function AccountPage() {
         </section>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section className="archive-section" aria-labelledby="profile-heading">
+      <div className="account-panels grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className="archive-section flex flex-col" aria-labelledby="profile-heading">
           <div className="archive-rule-title">
             <h2 id="profile-heading">Profile</h2>
           </div>
           <p className="mt-4 text-sm text-muted">
             This is the name and avatar shown around the archive.
           </p>
-          <form className="mt-6 space-y-5" onSubmit={saveProfile}>
+          <form className="profile-form mt-6 flex flex-1 flex-col gap-5" onSubmit={saveProfile}>
             <div>
               <label className="meta-label" htmlFor="account-name">
                 Display name

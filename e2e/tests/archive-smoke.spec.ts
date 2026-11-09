@@ -310,7 +310,7 @@ test("anonymous visitors can search from the populated archive home", async ({
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Find the moment. Read the record." }),
+    page.getByRole("heading", { name: "Search the broadcast archive." }),
   ).toBeVisible();
   await expect(page.getByText("Seeded archive episode").first()).toBeVisible();
 
@@ -324,11 +324,11 @@ test("timeline links preserve the selected archive period", async ({
 }) => {
   await page.goto("/timeline");
   await expect(
-    page.getByRole("heading", { name: "Archive chronology" }),
+    page.getByRole("heading", { name: "Explore the recording archive" }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "June 2026" })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Browse this period" }),
+    page.getByRole("link", { name: "Browse all VODs in this period" }),
   ).toHaveAttribute(
     "href",
     "/episodes?date_from=2026-06-01&date_to=2026-06-30",
@@ -395,7 +395,7 @@ test("browser history restores URL-driven research context", async ({
 
   await page.goto("/timeline");
   await expect(
-    page.getByRole("heading", { name: "Archive chronology" }),
+    page.getByRole("heading", { name: "Explore the recording archive" }),
   ).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/search\?q=labor$/);
@@ -405,9 +405,9 @@ test("browser history restores URL-driven research context", async ({
   await expect(page.getByText("labor rights").first()).toBeVisible();
 
   await page.goForward();
-  await expect(page).toHaveURL(/\/timeline$/);
+  await expect(page).toHaveURL(/\/explore\?kind=month$/);
   await expect(
-    page.getByRole("heading", { name: "Archive chronology" }),
+    page.getByRole("heading", { name: "Explore the recording archive" }),
   ).toBeVisible();
 });
 
@@ -523,10 +523,10 @@ test("mobile navigation closes after selection and restores focus on Escape", as
   await page
     .getByRole("navigation", { name: "Mobile navigation" })
     .getByRole("link", {
-      name: "Timeline",
+      name: "Explore",
     })
     .click();
-  await expect(page).toHaveURL(/\/timeline$/);
+  await expect(page).toHaveURL(/\/explore$/);
   await expect(
     page.getByRole("navigation", { name: "Mobile navigation" }),
   ).toBeHidden();
@@ -564,7 +564,9 @@ test("a shared filtered search restores supported state and ignores retired filt
     await expect(recipient.getByLabel("To", { exact: true })).toHaveValue(
       "2026-06-30",
     );
-    await expect(recipient.getByLabel("Transcript", { exact: true })).toHaveCount(0);
+    await expect(
+      recipient.getByLabel("Transcript", { exact: true }),
+    ).toHaveCount(0);
     await expect(recipient.getByLabel("Category")).toHaveCount(0);
     await expect(recipient.getByLabel("Minimum seconds")).toHaveCount(0);
     await expect(recipient.getByLabel("Maximum seconds")).toHaveCount(0);
@@ -999,45 +1001,126 @@ test("core public routes do not overflow a 320px viewport", async ({
   }
 });
 
-
-test("client profiles apply identity, assets and both themes across responsive pages", async ({ page }) => {
-  const profile = JSON.parse(fs.readFileSync(path.resolve("../core/config/branding/northstar.json"), "utf8"));
-  await page.route("**/api/support", route => route.fulfill({ json: { donations_enabled: true, payment_url: "https://payments.example.org/northstar" } }));
-  await page.route("**/api/site", route => route.fulfill({ json: { ...profile, public_passages_enabled: true, community_enabled: false } }));
-  await page.route("**/branding/*", route => route.fulfill({ path: path.resolve("../core/config/branding/northstar-assets", new URL(route.request().url()).pathname.split("/").pop()!), contentType: "image/svg+xml" }));
-  await page.addInitScript(() => localStorage.setItem('themePreference', 'dark'));
+test("client profiles apply identity, assets and both themes across responsive pages", async ({
+  page,
+}) => {
+  const profile = JSON.parse(
+    fs.readFileSync(
+      path.resolve("../core/config/branding/northstar.json"),
+      "utf8",
+    ),
+  );
+  await page.route("**/api/support", (route) =>
+    route.fulfill({
+      json: {
+        donations_enabled: true,
+        payment_url: "https://payments.example.org/northstar",
+      },
+    }),
+  );
+  await page.route("**/api/site", (route) =>
+    route.fulfill({
+      json: {
+        ...profile,
+        public_passages_enabled: true,
+        community_enabled: false,
+      },
+    }),
+  );
+  await page.route("**/branding/*", (route) =>
+    route.fulfill({
+      path: path.resolve(
+        "../core/config/branding/northstar-assets",
+        new URL(route.request().url()).pathname.split("/").pop()!,
+      ),
+      contentType: "image/svg+xml",
+    }),
+  );
+  await page.addInitScript(() =>
+    localStorage.setItem("themePreference", "dark"),
+  );
   // Start wide so the desktop theme toggle exists in mobile projects too; the
   // narrow half of this test resizes to 390px below.
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/about");
   await expect(page.getByText("About Northstar Archive")).toBeVisible();
   await expect(page).toHaveTitle("About the archive — Northstar Archive");
-  await expect(page.getByRole("link", { name: "Home - Northstar Archive" }).locator("img")).toHaveAttribute("src", "/branding/logo.svg");
-  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/branding/logo.svg');
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim())).toBe('#fbbf24');
-  await page.getByRole('button', { name: 'Switch to light mode' }).click();
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim())).toBe('#92400e');
-  await expect(page.locator('#root > div')).toHaveCSS('background-color', 'rgb(255, 253, 245)');
-  await page.screenshot({ path: '../output/playwright/northstar-desktop.png', fullPage: true, animations: 'disabled' });
+  await expect(
+    page.getByRole("link", { name: "Home - Northstar Archive" }).locator("img"),
+  ).toHaveAttribute("src", "/branding/logo.svg");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+    "href",
+    "/branding/logo.svg",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-accent")
+          .trim(),
+      ),
+    )
+    .toBe("#fbbf24");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-accent")
+          .trim(),
+      ),
+    )
+    .toBe("#92400e");
+  await expect(page.locator("#root > div")).toHaveCSS(
+    "background-color",
+    "rgb(255, 253, 245)",
+  );
+  await page.screenshot({
+    path: "../output/playwright/northstar-desktop.png",
+    fullPage: true,
+    animations: "disabled",
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Open menu' }).click();
-  await page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Support', exact: true }).click();
-  await expect(page.getByText('Support Northstar Archive')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "Support", exact: true })
+    .click();
+  await expect(page.getByText("Support Northstar Archive")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(390);
   await expect(page.getByText(/HasanAra|HasanAbi|Subcult/i)).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /Donate securely with Stripe/ })).toHaveAttribute('href', 'https://payments.example.org/northstar');
-  await page.screenshot({ path: '../output/playwright/northstar-mobile.png', fullPage: true, animations: 'disabled' });
+  await expect(
+    page.getByRole("link", { name: /Donate securely with Stripe/ }),
+  ).toHaveAttribute("href", "https://payments.example.org/northstar");
+  await page.screenshot({
+    path: "../output/playwright/northstar-mobile.png",
+    fullPage: true,
+    animations: "disabled",
+  });
 });
 
-test("passage ranges retain context, validate edits and produce public sharing links", async ({ page }) => {
+test("passage ranges retain context, validate edits and produce public sharing links", async ({
+  page,
+}) => {
   await page.goto(`/v/${seededVideo.id}?t=1&t_ms=1000&end_ms=5000`);
-  await expect(page.getByRole('heading', { name: 'Share a passage' })).toBeVisible();
-  await page.getByLabel('Start time', { exact: true }).fill('2');
-  await page.getByLabel('End time', { exact: true }).fill('1');
-  await expect(page.getByRole('button', { name: 'Copy passage link' })).toBeDisabled();
-  await page.getByLabel('End time', { exact: true }).fill('5');
-  await expect(page.getByRole('button', { name: 'Copy passage link' })).toBeEnabled();
-  await expect(page.getByLabel('Passage link', { exact: true })).toHaveValue(new RegExp(`/api/share/videos/${seededVideo.id}\\?start_ms=2000&end_ms=5000$`));
+  await expect(
+    page.getByRole("heading", { name: "Share a passage" }),
+  ).toBeVisible();
+  await page.getByLabel("Start time", { exact: true }).fill("2");
+  await page.getByLabel("End time", { exact: true }).fill("1");
+  await expect(
+    page.getByRole("button", { name: "Copy passage link" }),
+  ).toBeDisabled();
+  await page.getByLabel("End time", { exact: true }).fill("5");
+  await expect(
+    page.getByRole("button", { name: "Copy passage link" }),
+  ).toBeEnabled();
+  await expect(page.getByLabel("Passage link", { exact: true })).toHaveValue(
+    new RegExp(
+      `/api/share/videos/${seededVideo.id}\\?start_ms=2000&end_ms=5000$`,
+    ),
+  );
 });
 
 test("changing sort reruns the submitted search and restores it through history", async ({
@@ -1457,4 +1540,235 @@ test("an unavailable handoff clears the completed export while passage links sti
   await expect(
     page.getByRole("button", { name: "Copy passage link" }),
   ).toBeEnabled();
+});
+
+test("Explore quote lands in the readable viewport and Watch pins the player between search and transcript", async ({
+  page,
+}) => {
+  const targetMs = 5250000;
+  const segments = Array.from({ length: 400 }, (_, index) => ({
+    start_ms: index * 15000,
+    end_ms: (index + 1) * 15000,
+    text: `Archive passage ${index}. Labor rights and housing are worth discussing in detail. `.repeat(
+      4,
+    ),
+  }));
+  await page.route("**/api/archive/intelligence*", (route) =>
+    route.fulfill({
+      json: {
+        summary: { recent_videos: [], popular_searches: [], video_count: 1 },
+        topic_cards: [],
+        trending_searches: [],
+        suggested_searches: [],
+        period_options: [],
+        selected_period: {
+          slug: "2026-06",
+          label: "June 2026",
+          kind: "month",
+          date_from: "2026-06-01",
+          date_to: "2026-06-30",
+          video_count: 1,
+        },
+        periods: [
+          {
+            period: "2026-06",
+            label: "June 2026",
+            top_topics: [],
+            videos: [seededVideo],
+            evidence: [
+              {
+                video: seededVideo,
+                start_ms: targetMs,
+                end_ms: targetMs + 15000,
+                snippet: "Archive passage 350.",
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`**/api/videos/${seededVideo.id}/transcript*`, (route) =>
+    route.fulfill({
+      json: {
+        video_id: seededVideo.id,
+        source: "whisper",
+        segments,
+        blocks: [],
+      },
+    }),
+  );
+  await page.goto("/explore");
+  await page.getByRole("link", { name: /Open cited moment/ }).click();
+  const target = page.locator(`#moment-${targetMs}`);
+  await expect(target).toBeAttached();
+  await expect
+    .poll(() =>
+      target.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        const dock = document
+          .querySelector(".reader-dock")!
+          .getBoundingClientRect();
+        return rect.top >= dock.bottom && rect.top < window.innerHeight - 40;
+      }),
+    )
+    .toBe(true);
+  await page.getByRole("button", { name: "Watch", exact: true }).click();
+  await page.evaluate(() => window.scrollBy(0, 600));
+  await expect(page.locator(".site-header")).toHaveAttribute(
+    "data-compact",
+    "true",
+  );
+  const dock = page.locator(".reader-dock");
+  await expect
+    .poll(() =>
+      dock.evaluate((el) =>
+        Math.abs(
+          el.getBoundingClientRect().top -
+            document.querySelector(".site-header")!.getBoundingClientRect()
+              .bottom,
+        ),
+      ),
+    )
+    .toBeLessThan(2);
+  await page.screenshot({ path: "test-results/watch-layout.png" });
+  const searchBottom = await page
+    .locator(".transcript-toolbar")
+    .evaluate((el) => el.getBoundingClientRect().bottom);
+  const player = await page.locator(".watch-player").boundingBox();
+  expect(player!.y).toBeGreaterThanOrEqual(searchBottom);
+  expect(player!.height).toBeLessThan(350);
+  await page.locator(".reader-search-controls summary").click();
+  await expect(
+    page.getByRole("searchbox", { name: /Search inside this VOD/ }),
+  ).toBeHidden();
+  await page.locator(".episode-topics summary").click();
+  await expect(page.locator(".episode-topics .navigator")).toBeHidden();
+});
+
+test("the compact navigation follows scrolling and Wire visibility persists", async ({
+  page,
+}) => {
+  await page.goto("/explore");
+  await page
+    .getByRole("heading", { name: "Explore the recording archive" })
+    .waitFor();
+  await page.getByRole("button", { name: "Hide The Wire" }).click();
+  await expect(page.locator("#wire-content")).toBeHidden();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Show The Wire" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByRole("heading", { name: "June 2026", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".period-vod")).toHaveCount(1);
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await expect(page.locator(".site-header")).toHaveAttribute(
+    "data-compact",
+    "true",
+  );
+  expect(
+    await page
+      .locator(".site-header-row")
+      .evaluate((el) => el.getBoundingClientRect().height),
+  ).toBe(48);
+  await page.getByRole("button", { name: "Show The Wire" }).click();
+  await expect(page.locator("#wire-content")).toBeVisible();
+  await page.getByRole("button", { name: "Pause ticker" }).click();
+  await expect(page.locator(".wire")).toHaveAttribute("data-paused", "true");
+});
+
+test("period VODs paginate the whole date range without stretching to the evidence column", async ({
+  page,
+}) => {
+  const queries: URLSearchParams[] = [];
+  await page.route("**/api/videos?*", async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    queries.push(params);
+    const second = params.has("cursor");
+    await route.fulfill({
+      json: {
+        items: Array.from({ length: second ? 1 : 12 }, (_, index) => ({
+          ...seededVideo,
+          id: `period-${second ? 12 : index}`,
+          title: `Period broadcast ${second ? 12 : index}`,
+        })),
+        page_info: {
+          has_next_page: !second,
+          next_cursor: second ? null : "next-page",
+          total_count: 13,
+        },
+      },
+    });
+  });
+  await page.goto("/explore");
+  await expect(page.locator(".period-vod")).toHaveCount(12);
+  await page.getByRole("button", { name: "Load more VODs" }).click();
+  await expect(page.locator(".period-vod")).toHaveCount(13);
+  expect(
+    queries.every(
+      (params) =>
+        params.get("date_from") === "2026-06-01" &&
+        params.get("date_to") === "2026-06-30" &&
+        params.get("date_field") === "broadcast_date",
+    ),
+  ).toBe(true);
+  expect(queries.at(-1)!.get("cursor")).toBe("next-page");
+  const card = await page.locator(".period-vod").first().boundingBox();
+  expect(card!.height).toBeLessThan(300);
+  await page.screenshot({ path: "test-results/explore-period.png" });
+});
+
+test("account profile and sign-in panels have equal desktop dimensions and reflow on a phone", async ({
+  page,
+}) => {
+  const user = {
+    id: "fixture-user",
+    name: "Archive viewer",
+    email: "fixture@example.test",
+    role: "user",
+  };
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { user } }),
+  );
+  await page.route("**/api/auth/csrf", (route) =>
+    route.fulfill({ json: { csrf_token: "fixture-csrf" } }),
+  );
+  await page.route("**/api/account", (route) =>
+    route.fulfill({
+      json: {
+        user,
+        sessions: [],
+        identities: [
+          {
+            id: "google",
+            provider: "google",
+            name: "Archive viewer",
+            email: "fixture@example.test",
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/account");
+  const profile = page.getByRole("region", { name: "Profile", exact: true });
+  const identities = page.getByRole("region", {
+    name: "Linked sign-ins",
+    exact: true,
+  });
+  await expect(profile).toBeVisible();
+  const a = await profile.boundingBox();
+  const b = await identities.boundingBox();
+  expect(Math.abs(a!.height - b!.height)).toBeLessThan(1);
+  expect(Math.abs(a!.width - b!.width)).toBeLessThan(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect((await identities.boundingBox())!.y).toBeGreaterThan(
+    (await profile.boundingBox())!.y + (await profile.boundingBox())!.height,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });

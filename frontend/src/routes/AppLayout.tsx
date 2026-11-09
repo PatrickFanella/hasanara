@@ -16,10 +16,8 @@ const baseNavItems = [
   { to: '/', label: 'Home' },
   { to: '/search', label: 'Search' },
   { to: '/explore', label: 'Explore' },
-  { to: '/timeline', label: 'Timeline' },
   { to: '/episodes', label: 'VODs' },
   { to: '/saved', label: 'Saved' },
-  { to: '/support', label: 'Support' },
 ];
 
 const routeMeta: Array<{ match: RegExp; title: string; description: string }> = [
@@ -130,7 +128,7 @@ function RouteTransitionManager() {
     window.requestAnimationFrame(() => {
       if (navigationType === 'POP') {
         window.scrollTo({ top: positions.current.get(location.pathname) ?? 0 });
-      } else {
+      } else if (!location.hash) {
         window.scrollTo({ top: 0 });
         const target = document.querySelector<HTMLElement>('main h1');
         const active = document.activeElement;
@@ -145,7 +143,7 @@ function RouteTransitionManager() {
       }
       setAnnouncement(meta.title.replace(' — {name}', '').replaceAll('{name}', site.name));
     });
-  }, [location.pathname, navigationType, site]);
+  }, [location.pathname, location.hash, navigationType, site]);
 
   return (
     <span className="sr-only" aria-live="polite">
@@ -195,6 +193,32 @@ export default function AppLayout() {
   const { user, loading, error: authError, login, loginTwitch, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => setCompact((current) => window.scrollY > (current ? 48 : 128));
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const update = () =>
+      document.documentElement.style.setProperty(
+        '--header-height',
+        `${header.getBoundingClientRect().height}px`
+      );
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--header-height');
+    };
+  }, []);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
 
@@ -227,12 +251,12 @@ export default function AppLayout() {
         Skip to main content
       </a>
 
-      <header className="site-header" role="banner">
-        <div className="mx-auto flex h-16 max-w-[100rem] items-center justify-between gap-4 px-4 lg:px-6">
+      <header ref={headerRef} className="site-header" data-compact={compact} role="banner">
+        <div className="site-header-row mx-auto flex max-w-[100rem] items-center justify-between gap-4 px-4 lg:px-6">
           <div className="site-header-start flex min-w-0 flex-1 items-center gap-4">
             <Link
               to="/"
-              className="group flex shrink-0 items-center gap-3"
+              className="group flex min-w-0 items-center gap-3"
               aria-label={`Home - ${site.name}`}
             >
               <img
@@ -242,8 +266,8 @@ export default function AppLayout() {
                 height="36"
                 className="site-logo"
               />
-              <span>
-                <span className="brand-name block leading-none text-ink group-hover:text-accent">
+              <span className="min-w-0">
+                <span className="brand-name block truncate leading-none text-ink group-hover:text-accent">
                   {site.name}
                 </span>
                 <span className="mt-1 hidden text-[11px] font-medium text-subtle sm:block">
@@ -534,7 +558,7 @@ export default function AppLayout() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-[100rem] flex-1 px-4 py-6 lg:px-6 lg:py-8"
+        className="mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-[100rem] flex-1 px-4 py-4 lg:px-6 lg:py-5"
         role="main"
       >
         <Outlet />
@@ -569,8 +593,21 @@ export default function AppLayout() {
               Terms
             </Link>
             <Link to="/support" className="action-link text-accent">
-              Support
+              {site.operator_name?.toUpperCase() === 'SUBCULT' ? 'Support SUBCULT' : 'Support'}
             </Link>
+            {site.operator_name?.toUpperCase() === 'SUBCULT' && (
+              <>
+                <a href="https://bsky.app/profile/subcult.tv" className="action-link">
+                  SUBCULT on Bluesky
+                </a>
+                <a href="https://www.instagram.com/subcult.tv/" className="action-link">
+                  Instagram
+                </a>
+                <a href="https://x.com/subcult_tv" className="action-link">
+                  X
+                </a>
+              </>
+            )}
           </nav>
         </div>
       </footer>

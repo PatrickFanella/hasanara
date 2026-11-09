@@ -39,6 +39,13 @@ export default function StreamsPage() {
     params.get('sort') === 'longest' || params.get('sort') === 'relevance'
       ? params.get('sort')!
       : 'latest';
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const update = () => setCompact((current) => window.scrollY > (current ? 64 : 200));
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
   const [searchDraft, setSearchDraft] = useState(q);
   const [dateFromDraft, setDateFromDraft] = useState(params.get('date_from') ?? '');
   const [dateToDraft, setDateToDraft] = useState(params.get('date_to') ?? '');
@@ -48,9 +55,6 @@ export default function StreamsPage() {
     moments: emptyFeed(),
   });
   const [requestVersion, setRequestVersion] = useState(0);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window === 'undefined' ? false : window.matchMedia?.('(max-width: 639px)').matches
-  );
   const sentinel = useRef<HTMLDivElement>(null);
   const tabScrollPositions = useRef<Record<FeedTab, number>>({ latest: 0, topics: 0, moments: 0 });
   const loadedVersion = useRef<Record<FeedTab, number>>({ latest: -1, topics: -1, moments: -1 });
@@ -62,14 +66,6 @@ export default function StreamsPage() {
   useEffect(() => setSearchDraft(q), [q]);
   useEffect(() => setDateFromDraft(dateFrom), [dateFrom]);
   useEffect(() => setDateToDraft(dateTo), [dateTo]);
-  useEffect(() => {
-    const query = window.matchMedia?.('(max-width: 639px)');
-    if (!query) return;
-    const update = () => setIsMobile(query.matches);
-    update();
-    query.addEventListener?.('change', update);
-    return () => query.removeEventListener?.('change', update);
-  }, []);
   useEffect(() => {
     const retired = ['min_duration', 'max_duration', 'transcript_source', 'source'];
     if (!retired.some((name) => params.has(name))) return;
@@ -238,7 +234,7 @@ export default function StreamsPage() {
 
   return (
     <div className="feed-shell">
-      <header className="feed-header">
+      <header className="feed-header" data-compact={compact}>
         <div className="feed-heading-row">
           <div>
             <p className="archive-eyebrow">Public archive</p>
@@ -299,14 +295,10 @@ export default function StreamsPage() {
             <button type="submit" className="btn-primary">
               Search
             </button>
-            {isMobile ? (
-              <details className="feed-date-mobile">
-                <summary>Date range</summary>
-                {dateRangeControls('mobile')}
-              </details>
-            ) : (
-              <div className="feed-date-desktop">{dateRangeControls('desktop')}</div>
-            )}
+            <details className="feed-date-mobile">
+              <summary>{dateFrom || dateTo ? 'Date range · active' : 'Date range'}</summary>
+              {dateRangeControls('feed')}
+            </details>
           </form>
         )}
       </header>

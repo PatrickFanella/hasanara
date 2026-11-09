@@ -93,6 +93,7 @@ describe('VideoPage', () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     window.location.hash = '';
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       value: vi.fn().mockReturnValue({
@@ -222,8 +223,8 @@ describe('VideoPage', () => {
 
     expect(screen.getByRole('group', { name: 'People on stream' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Content tags' })).toBeInTheDocument();
-    expect(screen.getByText('Guest One')).toBeInTheDocument();
-    expect(screen.getByText('Chadvice')).toBeInTheDocument();
+    expect(screen.getByText('#Guest One')).toBeInTheDocument();
+    expect(screen.getByText('#Chadvice')).toBeInTheDocument();
     expect(screen.getByText('Channel Alpha')).toBeInTheDocument();
 
     fireEvent.scroll(window);
@@ -409,7 +410,7 @@ describe('VideoPage', () => {
     expect(sentence).not.toBeNull();
     await waitFor(() => expect(sentence).toHaveClass('transcript-sentence-active'));
     expect(document.querySelector('#block-7')).toHaveAttribute('data-active', 'true');
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(window.scrollTo).toHaveBeenCalled();
     fireEvent.click(sentence!);
     expect(playerMocks.seekTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^Play from here/ }));
@@ -438,7 +439,7 @@ describe('VideoPage', () => {
     await waitFor(() =>
       expect(document.querySelector('#block-7')).toHaveAttribute('data-active', 'true')
     );
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(window.scrollTo).toHaveBeenCalled();
   });
 
   it('supports split, watch, and reader layouts with reader playback control', async () => {
@@ -503,7 +504,7 @@ describe('VideoPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Opening argument/ }));
     expect(playerMocks.seekTo).toHaveBeenCalledWith(12, { play: true });
-    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    await waitFor(() => expect(window.scrollTo).toHaveBeenCalled());
     expect(screen.getByRole('heading', { name: 'Opening argument' })).toBeInTheDocument();
   });
 
@@ -670,7 +671,7 @@ describe('VideoPage', () => {
     const citedMoment = document.getElementById('moment-5956000');
     expect(citedMoment?.parentElement).toHaveTextContent('The cited sentence.');
     expect(document.querySelectorAll('#moment-5956000')).toHaveLength(1);
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    await waitFor(() => expect(window.scrollTo).toHaveBeenCalled());
   });
 
   it('mounts a progressive chapter from an exact canonical moment after a transcript gap', async () => {

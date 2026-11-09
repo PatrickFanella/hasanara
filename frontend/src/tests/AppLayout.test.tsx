@@ -35,17 +35,15 @@ describe('AppLayout navigation', () => {
     vi.clearAllMocks();
     auth.user = null;
   });
-  it('includes Timeline in primary navigation', () => {
+  it('keeps primary navigation focused on archive tasks', () => {
     const { container } = render(<AppLayout />, { wrapper: MemoryRouter });
     const navigation = within(screen.getByRole('navigation', { name: 'Main navigation' }));
     for (const [name, href] of [
       ['Home', '/'],
       ['Search', '/search'],
       ['Explore', '/explore'],
-      ['Timeline', '/timeline'],
       ['VODs', '/episodes'],
       ['Saved', '/saved'],
-      ['Support', '/support'],
     ]) {
       expect(navigation.getByRole('link', { name })).toHaveAttribute('href', href);
     }
