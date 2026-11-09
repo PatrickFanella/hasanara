@@ -42,6 +42,8 @@ Rekolekt.
 For profile validation, checkout instructions, and release adoption, read the
 [deployment and contributor guide](DEVELOPMENT.md). The
 [branding profile](branding/brand.json) defines HasanAra's public identity.
+The [design system](docs/design-system.md) records the broadcast-inspired palette,
+typography, assets, Studio source ownership, and verification commands.
 
 Built by [Subcult](https://subcult.tv). This repository uses the
 [Apache-2.0 license](LICENSE).

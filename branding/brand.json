@@ -12,24 +12,42 @@
   "social_image_url": "/branding/social-card.svg",
   "theme": {
     "dark": {
-      "accent": "#ff3333",
-      "accent-hover": "#ff6b6b",
-      "accent-soft": "#2e0b0b",
-      "accent-contrast": "#140303",
-      "accent-2": "#ff6633",
-      "accent-3": "#cd3333",
-      "player-accent": "#ff3333",
-      "cta": "#ff6633"
+      "canvas": "#25272c",
+      "surface": "#2e3137",
+      "surface-muted": "#35383f",
+      "surface-raised": "#3d4048",
+      "border": "#61636b",
+      "border-strong": "#a5a49e",
+      "ink": "#fff9eb",
+      "muted": "#d4cfc4",
+      "subtle": "#b6b2aa",
+      "accent": "#efbd48",
+      "accent-hover": "#ffcf66",
+      "accent-soft": "#443a27",
+      "accent-contrast": "#25272c",
+      "accent-2": "#ff751a",
+      "accent-3": "#b52032",
+      "player-accent": "#efbd48",
+      "cta": "#efbd48"
     },
     "light": {
-      "accent": "#c22e2e",
-      "accent-hover": "#a32424",
-      "accent-soft": "#fbe3dc",
+      "canvas": "#f7f3e8",
+      "surface": "#fffcf4",
+      "surface-muted": "#eee7d7",
+      "surface-raised": "#fffdf7",
+      "border": "#8d887d",
+      "border-strong": "#353033",
+      "ink": "#2b2528",
+      "muted": "#554e4b",
+      "subtle": "#6b6157",
+      "accent": "#a92c20",
+      "accent-hover": "#852016",
+      "accent-soft": "#f8e2ca",
       "accent-contrast": "#ffffff",
-      "accent-2": "#ff6633",
-      "accent-3": "#cd3333",
-      "player-accent": "#ff3333",
-      "cta": "#c22e2e"
+      "accent-2": "#ed650c",
+      "accent-3": "#b52032",
+      "player-accent": "#a92c20",
+      "cta": "#a92c20"
     }
   }
 }

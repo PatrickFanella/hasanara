@@ -91,8 +91,8 @@ export default function HomePage() {
             <img
               src={site.logo_url || '/icon.svg'}
               alt=""
-              width="320"
-              height="180"
+              width="360"
+              height="264"
               className="home-emblem"
             />
             <div className="archive-rule-title">Search the record</div>
