@@ -1,0 +1,11 @@
+# Editorial topic visibility API release, November 9
+
+This API release includes Rekolekt PR [#98](https://git.subcult.tv/subculture-collective/rekolekt/pulls/98), merged as `ec995c77ba71e7fba02c2c39017660b74973500b`. Public topic cards can include automatically extracted topics with explicit editorial approval. Unreviewed topics and machine-only approvals remain excluded; existing label and assignment publication rules still apply.
+
+The selected image is `git.subcult.tv/subculture-collective/hasanara-api@sha256:5ad017cf7e813f2d3a8388d082f5dd1ffe0fe1f1bca007cad71a45a55ca12754`. [Selective release run 20829](https://git.subcult.tv/subculture-collective/rekolekt/actions/runs/20829) passed the build, high/critical library vulnerability scan, signing, provenance and SPDX attestation checks. It also reverified the reused application and PostgreSQL images. Only the API digest changes in the deployment manifest.
+
+The run's `selective-backend-release-api` artifact retains the full manifest and verification evidence. Its ZIP SHA-256 is `cbeb0eb4bb24354c663a39dbbd1082e9e75a6e316da1faab00c85074c4aec8d2`. The deployment manifest omits the artifact's `selective_release` metadata to satisfy the production helper's strict schema.
+
+There are no database migrations between the preceding core pin and this release. The curated-topic backfill completed separately against stored transcripts. Deployment does not rerun it. Use `bin/compose-prod deploy-api` after adopting the source pin and manifest and updating `HASANARA_API_IMAGE` in the operator environment. This command validates the production configuration and replaces only the API container. Check the running digest, health and public topic discovery after deployment before claiming the fix is live.
+
+Private rollback inputs on Almaz are under `/home/onnwee/.local/state/hasanara/editorial-topic-release-20261109/`. They record the prior source pins, manifest, operator environment and container identities. The preceding API image is `git.subcult.tv/subculture-collective/hasanara-api@sha256:8ecad77a6ff017185f236696b4682f3c2d938a6258011ea69265a81a7ac9cbbc`. Preserve subsequent changes when restoring the prior API pin and configuration; recreate only API. No database downgrade is needed.
