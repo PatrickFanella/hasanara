@@ -3,6 +3,7 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axe from 'axe-core';
 import AppLayout from '../routes/AppLayout';
+import * as siteService from '../services/site';
 
 const auth = vi.hoisted(() => ({
   user: null as { id: string; email: string } | null,
@@ -61,6 +62,46 @@ describe('AppLayout navigation', () => {
     );
     // Duplicate popular terms collapse into the topic entry.
     expect(within(wire).getAllByRole('link', { name: /gaza/i })).toHaveLength(1);
+  });
+
+  it('hides The Wire with an icon control and remembers the choice', () => {
+    render(<AppLayout />, { wrapper: MemoryRouter });
+    const wire = screen.getByRole('region', { name: 'Trending in the archive' });
+    expect(within(wire).getByText('The Wire')).toBeInTheDocument();
+
+    fireEvent.click(within(wire).getByRole('button', { name: 'Hide The Wire' }));
+
+    expect(wire).toHaveAttribute('data-visible', 'false');
+    expect(within(wire).getByRole('button', { name: 'Show The Wire' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(localStorage.setItem).toHaveBeenCalledWith('hasanara:wire', 'hidden');
+  });
+
+  it('shows studio social links as labelled icons only for the SUBCULT operator', () => {
+    const site = siteService.useSite;
+    const spy = vi.spyOn(siteService, 'useSite');
+    spy.mockImplementation(() => ({ ...site(), operator_name: 'Subcult' }));
+    const { unmount } = render(<AppLayout />, { wrapper: MemoryRouter });
+    const footer = within(screen.getByRole('contentinfo'));
+    for (const [name, href] of [
+      ['SUBCULT on Bluesky', 'https://bsky.app/profile/subcult.tv'],
+      ['SUBCULT on Instagram', 'https://www.instagram.com/subcult.tv/'],
+      ['SUBCULT on X', 'https://x.com/subcult_tv'],
+    ]) {
+      const link = footer.getByRole('link', { name });
+      expect(link).toHaveAttribute('href', href);
+      expect(link).toHaveTextContent('');
+    }
+    unmount();
+
+    spy.mockImplementation(() => ({ ...site(), operator_name: 'Northstar Studio' }));
+    render(<AppLayout />, { wrapper: MemoryRouter });
+    expect(
+      within(screen.getByRole('contentinfo')).queryByRole('link', { name: /Bluesky/ })
+    ).not.toBeInTheDocument();
+    spy.mockRestore();
   });
 
   it('links the public project and legal pages from the footer', () => {

@@ -30,7 +30,7 @@ it('explains studio support without depending on donation configuration or offer
     'href',
     'https://subcult.tv/support'
   );
-  expect(screen.getByText(/Contributions go to SUBCULT, not HasanAbi/)).toBeInTheDocument();
+  expect(screen.getByText(/Contributions go to SUBCULT, not to HasanAbi/)).toBeInTheDocument();
   expect(screen.queryByText(/Stripe|Donations are not open/)).not.toBeInTheDocument();
   expect(config).not.toHaveBeenCalled();
   expect((await axe.run(container)).violations).toEqual([]);

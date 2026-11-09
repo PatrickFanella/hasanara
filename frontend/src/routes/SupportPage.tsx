@@ -1,26 +1,7 @@
 import { useSite } from '../services/site';
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from '../services';
 import type { SupportConfig } from '../types/api';
-
-const fundingLines = [
-  {
-    number: '01',
-    title: 'Keep the archive online',
-    copy: 'Storage, backups, bandwidth, and the systems that keep thousands of broadcasts available.',
-  },
-  {
-    number: '02',
-    title: 'Turn broadcasts into a record',
-    copy: 'Transcription, search indexing, chapter generation, and the ongoing work of citing every result.',
-  },
-  {
-    number: '03',
-    title: 'Keep access public',
-    copy: 'No paywall around search, transcripts, timelines, or the source links behind a claim.',
-  },
-];
 
 export default function SupportPage() {
   const site = useSite();
@@ -45,112 +26,41 @@ export default function SupportPage() {
   }, [studioOperated]);
   const donationsEnabled = config?.donations_enabled && config.payment_url;
   return (
-    <div className="space-y-5 lg:space-y-7">
-      <section className="archive-masthead overflow-hidden">
-        <div className="relative z-10 grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.7fr)] lg:items-end lg:px-5 lg:py-5">
-          <div className="max-w-4xl space-y-7">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="archive-eyebrow">Support {site.name}</span>
-              <span className="source-pill">public infrastructure</span>
-            </div>
-            <h1 className="archive-display">Keep the public record searchable.</h1>
-            <p className="max-w-2xl text-lg leading-8 text-muted sm:text-xl">
-              {site.name} turns years of livestreams into a searchable, timestamped archive.{' '}
-              {studioOperated
-                ? 'SUBCULT maintains the tools behind it. You can support the studio’s work on archives and other independent software.'
-                : 'Donations pay for the machinery that keeps the record online, cited, and open.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              {studioOperated ? (
-                <a href="https://subcult.tv/support" className="btn min-h-12 px-6">
-                  Support SUBCULT
-                </a>
-              ) : donationsEnabled ? (
-                <a
-                  href={config.payment_url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn min-h-12 px-6"
-                >
-                  Donate securely with Stripe ↗
-                </a>
-              ) : (
-                <div
-                  className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm text-muted"
-                  role="status"
-                >
-                  {unavailable
-                    ? 'Donation status is temporarily unavailable.'
-                    : config
-                      ? 'Donations are not open yet. The archive remains public.'
-                      : 'Checking donation status…'}
-                </div>
-              )}
-              <Link to="/about" className="action-link text-sm font-semibold">
-                How the archive works →
-              </Link>
-            </div>
-          </div>
-
-          <aside className="archive-section border-accent/25" aria-label="Project information">
-            <div className="archive-eyebrow">Archive project</div>
-            <p className="mt-4 text-xl font-semibold leading-8 tracking-[-0.025em] text-ink">
-              {site.project_notice}
-            </p>
-            <p className="mt-4 text-sm leading-6 text-muted">
-              {studioOperated
-                ? `Contributions go to SUBCULT, not ${site.creator_name}. They support the studio across its projects; they do not buy editorial influence, special access or content from the creators whose broadcasts are indexed here.`
-                : `A donation supports ${site.name}’s hosting and research infrastructure. It does not buy editorial influence, special access, or content from the creator whose public broadcasts are indexed here.`}
-            </p>
-          </aside>
-        </div>
-      </section>
-
-      <section className="archive-section">
-        <div className="grid gap-8 lg:grid-cols-[minmax(14rem,0.45fr)_minmax(0,1fr)]">
-          <div>
-            <div className="archive-eyebrow">Where support goes</div>
-            <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
-              A small public utility with real operating costs.
-            </h2>
-          </div>
-          <ol className="divide-y divide-border border-y border-border">
-            {fundingLines.map((line) => (
-              <li key={line.number} className="grid gap-3 py-6 sm:grid-cols-[3rem_14rem_1fr]">
-                <span className="font-mono text-xs text-accent">{line.number}</span>
-                <h3 className="font-semibold text-ink">{line.title}</h3>
-                <p className="text-sm leading-6 text-muted">{line.copy}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="grid gap-5 md:grid-cols-2">
-        <div className="archive-section">
-          <div className="archive-eyebrow">Payment boundary</div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
-            {studioOperated
-              ? 'Support goes to the studio.'
-              : `Card details never touch ${site.name}.`}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            {studioOperated
-              ? 'The Support page explains SUBCULT’s current offer and links to Patreon. Membership is optional and separate from archive access. No payment details are collected here.'
-              : `The donation button opens a Stripe-hosted checkout. Stripe handles payment confirmation; ${site.name} does not collect or store your card number.`}
-          </p>
-        </div>
-        <div className="archive-section">
-          <div className="archive-eyebrow">No access tier</div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
-            The archive stays public whether you contribute or not.
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Search, transcripts, episode pages, and cited source links remain available without a
-            contribution. Support is voluntary.
-          </p>
-        </div>
-      </section>
-    </div>
+    <section className="archive-section mx-auto max-w-2xl space-y-4">
+      <h1 className="page-title">{studioOperated ? 'Support SUBCULT' : `Support ${site.name}`}</h1>
+      <p className="text-base leading-7 text-muted">
+        {studioOperated
+          ? `The archive tools are maintained by SUBCULT, a studio that would welcome support from viewers like you. Contributions go to SUBCULT, not to ${site.creator_name}.`
+          : `A donation supports ${site.name}’s hosting and research infrastructure.`}
+      </p>
+      <p className="text-sm leading-6 text-muted">
+        Support does not buy editorial influence, special access or content. The archive stays
+        public whether you contribute or not.
+        {donationsEnabled &&
+          ` The button opens a Stripe-hosted checkout; ${site.name} does not collect or store your card number.`}
+      </p>
+      {studioOperated ? (
+        <a href="https://subcult.tv/support" className="btn min-h-12 px-6">
+          Support SUBCULT
+        </a>
+      ) : donationsEnabled ? (
+        <a
+          href={config.payment_url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn min-h-12 px-6"
+        >
+          Donate securely with Stripe ↗
+        </a>
+      ) : (
+        <p className="text-sm text-muted" role="status">
+          {unavailable
+            ? 'Donation status is temporarily unavailable.'
+            : config
+              ? 'Donations are not open yet. The archive remains public.'
+              : 'Checking donation status…'}
+        </p>
+      )}
+    </section>
   );
 }

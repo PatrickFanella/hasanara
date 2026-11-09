@@ -1653,8 +1653,19 @@ test("the compact navigation follows scrolling and Wire visibility persists", as
   await page
     .getByRole("heading", { name: "Explore the recording archive" })
     .waitFor();
+  await expect(page.locator(".wire-label")).toHaveText("The Wire");
   await page.getByRole("button", { name: "Hide The Wire" }).click();
   await expect(page.locator("#wire-content")).toBeHidden();
+  await expect
+    .poll(() =>
+      page
+        .locator(".wire")
+        .evaluate((el) => el.getBoundingClientRect().height),
+    )
+    .toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Show The Wire" }),
+  ).toBeVisible();
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Show The Wire" }),
