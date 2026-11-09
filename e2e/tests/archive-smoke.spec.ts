@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 
 const seededVideo = {
   id: "00000000-0000-0000-0000-000000000201",
@@ -1146,4 +1147,309 @@ test("plain transcript sentences wrap inline and remain keyboard operable", asyn
   await sentence.focus();
   await page.keyboard.press("Space");
   await expect(sentence).toHaveAttribute("aria-expanded", "true");
+});
+
+test("completed passage exports offer an intact handoff and discard it when the range changes", async ({
+  page,
+}) => {
+  const fixture = JSON.parse(
+    fs.readFileSync(
+      path.resolve("../core/docs/api/examples/clip-handoff.v1.json"),
+      "utf8",
+    ),
+  );
+  // Optional generated-fixture qualification uses the actual pinned producer API.
+  const producer = process.env.CLIP_FIXTURE_API;
+  const handoff = producer
+    ? await (await page.request.get(`${producer}/fixture`)).json()
+    : {
+        ...fixture,
+        recording: { ...fixture.recording, video_id: seededVideo.id },
+      };
+  const videoId = handoff.recording.video_id;
+  const range = handoff.passage;
+  const exportId = handoff.export_id;
+  let requested: unknown;
+  await page.route("**/api/site", (route) =>
+    route.fulfill({
+      json: {
+        name: "HasanAra",
+        creator_name: "HasanAbi",
+        description: "Seeded archive",
+        public_passages_enabled: true,
+        community_enabled: false,
+        clip_exports_enabled: true,
+      },
+    }),
+  );
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { user: { id: "fixture-owner" } } }),
+  );
+  await page.route("**/api/auth/csrf", (route) =>
+    route.fulfill({ json: { csrf_token: "fixture-csrf" } }),
+  );
+  if (producer) {
+    await page.route("**/api/clips**", async (route) => {
+      const url = new URL(route.request().url());
+      if (route.request().method() === "POST")
+        requested = route.request().postDataJSON();
+      const response = await route.fetch({
+        url: `${producer}${url.pathname.replace("/api", "")}`,
+        maxRetries: 0,
+      });
+      return route.fulfill({ response });
+    });
+  } else {
+    await page.route("**/api/clips", (route) => {
+      requested = route.request().postDataJSON();
+      return route.fulfill({
+        status: 202,
+        json: {
+          id: exportId,
+          status: "completed",
+          expires_at: Date.now() / 1000 + 3600,
+        },
+      });
+    });
+    await page.route(`**/api/clips/${exportId}/handoff`, (route) =>
+      route.fulfill({ json: handoff }),
+    );
+    await page.route(`**/api/clips/${exportId}/download`, (route) =>
+      route.fulfill({
+        contentType: "video/mp4",
+        headers: {
+          "Content-Disposition": 'attachment; filename="fixture.mp4"',
+        },
+        body: Buffer.from("mocked export bytes"),
+      }),
+    );
+  }
+  await page.goto(
+    `/v/${videoId}?t_ms=${range.start_ms}&end_ms=${range.end_ms}`,
+  );
+  const mp4Event = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export and download" }).click();
+  const mp4 = await mp4Event;
+  expect(requested).toEqual({
+    video_id: videoId,
+    start_ms: range.start_ms,
+    end_ms: range.end_ms,
+  });
+  const jsonEvent = page.waitForEvent("download");
+  // Exercise the action with the keyboard as well as the pointer.
+  await page
+    .getByRole("button", { name: "Download handoff JSON (v1)" })
+    .focus();
+  await page.keyboard.press("Enter");
+  const json = await jsonEvent;
+  const jsonFile = (await json.path())!;
+  const received = JSON.parse(fs.readFileSync(jsonFile, "utf8"));
+  expect(received).toMatchObject({
+    schema: handoff.schema,
+    schema_version: 1,
+    passage: range,
+    transcript: handoff.transcript,
+    captions: handoff.captions,
+    media: handoff.media,
+  });
+  expect(JSON.stringify(received)).not.toMatch(
+    /owner_id|account_id|\/download|cookie|relative_path/,
+  );
+  await expect(
+    page.getByRole("link", { name: "Open clpr draft importer" }),
+  ).toHaveAttribute("href", "https://clpr.tv/submit");
+  await expect(
+    page.getByRole("textbox", { name: "Handoff JSON", exact: true }),
+  ).toHaveValue(fs.readFileSync(jsonFile, "utf8"));
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(321);
+  await page.addScriptTag({
+    path: path.resolve("../frontend/node_modules/axe-core/axe.min.js"),
+  });
+  const handoffViolations = await page.evaluate(async () => {
+    const axe = (
+      window as typeof window & {
+        axe: {
+          run: (
+            context: string,
+          ) => Promise<{
+            violations: Array<{ id: string; impact: string | null }>;
+          }>;
+        };
+      }
+    ).axe;
+    return (await axe.run('[aria-label="clpr handoff"]')).violations.filter(
+      (item) => item.impact === "serious" || item.impact === "critical",
+    );
+  });
+  expect(handoffViolations).toEqual([]);
+  if (process.env.CLIP_FIXTURE_OUTPUT) {
+    fs.mkdirSync(process.env.CLIP_FIXTURE_OUTPUT, { recursive: true });
+    await page
+      .getByRole("region", { name: "clpr handoff" })
+      .screenshot({
+        path: path.join(
+          process.env.CLIP_FIXTURE_OUTPUT,
+          "hasanara-handoff-mobile.png",
+        ),
+      });
+    await mp4.saveAs(path.join(process.env.CLIP_FIXTURE_OUTPUT, "passage.mp4"));
+    await json.saveAs(
+      path.join(process.env.CLIP_FIXTURE_OUTPUT, "passage.handoff.json"),
+    );
+  }
+  if (producer) {
+    const bytes = fs.readFileSync((await mp4.path())!);
+    expect(bytes.length).toBe(received.media.bytes);
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      received.media.sha256,
+    );
+  }
+  if (process.env.CLPR_FIXTURE_URL) {
+    if (!producer)
+      throw new Error(
+        "clpr qualification requires CLIP_FIXTURE_API with generated media",
+      );
+    const review = await page.context().newPage();
+    await review.addInitScript(() =>
+      localStorage.setItem("auth_session_hint", "1"),
+    );
+    let submissions = 0;
+    await review.route("**/api/**", (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (
+        route.request().method() === "POST" &&
+        pathname.includes("/submissions")
+      )
+        submissions++;
+      if (pathname.endsWith("/auth/me"))
+        return route.fulfill({
+          json: {
+            id: "fixture-clpr-user",
+            username: "fixture",
+            display_name: "Generated fixture reviewer",
+            role: "user",
+            is_banned: false,
+            karma_points: 0,
+            created_at: "2026-11-09T00:00:00Z",
+          },
+        });
+      return route.fulfill({
+        json: {
+          success: true,
+          data: [],
+          tags: [],
+          notifications: [],
+          unread_count: 0,
+          meta: { page: 1, limit: 5, total: 0, total_pages: 0 },
+        },
+      });
+    });
+    await review.goto(`${process.env.CLPR_FIXTURE_URL}/submit`);
+    const rejectCookies = review.getByRole("button", {
+      name: "Reject all",
+      exact: true,
+    });
+    if (await rejectCookies.isVisible()) await rejectCookies.click();
+    await review.getByRole("radio", { name: /Upload video/i }).click();
+    await review
+      .getByLabel("Archive handoff (optional)")
+      .setInputFiles(jsonFile);
+    const panel = review.getByTestId("archive-handoff-review");
+    await expect(panel).toContainText(received.archive.name);
+    await panel.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(review.getByTestId("archive-handoff-current")).toHaveCount(0);
+    await review
+      .getByLabel("Archive handoff (optional)")
+      .setInputFiles(jsonFile);
+    await review
+      .getByRole("button", { name: "Use in draft", exact: true })
+      .click();
+    await expect(review.getByLabel("Caption 1 text")).toHaveValue(
+      "Generated fixture caption.",
+    );
+    await review.getByLabel("Video File").setInputFiles((await mp4.path())!);
+    await expect(
+      review.getByText("Matches the archive handoff", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      review.getByRole("link", { name: "Open the source passage" }),
+    ).toHaveAttribute("href", received.passage.url);
+    expect(submissions).toBe(0);
+    if (process.env.CLIP_FIXTURE_OUTPUT)
+      await review.screenshot({
+        path: path.join(
+          process.env.CLIP_FIXTURE_OUTPUT,
+          "clpr-draft-review.png",
+        ),
+        fullPage: true,
+      });
+    await review.close();
+  }
+  await page
+    .getByLabel("End time", { exact: true })
+    .fill(String((range.end_ms + 1000) / 1000));
+  await expect(page.getByRole("region", { name: "clpr handoff" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "Download MP4 again" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Copy passage link" }),
+  ).toBeEnabled();
+});
+
+test("an unavailable handoff clears the completed export while passage links still work", async ({
+  page,
+}) => {
+  await page.route("**/api/site", (route) =>
+    route.fulfill({
+      json: {
+        name: "HasanAra",
+        creator_name: "HasanAbi",
+        description: "Seeded archive",
+        public_passages_enabled: true,
+        community_enabled: false,
+        clip_exports_enabled: true,
+      },
+    }),
+  );
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { user: { id: "fixture-owner" } } }),
+  );
+  await page.route("**/api/auth/csrf", (route) =>
+    route.fulfill({ json: { csrf_token: "fixture-csrf" } }),
+  );
+  await page.route("**/api/clips", (route) =>
+    route.fulfill({
+      status: 202,
+      json: {
+        id: "expired",
+        status: "completed",
+        expires_at: Date.now() / 1000 + 3600,
+      },
+    }),
+  );
+  await page.route("**/api/clips/expired/download", (route) => route.abort());
+  await page.route("**/api/clips/expired/handoff", (route) =>
+    route.fulfill({ status: 404, json: { detail: "Unavailable" } }),
+  );
+  await page.goto(`/v/${seededVideo.id}?t_ms=1000&end_ms=5000`);
+  await page.getByRole("button", { name: "Export and download" }).click();
+  await page.getByRole("button", { name: "Copy handoff JSON" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "This export is no longer available",
+  );
+  await expect(page.getByRole("region", { name: "clpr handoff" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "Export and download" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Copy passage link" }),
+  ).toBeEnabled();
 });
