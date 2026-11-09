@@ -93,7 +93,7 @@ jobs:
         run: npx --prefix e2e playwright install --with-deps chromium
       - name: Run browser tests against mocked API routes
         working-directory: e2e
-        run: npx playwright test tests/archive-smoke.spec.ts --project=chromium --workers=1
+        run: npx playwright test tests/archive-smoke.spec.ts tests/transcript-highlighting.spec.ts --project=chromium --workers=1
       - name: Upload browser artifacts
         if: failure()
         uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3

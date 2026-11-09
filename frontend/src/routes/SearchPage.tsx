@@ -145,10 +145,20 @@ export default function SearchPage() {
     setDateFrom(filters.date_from ?? '');
     setDateTo(filters.date_to ?? '');
     setMatchMode(filters.match_mode ?? 'topic');
+  }, [filters.date_from, filters.date_to, filters.match_mode, filters.q]);
+
+  useLayoutEffect(() => {
     setSortBy(filters.sort_by ?? 'relevance');
-  }, [filters.date_from, filters.date_to, filters.match_mode, filters.q, filters.sort_by]);
+  }, [filters.sort_by]);
 
   const error = actionError ?? queryError;
+
+  function changeSort(value: NonNullable<ArchiveSearchFilters['sort_by']>) {
+    setSortBy(value);
+    if (shouldFetch) {
+      setParams(serializeFilters({ ...filters, sort_by: value, offset: undefined }));
+    }
+  }
 
   function submitFilters(event: FormEvent) {
     event.preventDefault();
@@ -293,7 +303,7 @@ export default function SearchPage() {
             onDateFromChange={setDateFrom}
             onDateToChange={setDateTo}
             onMatchModeChange={setMatchMode}
-            onSortByChange={setSortBy}
+            onSortByChange={changeSort}
             onSubmit={submitFilters}
             onReset={resetFilters}
           />

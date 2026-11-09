@@ -1038,3 +1038,112 @@ test("passage ranges retain context, validate edits and produce public sharing l
   await expect(page.getByRole('button', { name: 'Copy passage link' })).toBeEnabled();
   await expect(page.getByLabel('Passage link', { exact: true })).toHaveValue(new RegExp(`/api/share/videos/${seededVideo.id}\\?start_ms=2000&end_ms=5000$`));
 });
+
+test("changing sort reruns the submitted search and restores it through history", async ({
+  page,
+}) => {
+  const requests: URLSearchParams[] = [];
+  await page.route("**/api/search/grouped?**", async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    requests.push(params);
+    const groups = ["Older episode", "Newer episode"].map((title, index) => ({
+      video: { ...seededVideo, id: `video-${index}`, title },
+      moments: [
+        {
+          id: index + 1,
+          video_id: `video-${index}`,
+          start_ms: 12000,
+          end_ms: 18000,
+          snippet: "labor rights",
+          source: "whisper",
+        },
+      ],
+    }));
+    if (params.get("sort_by") !== "date_asc") groups.reverse();
+    await route.fulfill({
+      json: { total_moments: 2, total_videos: 2, groups },
+    });
+  });
+  await page.goto(
+    "/search?q=labor&match_mode=exact_phrase&date_from=2026-01-01&video_id=selected&sort_by=date_desc&offset=20",
+  );
+  const titles = page.locator(
+    ".search-result-card .search-result-head a.block",
+  );
+  await expect(titles).toHaveText(["Newer episode", "Older episode"]);
+  const query = page.getByRole("searchbox", { name: "Search query" });
+  await query.fill("unsubmitted query");
+  await page.locator('input[name="date_from"]').fill("2026-02-01");
+  const sort = page.getByRole("combobox", { name: "Sort" });
+  await sort.selectOption("date_asc");
+
+  await expect(titles).toHaveText(["Older episode", "Newer episode"]);
+  expect(requests.at(-1)?.get("q")).toBe("labor");
+  expect(requests.at(-1)?.get("match_mode")).toBe("exact_phrase");
+  expect(requests.at(-1)?.get("date_from")).toBe("2026-01-01");
+  expect(requests.at(-1)?.get("video_id")).toBe("selected");
+  expect(requests.at(-1)?.get("offset")).toBe("0");
+  await expect(query).toHaveValue("unsubmitted query");
+  await expect(page.locator('input[name="date_from"]')).toHaveValue(
+    "2026-02-01",
+  );
+  expect(new URL(page.url()).searchParams.has("offset")).toBe(false);
+
+  for (const value of ["duration_asc", "duration_desc", "relevance"]) {
+    await sort.selectOption(value);
+    await expect(page).toHaveURL(new RegExp(`sort_by=${value}`));
+    await expect.poll(() => requests.at(-1)?.get("sort_by")).toBe(value);
+  }
+  // Returning to a recent order may reuse React Query's cached results.
+  await sort.selectOption("date_desc");
+  await expect(page).toHaveURL(/sort_by=date_desc/);
+  await expect(titles).toHaveText(["Newer episode", "Older episode"]);
+  await page.goBack();
+  await expect(sort).toHaveValue("relevance");
+  await page.goForward();
+  await expect(sort).toHaveValue("date_desc");
+  await page.reload();
+  await expect(sort).toHaveValue("date_desc");
+  await expect(query).toHaveValue("labor");
+  await expect(titles).toHaveText(["Newer episode", "Older episode"]);
+});
+
+test("plain transcript sentences wrap inline and remain keyboard operable", async ({
+  page,
+}) => {
+  await page.route(`**/api/videos/${seededVideo.id}/transcript?**`, (route) =>
+    route.fulfill({
+      json: {
+        video_id: seededVideo.id,
+        source: "whisper",
+        source_label: "Native transcript",
+        segments: [
+          {
+            start_ms: 12000,
+            end_ms: 18000,
+            text: "Labor rights are worth protecting and this long passage continues across several lines in the transcript.",
+          },
+        ],
+        blocks: [],
+      },
+    }),
+  );
+  await page.goto(`/v/${seededVideo.id}?t=12`);
+  const sentence = page.locator('[data-transcript-sentence="true"]').first();
+  await expect(sentence).toBeVisible();
+  await sentence.evaluate((element) => {
+    const paragraph = element.closest("p")!;
+    paragraph.style.width = "240px";
+  });
+  expect(
+    await sentence.evaluate((element) => element.getClientRects().length),
+  ).toBeGreaterThan(1);
+  await sentence.focus();
+  await page.keyboard.press("Enter");
+  await expect(sentence).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "Close passage actions" }).click();
+  await expect(sentence).toHaveAttribute("aria-expanded", "false");
+  await sentence.focus();
+  await page.keyboard.press("Space");
+  await expect(sentence).toHaveAttribute("aria-expanded", "true");
+});

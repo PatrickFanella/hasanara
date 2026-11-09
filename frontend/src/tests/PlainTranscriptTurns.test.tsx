@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PlainTranscriptTurns from '../components/video/PlainTranscriptTurns';
 
 describe('PlainTranscriptTurns', () => {
   it('renders search matches as inert text with code-point highlights', () => {
+    const onClickSegment = vi.fn();
     const { container } = render(
       <PlainTranscriptTurns
         source="whisper"
@@ -29,7 +30,7 @@ describe('PlainTranscriptTurns', () => {
         ]}
         activeSegId={null}
         isSavedSegment={() => false}
-        onClickSegment={vi.fn()}
+        onClickSegment={onClickSegment}
         onPlayFrom={vi.fn()}
         onCloseSelection={vi.fn()}
         onSaveMoment={vi.fn()}
@@ -43,5 +44,15 @@ describe('PlainTranscriptTurns', () => {
       `🚀 rent — 日本語 “quoted” <img src=x onerror=alert(1)> ${'x'.repeat(200)}`
     );
     expect(container.querySelector('img')).not.toBeInTheDocument();
+    const sentence = screen.getByRole('button', { name: 'Open paragraph at 00:00:00' });
+    fireEvent.click(sentence);
+    fireEvent.keyDown(sentence, { key: 'Enter' });
+    fireEvent.keyDown(sentence, { key: ' ' });
+    fireEvent.keyDown(sentence, { key: 'Escape' });
+    expect(onClickSegment).toHaveBeenCalledTimes(3);
+    expect(onClickSegment).toHaveBeenLastCalledWith(
+      { start_ms: 0, end_ms: 1000, text: 'Transcript sentence.' },
+      1
+    );
   });
 });

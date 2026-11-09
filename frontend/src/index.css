@@ -849,6 +849,9 @@ h3 {
   }
 
   .transcript-document .transcript-sentence.transcript-sentence-current:not([data-played]) {
+    /* Slice one continuous sweep across wrapped lines in reading order. */
+    box-decoration-break: slice;
+    -webkit-box-decoration-break: slice;
     color: transparent;
     background-image: linear-gradient(
       90deg,
