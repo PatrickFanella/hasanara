@@ -17,8 +17,10 @@ The suite mocks the API, so it needs no database. For manual testing against a r
 ## Generated clip handoff qualification
 
 The normal suite mocks clip responses and uses the producer's committed v1
-example. An optional run uses generated media and the pinned core's real clip
-routes, registration, transcript snapshot and ffmpeg renderer. It never starts
+example. Frontend unit tests keep a local copy so the web image can compile
+without the core checkout; the required browser test checks that copy against
+the pinned producer example. An optional run uses generated media and the pinned
+core's real clip routes, registration, transcript snapshot and ffmpeg renderer. It never starts
 the production application or downloads public media.
 
 From the HasanAra root, run `python e2e/fixtures/clip-export-api.py` in a Python

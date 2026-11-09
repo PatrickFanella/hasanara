@@ -3,7 +3,7 @@ import { HTTPError } from 'ky';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ClipHandoffControls from '../components/video/ClipHandoffControls';
 import { http } from '../services/api';
-import fixture from '../../../core/docs/api/examples/clip-handoff.v1.json';
+import fixture from './fixtures/clip-handoff.v1.json';
 
 const raw = JSON.stringify(fixture);
 const props = {

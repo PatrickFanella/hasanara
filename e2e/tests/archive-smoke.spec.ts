@@ -1158,6 +1158,15 @@ test("completed passage exports offer an intact handoff and discard it when the 
       "utf8",
     ),
   );
+  // The image copies only frontend/. Keep its local test fixture tied to core.
+  expect(
+    JSON.parse(
+      fs.readFileSync(
+        path.resolve("../frontend/src/tests/fixtures/clip-handoff.v1.json"),
+        "utf8",
+      ),
+    ),
+  ).toEqual(fixture);
   // Optional generated-fixture qualification uses the actual pinned producer API.
   const producer = process.env.CLIP_FIXTURE_API;
   const handoff = producer
@@ -1272,9 +1281,7 @@ test("completed passage exports offer an intact handoff and discard it when the 
     const axe = (
       window as typeof window & {
         axe: {
-          run: (
-            context: string,
-          ) => Promise<{
+          run: (context: string) => Promise<{
             violations: Array<{ id: string; impact: string | null }>;
           }>;
         };
@@ -1287,14 +1294,12 @@ test("completed passage exports offer an intact handoff and discard it when the 
   expect(handoffViolations).toEqual([]);
   if (process.env.CLIP_FIXTURE_OUTPUT) {
     fs.mkdirSync(process.env.CLIP_FIXTURE_OUTPUT, { recursive: true });
-    await page
-      .getByRole("region", { name: "clpr handoff" })
-      .screenshot({
-        path: path.join(
-          process.env.CLIP_FIXTURE_OUTPUT,
-          "hasanara-handoff-mobile.png",
-        ),
-      });
+    await page.getByRole("region", { name: "clpr handoff" }).screenshot({
+      path: path.join(
+        process.env.CLIP_FIXTURE_OUTPUT,
+        "hasanara-handoff-mobile.png",
+      ),
+    });
     await mp4.saveAs(path.join(process.env.CLIP_FIXTURE_OUTPUT, "passage.mp4"));
     await json.saveAs(
       path.join(process.env.CLIP_FIXTURE_OUTPUT, "passage.handoff.json"),
