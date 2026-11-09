@@ -58,7 +58,7 @@ python3 scripts/web_manifest.py record git.subcult.tv/subculture-collective/hasa
 
 The deploy checks refuse a `web-image.json` whose `frontend_tree` differs from the checked-out `frontend/`.
 
-The [clip export flow](docs/clip-exports.md) requires an enabled Rekolekt clip worker; the web app starts downloads automatically and saves ranges independently of cached media.
+The [clip export flow](docs/clip-exports.md) requires an enabled Rekolekt clip worker; the web app starts downloads automatically and saves ranges independently of cached media. Completed exports also offer the producer's versioned provenance/caption JSON and a manual handoff to clpr's reviewed draft importer. The same guide records the required frontend checks and generated-fixture qualification.
 
 ## Social card
 

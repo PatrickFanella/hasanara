@@ -22,6 +22,11 @@ The transcript around a result stays on the page, so a passage can be read with
 the conversation it came from and previewed before it is shared. A passage link
 needs no account. An account saves moments and searches for a later visit.
 
+When clip exports are enabled, an authorized source can also be exported as a
+private MP4 with its recorded range, transcript revision and captions. The
+[clip export guide](docs/clip-exports.md) explains how to take those files into
+clpr for draft review. Importing does not submit or publish a clip.
+
 ## Corrections
 
 The transcripts are automatic and sometimes wrong. Check the recording before

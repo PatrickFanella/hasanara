@@ -47,6 +47,7 @@ describe('PassagePanel', () => {
 
   it('shows selected text with surrounding context, adjusts a range, previews and copies a reproducible URL', async () => {
     const { player } = setup();
+    expect(screen.queryByLabelText('Clip export')).not.toBeInTheDocument();
     const context = screen.getByLabelText('Passage in context');
     expect(within(context).getByText('The selected passage.').tagName).toBe('MARK');
     expect(within(context).getByText(/Before the passage/)).toBeInTheDocument();
