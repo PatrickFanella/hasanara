@@ -282,6 +282,24 @@ describe('SearchPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('1 mentions added');
   });
 
+  it('keeps the submitted sort authoritative while a new URL is pending or cancelled', async () => {
+    currentSearchParams = new URLSearchParams({ q: 'rent', sort_by: 'date_asc' });
+    vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
+    vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
+    const { rerender } = renderWithProviders(<SearchPage />);
+    const sort = await screen.findByRole('combobox', { name: 'Sort' });
+    await userEvent.selectOptions(sort, 'date_desc');
+    // The router mock defers committing navigation, just as a rapid Back can cancel it.
+    expect(sort).toHaveValue('date_asc');
+    const prior = currentSearchParams;
+    currentSearchParams = searchParamsMock.mock.calls.at(-1)![0];
+    rerender(<SearchPage />);
+    expect(sort).toHaveValue('date_desc');
+    currentSearchParams = prior;
+    rerender(<SearchPage />);
+    expect(sort).toHaveValue('date_asc');
+  });
+
   it('clears the complete query and filter state', async () => {
     currentSearchParams = new URLSearchParams({
       q: 'rent',
@@ -296,11 +314,13 @@ describe('SearchPage', () => {
     vi.spyOn(api, 'getSearchSuggestions').mockResolvedValue({ suggestions: [] });
     vi.spyOn(api, 'searchGrouped').mockResolvedValue(groupedResult as never);
 
-    renderWithProviders(<SearchPage />);
+    const { rerender } = renderWithProviders(<SearchPage />);
     await userEvent.click(await screen.findByRole('button', { name: 'Reset search' }));
 
     expect(searchParamsMock).toHaveBeenCalledOnce();
     expect(searchParamsMock.mock.calls[0]?.[0]).toEqual(new URLSearchParams());
+    currentSearchParams = new URLSearchParams();
+    rerender(<SearchPage />);
     expect(screen.getByRole('searchbox', { name: 'Search query' })).toHaveValue('');
     expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('relevance');
   });

@@ -1934,13 +1934,13 @@ h3 {
     @apply grid items-start gap-3 sm:grid-cols-2;
   }
   .period-vod {
-    @apply min-w-0 overflow-hidden border border-border bg-surface-muted hover:border-accent;
+    @apply grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] items-start gap-3 overflow-hidden border border-border bg-surface-muted p-2 hover:border-accent;
   }
   .period-vod img {
     @apply aspect-video w-full object-cover;
   }
   .period-vod > div {
-    @apply p-3;
+    min-width: 0;
   }
   .period-vod h3 {
     @apply line-clamp-2 text-sm font-semibold;

@@ -113,9 +113,11 @@ export default function SearchPage() {
   const [matchMode, setMatchMode] = useState<NonNullable<ArchiveSearchFilters['match_mode']>>(
     filters.match_mode ?? 'topic'
   );
-  const [sortBy, setSortBy] = useState<NonNullable<ArchiveSearchFilters['sort_by']>>(
+  const [draftSortBy, setSortBy] = useState<NonNullable<ArchiveSearchFilters['sort_by']>>(
     filters.sort_by ?? 'relevance'
   );
+  // Submitted searches take their order from the URL, including rapid back/forward navigation.
+  const sortBy = filters.q.trim() ? (filters.sort_by ?? 'relevance') : draftSortBy;
   const [actionError, setActionError] = useState<string | null>(null);
   const [operationFeedback, setOperationFeedback] = useState<string | null>(null);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
