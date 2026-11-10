@@ -413,7 +413,8 @@ jobs:
     # The main image-check job is deliberately skipped. Override inherited skip
     # propagation, while still requiring successful signed publication.
     if: always() && needs.publish.result == 'success'
-    runs-on: ubuntu-latest
+    # Homelab deploy keys accept only Kvant's address (Kvant and its Kuznya VM); the kvant label keeps this job off Buran.
+    runs-on: [ubuntu-latest, kvant]
     timeout-minutes: 15
     concurrency:
       group: hasanara-web-deploy
