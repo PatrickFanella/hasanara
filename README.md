@@ -145,7 +145,13 @@ reference, including how to re-export the social card.
 
 ## Contributing
 
-Open a pull request on GitHub against `main`. CI runs on every pull request: it
+Report bugs and request features in
+[GitHub issues](https://github.com/subculture-collective/hasanara/issues). Ask
+questions and share ideas in
+[GitHub Discussions](https://github.com/subculture-collective/hasanara/discussions).
+
+Send code as a pull request on GitHub against `main`. CI runs on every pull
+request: it
 validates the brand profile and the production Compose contract, and when
 `frontend/` changes it runs the API type check, dependency security gate, lint,
 formatting, unit tests, build and bundle budget, browser tests, and a web image
