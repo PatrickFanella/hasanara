@@ -235,6 +235,10 @@ export const api = {
       .get('search/suggestions', { searchParams, signal })
       .json<SearchSuggestionsResponse>();
   },
+  async getPopularSearches(limit = 20, signal?: AbortSignal) {
+    const searchParams = new URLSearchParams({ limit: String(limit) });
+    return http.get('search/popular', { searchParams, signal }).json<SearchSuggestionsResponse>();
+  },
   async getArchiveSummary(signal?: AbortSignal) {
     return http.get('archive/summary', { signal }).json<ArchiveSummary>();
   },

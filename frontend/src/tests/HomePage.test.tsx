@@ -65,6 +65,11 @@ describe('HomePage', () => {
     expect(screen.getByPlaceholderText('Topic or phrase…')).toBeInTheDocument();
     expect(screen.getByLabelText('Search Transcript Archive')).toBeInTheDocument();
     expect(screen.getByText('Searchable VODs')).toBeInTheDocument();
+    expect(screen.getByText('2 hours, 1 minute')).toBeInTheDocument();
+    expect(screen.queryByText('Search the record')).not.toBeInTheDocument();
+    expect(screen.getByText(/broadcast archive$/i, { selector: '.archive-eyebrow' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Latest broadcasts' })).toBeInTheDocument();
+    expect(screen.queryByText('Recently indexed')).not.toBeInTheDocument();
     expect(screen.getAllByText('Newest VOD').length).toBeGreaterThan(0);
     expect(screen.getByRole('group', { name: 'VOD metadata' })).toBeInTheDocument();
     expect(screen.getByText('#Guest One')).toBeInTheDocument();
@@ -85,6 +90,12 @@ describe('HomePage', () => {
     );
     expect(screen.queryByRole('link', { name: 'Support the archive' })).not.toBeInTheDocument();
     expect(screen.queryByText('How it works')).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('link', { name: /Newest transcript/ })
+        .compareDocumentPosition(screen.getByRole('heading', { name: 'Popular searches' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /Newest VOD/ })).toSatisfy((links: HTMLElement[]) =>
       links.some((link) => link.getAttribute('href') === '/v/video-1')
     );
@@ -97,6 +108,34 @@ describe('HomePage', () => {
     await user.type(input, 'archive');
     await user.click(screen.getByRole('button', { name: 'Search archive' }));
     expect(input).toHaveValue('archive');
+  });
+
+  it('lists deeper popular searches and leaves out generic words', async () => {
+    vi.spyOn(http, 'get').mockImplementation(((path: string) => {
+      if (path === 'auth/me') {
+        return { json: vi.fn().mockResolvedValue({ user: null }) } as never;
+      }
+      return { json: vi.fn().mockResolvedValue({}) } as never;
+    }) as never);
+    vi.spyOn(api, 'getArchiveSummary').mockResolvedValue({
+      recent_videos: [],
+      popular_searches: [{ term: 'rent', frequency: 9 }],
+    } as never);
+    vi.spyOn(api, 'getPopularSearches').mockResolvedValue({
+      suggestions: [
+        { term: 'canary mission', frequency: 61 },
+        { term: 'warning', frequency: 74 },
+      ],
+    });
+
+    renderWithProviders(<HomePage />);
+
+    expect(await screen.findByRole('link', { name: 'canary mission' })).toHaveAttribute(
+      'href',
+      '/search?q=canary%20mission'
+    );
+    expect(screen.queryByRole('link', { name: 'warning' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'rent' })).not.toBeInTheDocument();
   });
 
   it('ignores blank searches and trims a submitted query', async () => {

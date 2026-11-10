@@ -68,7 +68,7 @@ describe('client branding', () => {
     } as never);
     const view = mount();
     expect(await screen.findByText('About Northstar')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Visit Studio team ↗' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Studio team' })).toHaveAttribute(
       'href',
       'https://example.org'
     );

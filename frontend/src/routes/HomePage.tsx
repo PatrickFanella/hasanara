@@ -5,14 +5,53 @@ import { api, useAuth } from '../services';
 import type { ArchiveSummary } from '../types/api';
 import {
   buildTimestampLink,
+  durationParts,
   formatDate,
-  formatDuration,
   formatNumber,
 } from '../features/archive/format';
 import { VideoCard } from '../components/archive';
 import { AsyncError } from '../components/async/AsyncFeedback';
 
 const searchExamples = ['labor', 'Gaza', 'housing', 'election'];
+
+// Frequent terms that are ordinary words on their own and make poor starting points.
+const genericSearchTerms = new Set([
+  'andrew',
+  'built',
+  'close',
+  'commercials',
+  'controlled',
+  'creation',
+  'neighborhoods',
+  'retaliated',
+  'shipped',
+  'slur',
+  'warning',
+]);
+
+function RuntimeValue({ seconds }: { seconds: number }) {
+  const parts = durationParts(seconds);
+  return (
+    <>
+      <span className="sr-only">
+        {parts
+          .map(
+            (part) =>
+              `${formatNumber(part.value)} ${part.value === 1 ? part.name.slice(0, -1) : part.name}`
+          )
+          .join(', ')}
+      </span>
+      <span aria-hidden="true">
+        {parts.map((part) => (
+          <span key={part.unit} className="archive-data-part">
+            {formatNumber(part.value)}
+            <span className="archive-data-unit">{part.unit}</span>
+          </span>
+        ))}
+      </span>
+    </>
+  );
+}
 
 export default function HomePage() {
   const site = useSite();
@@ -21,6 +60,7 @@ export default function HomePage() {
   const [summary, setSummary] = useState<ArchiveSummary | null>(null);
   const [query, setQuery] = useState('');
   const [summaryState, setSummaryState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [popularTerms, setPopularTerms] = useState<string[]>([]);
   const summaryController = useRef<AbortController | null>(null);
 
   const loadSummary = useCallback(() => {
@@ -49,6 +89,19 @@ export default function HomePage() {
     return () => summaryController.current?.abort();
   }, [loadSummary]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .getPopularSearches(40, controller.signal)
+      .then((response) => {
+        setPopularTerms((response.suggestions ?? []).map((item) => item.term));
+      })
+      .catch(() => {
+        // The archive summary still supplies a shorter list.
+      });
+    return () => controller.abort();
+  }, []);
+
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = query.trim();
@@ -57,7 +110,29 @@ export default function HomePage() {
   }
 
   const recentVideos = summary?.recent_videos ?? [];
-  const suggested = summary?.popular_searches ?? [];
+  const suggested = (
+    popularTerms.length > 0
+      ? popularTerms
+      : (summary?.popular_searches ?? []).map((item) => item.term)
+  ).filter((term) => !genericSearchTerms.has(term.toLowerCase()));
+  const stats = [
+    { label: 'Searchable VODs', value: summary ? formatNumber(summary.video_count) : '—' },
+    {
+      label: 'Recorded runtime',
+      value: summary ? <RuntimeValue seconds={summary.total_duration_seconds} /> : '—',
+    },
+    {
+      label: 'Transcript words',
+      value: summary ? formatNumber(summary.transcript_word_count) : '—',
+    },
+    {
+      label: 'Index refreshed',
+      value:
+        summaryState === 'loading' && !summary
+          ? 'Checking…'
+          : formatDate(summary?.updated_at ?? null),
+    },
+  ];
   const newestVideo = recentVideos[0];
 
   return (
@@ -65,17 +140,8 @@ export default function HomePage() {
       <section className="archive-masthead">
         <div className="home-masthead-grid relative z-10">
           <div className="space-y-5">
-            <div className="dateline">
-              <span className="archive-eyebrow">{site.creator_name} archive</span>
-              <span>
-                {new Date().toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-              <span>searchable transcripts</span>
+            <div className="eyebrow-rule">
+              <span className="archive-eyebrow">{site.creator_name} broadcast archive</span>
             </div>
 
             <div className="space-y-4">
@@ -88,7 +154,6 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-            <div className="archive-rule-title">Search the record</div>
             <form onSubmit={onSubmit} className="archive-command">
               <label className="sr-only" htmlFor="home-search">
                 Search {site.name}
@@ -147,44 +212,12 @@ export default function HomePage() {
         </div>
 
         <div className="archive-data-strip relative z-10">
-          <div className="archive-data-cell">
-            <div className="meta-label">Searchable VODs</div>
-            <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatNumber(summary.video_count)
-                  : '—'}
+          {stats.map((stat) => (
+            <div key={stat.label} className="archive-data-cell">
+              <div className="meta-label">{stat.label}</div>
+              <div className="archive-data-value">{stat.value}</div>
             </div>
-          </div>
-          <div className="archive-data-cell">
-            <div className="meta-label">Recorded runtime</div>
-            <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatDuration(summary.total_duration_seconds)
-                  : '—'}
-            </div>
-          </div>
-          <div className="archive-data-cell">
-            <div className="meta-label">Transcript words</div>
-            <div className="mt-2 font-mono text-xl font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? '—'
-                : summary
-                  ? formatNumber(summary.transcript_word_count)
-                  : '—'}
-            </div>
-          </div>
-          <div className="archive-data-cell">
-            <div className="meta-label">Index refreshed</div>
-            <div className="mt-2 font-mono text-sm font-semibold text-ink">
-              {summaryState === 'loading' && !summary
-                ? 'Checking…'
-                : formatDate(summary?.updated_at ?? null)}
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -199,13 +232,10 @@ export default function HomePage() {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="archive-section space-y-5">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="archive-eyebrow">Latest signal</div>
-              <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-ink">
-                Recently indexed
-              </h2>
-            </div>
+          <div className="eyebrow-rule">
+            <h2>
+              <span className="archive-eyebrow">Latest broadcasts</span>
+            </h2>
             <Link to="/episodes" className="action-link text-sm">
               All VODs →
             </Link>
@@ -228,44 +258,11 @@ export default function HomePage() {
           )}
         </div>
 
-        <section aria-label="Archive highlights" className="archive-section flex flex-col gap-6">
-          <div>
-            <div className="archive-eyebrow">Open a thread</div>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink">
-              Popular searches
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Recurring archive terms, ready to open as timestamped evidence.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {suggested.length > 0 ? (
-              suggested.slice(0, 12).map((item, index) => (
-                <Link
-                  key={item.term}
-                  to={`/search?q=${encodeURIComponent(item.term)}`}
-                  className="group inline-flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-ink transition-colors hover:border-accent/60"
-                >
-                  <span className="translate-y-px font-mono text-[10px] text-subtle">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="group-hover:text-accent">{item.term}</span>
-                </Link>
-              ))
-            ) : (
-              <p className="text-sm text-muted">
-                {summaryState === 'error'
-                  ? 'Popular searches could not be loaded. Retry the archive summary.'
-                  : 'Search activity will surface useful starting points here.'}
-              </p>
-            )}
-          </div>
-
+        <section aria-label="Archive highlights" className="archive-section flex flex-col gap-5">
           {newestVideo && (
             <Link
               to={buildTimestampLink(newestVideo.id, 0)}
-              className="mt-auto rounded-xl border border-accent/20 bg-accent-soft/55 p-4 transition-colors hover:border-accent/50"
+              className="rounded-xl border border-accent/20 bg-accent-soft/55 p-4 transition-colors hover:border-accent/50"
             >
               <div className="meta-label text-accent">Newest transcript</div>
               <div className="mt-2 line-clamp-2 font-semibold text-ink">
@@ -274,6 +271,33 @@ export default function HomePage() {
               <div className="mt-3 text-sm text-accent">Start reading →</div>
             </Link>
           )}
+
+          <div className="space-y-4">
+            <div className="eyebrow-rule">
+              <h2>
+                <span className="archive-eyebrow">Popular searches</span>
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {suggested.length > 0 ? (
+                suggested.slice(0, 16).map((term) => (
+                  <Link
+                    key={term}
+                    to={`/search?q=${encodeURIComponent(term)}`}
+                    className="topic-chip"
+                  >
+                    {term}
+                  </Link>
+                ))
+              ) : (
+                <p className="text-sm text-muted">
+                  {summaryState === 'error'
+                    ? 'Popular searches could not be loaded. Retry the archive summary.'
+                    : 'Search activity will surface useful starting points here.'}
+                </p>
+              )}
+            </div>
+          </div>
         </section>
       </section>
 

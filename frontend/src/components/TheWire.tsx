@@ -83,6 +83,8 @@ export default function TheWire() {
       <button
         type="button"
         className="wire-toggle"
+        aria-label={visible ? 'Hide The Wire' : 'Show The Wire'}
+        title={visible ? 'Hide The Wire' : 'Show The Wire'}
         aria-expanded={visible}
         aria-controls="wire-content"
         onClick={() =>
@@ -96,25 +98,40 @@ export default function TheWire() {
           })
         }
       >
-        {visible ? 'Hide The Wire' : 'Show The Wire'}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 15 6-6 6 6" />
+        </svg>
       </button>
-      {visible && (
+      <div id="wire-content" className="wire-panel">
+        <span className="wire-label">The Wire</span>
         <button
           type="button"
           className="wire-pause"
+          aria-label={paused ? 'Resume ticker' : 'Pause ticker'}
+          title={paused ? 'Resume ticker' : 'Pause ticker'}
           aria-pressed={paused}
           onClick={() => setPaused((current) => !current)}
         >
-          {paused ? 'Resume ticker' : 'Pause ticker'}
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            {paused ? <path d="M8 5v14l11-7z" /> : <path d="M7 5h4v14H7zM13 5h4v14h-4z" />}
+          </svg>
         </button>
-      )}
-      <div id="wire-content" className="wire-track" hidden={!visible}>
-        {items.length > 0 && (
-          <div className="wire-reel">
-            <ul>{renderItems(false)}</ul>
-            <ul aria-hidden="true">{renderItems(true)}</ul>
-          </div>
-        )}
+        <div className="wire-track">
+          {items.length > 0 && (
+            <div className="wire-reel">
+              <ul>{renderItems(false)}</ul>
+              <ul aria-hidden="true">{renderItems(true)}</ul>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

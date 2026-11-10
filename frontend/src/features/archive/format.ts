@@ -22,6 +22,19 @@ export function formatDuration(seconds?: number | null) {
     : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
+/** Long totals as days, hours and minutes, dropping leading zero units. */
+export function durationParts(seconds?: number | null) {
+  if (seconds == null || Number.isNaN(seconds)) return [];
+  const total = Math.max(0, Math.floor(seconds));
+  const parts = [
+    { value: Math.floor(total / 86400), unit: 'd', name: 'days' },
+    { value: Math.floor((total % 86400) / 3600), unit: 'h', name: 'hours' },
+    { value: Math.floor((total % 3600) / 60), unit: 'm', name: 'minutes' },
+  ];
+  const first = parts.findIndex((part) => part.value > 0);
+  return parts.slice(first === -1 ? parts.length - 1 : first);
+}
+
 export function formatShortDuration(seconds?: number | null) {
   if (seconds == null || Number.isNaN(seconds)) return '—';
   const total = Math.max(0, Math.floor(seconds));

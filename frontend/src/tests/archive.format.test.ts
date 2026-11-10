@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTimestampLink,
+  durationParts,
   formatAggregateDuration,
   formatCount,
   formatCoverage,
@@ -8,6 +9,27 @@ import {
   formatVideoTitle,
   videoDate,
 } from '../features/archive/format';
+
+describe('durationParts', () => {
+  const text = (seconds: number) =>
+    durationParts(seconds)
+      .map((part) => `${part.value}${part.unit}`)
+      .join(' ');
+
+  it('breaks long runtimes into days, hours and minutes', () => {
+    expect(text(61047924)).toBe('706d 13h 45m');
+  });
+
+  it('drops leading zero units but keeps interior ones', () => {
+    expect(text(7260)).toBe('2h 1m');
+    expect(text(86400)).toBe('1d 0h 0m');
+    expect(text(30)).toBe('0m');
+  });
+
+  it('returns nothing for a missing runtime', () => {
+    expect(durationParts(null)).toEqual([]);
+  });
+});
 
 describe('archive moment links', () => {
   it('uses the exact start time as a source-neutral canonical anchor', () => {
