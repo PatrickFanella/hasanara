@@ -1,12 +1,15 @@
 name: Deployment validation
 
+# Pull request verification runs on the public GitHub copy
+# (.github/workflows/mirror-ci.yml); its result is reported back to Gitea as
+# "GitHub CI / Mirror CI gate". This workflow verifies, publishes and deploys main.
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
   workflow_dispatch:
 
 permissions:
