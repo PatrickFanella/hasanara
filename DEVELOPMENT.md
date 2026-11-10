@@ -44,7 +44,7 @@ The development server also serves `branding/assets/` at `/branding/`, the path 
 
 The app reads the brand profile from `/api/site` at runtime. When the container starts, `frontend/scripts/render-site-metadata.py` writes the crawler title, description and social tags into `index.html` and rasterizes `/social-preview.png` from the profile's `social_image_url` and a 180×180 `/apple-touch-icon.png` from a local SVG `favicon_url`. After adopting a core release, run `npm --prefix frontend run api:generate` if the core's OpenAPI document changed.
 
-CI builds the image on every pull request and smoke-tests it with `scripts/web_image_smoke.sh`. A merge to `main` that changes `frontend/` runs the gated publisher in `.gitea/workflows/validate.yaml`: it builds, scans, pushes `git.subcult.tv/subculture-collective/hasanara-web:web-<commit>`, signs the digest with this repository's Cosign key, attests provenance and SBOM, and uploads `web-image.json`.
+Pull request CI (`.github/workflows/mirror-ci.yml`, on the GitHub copy) builds the image and smoke-tests it with `scripts/web_image_smoke.sh`. A merge to `main` that changes `frontend/` runs the gated publisher in `.gitea/workflows/validate.yaml`: it builds, scans, pushes `git.subcult.tv/subculture-collective/hasanara-web:web-<commit>`, signs the digest with this repository's Cosign key, attests provenance and SBOM, and uploads `web-image.json`.
 
 After successful publication, the deployment job pulls that exact digest and sends it to Almaz through the app-specific forced-command SSH receiver from the private `subculture-collective/fleet-deploy` repository. Its host profile selects only the existing `hasanara-web` container and retains its runtime settings, brand mounts, port, and network. The receiver refuses stale main revisions, verifies the public `/build-info.json` against the image, and restores the previous image if activation or readiness fails. Backend services and data keep their separate release procedure. PRs cannot activate production.
 
@@ -88,7 +88,7 @@ python3 -m venv .validate-venv
 .validate-venv/bin/python scripts/validate.py
 ```
 
-The validator renders the full production Compose model with inert values and applies the core preflight's service, diarization and network checks. It also checks `web-image.json`, renders the web project, and reports when `frontend/` has changed since the recorded web image was built. CI runs it, `scripts/web_manifest.test.py` and the frontend checks on every pull request.
+The validator renders the full production Compose model with inert values and applies the core preflight's service, diarization and network checks. It also checks `web-image.json`, renders the web project, and reports when `frontend/` has changed since the recorded web image was built. Pull request CI runs it, `scripts/web_manifest.test.py` and the frontend checks; see `docs/ci.md`.
 
 ## Adopt a core release
 

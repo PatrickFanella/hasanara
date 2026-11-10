@@ -7,7 +7,7 @@ import subprocess
 def plan(paths, event, ref):
     full = paths is None or event == "workflow_dispatch"
     paths = paths or []
-    ci_changed = any(path.startswith(".gitea/workflows/") or path.startswith("scripts/ci") for path in paths)
+    ci_changed = any(path.startswith((".gitea/workflows/", ".github/workflows/", "scripts/ci")) for path in paths)
     frontend = full or ci_changed or any(
         path.startswith(("frontend/", "e2e/", "core/")) or path in ("core", ".gitmodules") for path in paths
     )

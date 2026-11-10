@@ -50,7 +50,8 @@ class PlanTests(unittest.TestCase):
         self.assertTrue(plan([".dockerignore"], "pull_request", "refs/pull/1/head")["image"])
 
     def test_ci_changes_exercise_checks(self):
-        for path in [".gitea/workflows/validate.yaml", "scripts/ci_gate.py", "scripts/ci.test.py"]:
+        for path in [".gitea/workflows/validate.yaml", ".github/workflows/mirror-ci.yml", "scripts/ci_gate.py",
+                     "scripts/ci.test.py"]:
             with self.subTest(path=path):
                 result = plan([path], "pull_request", "refs/pull/1/head")
                 self.assertTrue(result["frontend"])
