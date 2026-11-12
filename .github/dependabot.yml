@@ -1,7 +1,7 @@
 # Ready pull requests in this repository merge themselves once Mirror CI passes,
 # and a merged frontend change is published and deployed. So every ecosystem
 # here skips major versions, groups minor and patch updates into one pull
-# request, and keeps at most two pull requests open.
+# request, and keeps at most one pull request open.
 #
 # The core submodule is not listed: its pin moves only with a recorded release
 # (release-images.json).
@@ -10,8 +10,8 @@ updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
       frontend-minor-and-patch:
         update-types:
@@ -34,8 +34,8 @@ updates:
   - package-ecosystem: npm
     directory: /e2e
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
       e2e-minor-and-patch:
         update-types:
@@ -49,8 +49,8 @@ updates:
   - package-ecosystem: docker
     directory: /frontend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
       docker-minor-and-patch:
         update-types:
@@ -64,8 +64,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
       actions-minor-and-patch:
         update-types:
