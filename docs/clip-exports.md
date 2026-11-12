@@ -62,7 +62,8 @@ register a creator-authorized local file and its owning account. Only that owner
 can export it. See Rekolekt's `docs/product/authorized-original-clips.md`.
 
 The existing `CLIP_EXPORT_SOURCE=youtube` mode uses yt-dlp to obtain a selected
-section; see `docs/product/youtube-clips.md` for its setup and acquisition limits.
+section; see Rekolekt's `docs/product/youtube-clips.md` for its setup and
+acquisition limits.
 The default cache lifetime is one hour after successful rendering, configurable
 through `CLIP_CACHE_TTL_SECONDS`. These frontend changes do not enable either
 mode, install a production renderer/timer, acquire public media or submit to clpr.

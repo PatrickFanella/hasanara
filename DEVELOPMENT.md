@@ -2,7 +2,7 @@
 
 # HasanAra deployment
 
-This repository builds and deploys [HasanAra](https://hasanara.tv), a searchable archive of HasanAbi broadcasts. It owns HasanAra's web frontend. The backend is [Rekolekt](https://git.subcult.tv/subculture-collective/rekolekt) (formerly transcript-create), a headless core pinned here as the `core` submodule, and runs from that project's released, digest-pinned backend images.
+This repository builds and deploys [HasanAra](https://hasanara.tv), a searchable archive of HasanAbi broadcasts. It owns HasanAra's web frontend. The backend is [Rekolekt](https://github.com/subculture-collective/rekolekt) (formerly transcript-create), a headless core pinned here as the `core` submodule, and runs from that project's released, digest-pinned backend images.
 
 | Path | Purpose |
 | --- | --- |
