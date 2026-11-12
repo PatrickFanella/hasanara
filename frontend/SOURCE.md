@@ -26,7 +26,7 @@ git rev-parse <import commit>:frontend    # 920ff48e...
 
 Changes are ordinary commits after the import; `git diff 920ff48e8de9dc2f6e1b35f559a699581653de2a HEAD:frontend` lists them.
 
-- `Dockerfile` pins `node:20-alpine` and `nginx:1.27-alpine` to digests. The nginx digest has the same base layers as the rc.18 web image.
+- `Dockerfile` pins `node:20-alpine` and the `nginx` alpine runtime to digests. At the import the runtime was `nginx:1.27-alpine`, with the same base layers as the rc.18 web image; it has been updated since.
 - `api:generate` and `api:check` read the committed OpenAPI document of the pinned core, `../core/docs/api/openapi.json`, instead of generating it from the core application. `scripts/check-api-types.mjs` does the comparison.
 - `e2e/tests/archive-smoke.spec.ts` reads the Northstar test profile from `../core/config/branding/`.
 

@@ -1,0 +1,77 @@
+# Ready pull requests in this repository merge themselves once Mirror CI passes,
+# and a merged frontend change is published and deployed. So every ecosystem
+# here skips major versions, groups minor and patch updates into one pull
+# request, and keeps at most two pull requests open.
+#
+# The core submodule is not listed: its pin moves only with a recorded release
+# (release-images.json).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      frontend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+      # Newer Prettier releases (3.10.0 was tried) reformat five source files, including the
+      # generated API types that api:check compares byte for byte. Update it
+      # by hand together with the reformatted files.
+      - dependency-name: prettier
+      # axe-core 4.14 reports label-content-name-mismatch on the header home
+      # link, which fails the browser accessibility matrix. Fix the link's
+      # accessible name first, then update both packages together.
+      - dependency-name: axe-core
+      - dependency-name: '@axe-core/react'
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      e2e-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      docker-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major

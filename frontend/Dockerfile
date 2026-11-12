@@ -10,7 +10,7 @@ COPY frontend/ ./
 ENV VITE_API_BASE=/api
 RUN npm run build
 
-FROM nginx:1.31.7-alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
+FROM nginx:1.31.8-alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
 
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE
