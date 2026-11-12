@@ -1,6 +1,6 @@
 # HasanAra — Broadcast service / Screenprint
 
-Selected from the owner-supplied PBS merchandise references on November 8, 2026. The owner permitted changes to the design system while retaining the site structure, and requested the Studio pack update. This document describes the local implementation; it does not claim a production deployment.
+Selected from the owner-supplied PBS merchandise references on November 8, 2026. The owner permitted changes to the design system while retaining the site structure, and requested the Studio pack update. The implementation merged to HasanAra `main` as `6142d30` and is live. On November 12, 2026 the front page of https://hasanara.tv/ (build `dbde2bc`) was captured signed out at 1440 and 390px in both colour schemes: its theme variables equal the table below, and the served logo and favicon match the Studio pack exports by hash. Other pages and signed-in states were not compared.
 
 ## Identity and source ownership
 
@@ -12,6 +12,7 @@ The new vector interpretation uses a tower, three signal rings, a star and a blo
 | --- | --- | --- |
 | `branding/assets/logo.svg` | `references/hasanara-logo.svg`; pack `product/logo.svg` | Header and home emblem |
 | `branding/assets/favicon.svg` | `references/hasanara-favicon.svg`; pack `product/favicon.svg` | Tab icon; startup renderer creates the touch icon |
+| `frontend/public/icon.svg`, `frontend/public/favicon.ico` | Copies of the tower favicon; the `.ico` holds 16, 32, 48 and 64px renders | `/favicon.ico` for clients that ask for it directly, and the icon shown before the site profile loads |
 | `branding/assets/social-card.svg` | `references/hasanara-social-card.svg`; pack `product/social-card.svg` | Startup renderer creates the 1200×630 PNG social preview |
 | `branding/assets/badge.svg` | Full emblem geometry with a charcoal square background | Standalone square emblem |
 
@@ -59,7 +60,7 @@ The light theme uses dark red for readable links and white button text. Orange a
 
 Use the existing frontend unit suite, build, lint and format checks. `e2e/tests/archive-smoke.spec.ts` covers search, archive browsing, keyboard behavior, mobile navigation, 320px reflow and both themes. For this branding pass, `output/brand-qa.json` and the matching screenshots record a separate browser check with the actual profile, seeded archive responses, both themes and 1440/390/320px widths. Fixture screenshots are not captures of production data.
 
-The Studio pack rebuild uses `BRAND_ONLY=hasanara PYTHONPATH=../studies/clpr-directions python3 build_packs.py` from `studio/brand-tools/`, followed by the filtered video renderer and another pack build to refresh the manifest. Recheck copied source hashes after a refresh. A source build, hosted CI, deployment and live-site verification remain separate results.
+The Studio pack rebuild uses `BRAND_ONLY=hasanara PYTHONPATH=../studies/clpr-directions python3 build_packs.py` from `studio/brand-tools/`, followed by the filtered video renderer and another pack build to refresh the manifest. Recheck copied source hashes after a refresh. A source build, hosted CI and deployment remain separate results; the live comparison above is dated and covers the front page only.
 
 ## Archive interaction refinements
 

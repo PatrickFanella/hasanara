@@ -35,6 +35,18 @@
       "studio_source": "brands/hasanara/product/brand.json",
       "sha256": "07eb25826c5f7ee31d1465298fc38d937c52e1f95f73f2d0a41c3b187b2ebb74",
       "transformation": "unchanged copy"
+    },
+    {
+      "file": "frontend/public/icon.svg",
+      "studio_source": "brands/hasanara/product/favicon.svg",
+      "sha256": "b31411e43d6e0186fe5d747bb9a43199668a41daaa929599ef2e6b186b3cf416",
+      "transformation": "unchanged copy; fallback tab icon and logo before the site profile loads"
+    },
+    {
+      "file": "frontend/public/favicon.ico",
+      "studio_source": "brands/hasanara/product/favicon.svg",
+      "sha256": "6872da53f1eef626812704fb752f7c0e82c12ea72a676608584b21935d933596",
+      "transformation": "rsvg-convert at 16, 32, 48 and 64 px, packed with ImageMagick; rebuild when the favicon changes"
     }
   ]
 }
