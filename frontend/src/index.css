@@ -1874,9 +1874,10 @@ h3 {
     fill: var(--color-accent-2);
   }
 
-  /* Fixed box: the image's intrinsic ratio must not move the header on load. */
+  /* Fixed square box for the square header badge: the image's intrinsic ratio
+     must not move the header on load. */
   .site-logo {
-    @apply h-11 w-16 shrink-0 object-contain object-left;
+    @apply h-11 w-11 shrink-0 object-contain object-left;
   }
 }
 
@@ -2034,7 +2035,7 @@ h3 {
     font-size: 1.125rem;
   }
   .site-header[data-compact='true'] .site-logo {
-    width: 44px;
+    width: 32px;
     height: 32px;
   }
   .site-header[data-compact='true'] .brand-name + span {

@@ -10,15 +10,15 @@ The new vector interpretation uses a tower, three signal rings, a star and a blo
 
 | Product asset | Studio source/export | Application |
 | --- | --- | --- |
-| `branding/assets/logo.svg` | `references/hasanara-logo.svg`; pack `product/logo.svg` | Header and home emblem |
-| `branding/assets/favicon.svg` | `references/hasanara-favicon.svg`; pack `product/favicon.svg` | Tab icon; startup renderer creates the touch icon |
+| `branding/assets/logo.svg` | `references/hasanara-logo.svg`; pack `product/logo.svg` | Full emblem for large uses; no longer the header badge |
+| `branding/assets/favicon.svg` | `references/hasanara-favicon.svg`; pack `product/favicon.svg` | Header badge (`logo_url`) and tab icon; startup renderer creates the touch icon |
 | `frontend/public/icon.svg`, `frontend/public/favicon.ico` | Copies of the tower favicon; the `.ico` holds 16, 32, 48 and 64px renders | `/favicon.ico` for clients that ask for it directly, and the icon shown before the site profile loads |
 | `branding/assets/social-card.svg` | `references/hasanara-social-card.svg`; pack `product/social-card.svg` | Startup renderer creates the 1200×630 PNG social preview |
 | `branding/assets/badge.svg` | Full emblem geometry with a charcoal square background | Standalone square emblem |
 
 `branding/logo.source.svg` and `branding/social-card.source.svg` retain editable source geometry and caption text. Their outlined exports are copied from the selected Studio source. Export editable SVGs with Inkscape's `--export-text-to-path --export-plain-svg --export-filename=...`; the outlined assets have no font or external image dependency. The social source inlines the logo geometry; keep it synchronized when changing the master.
 
-At small sizes use the tower favicon. The full emblem starts at 160px in promotional work. The 64px header emblem is paired with the readable HasanAra name. Standalone marks need clear space of one quarter of their height. Preserve the SVG proportions and the 360×264 home image dimensions to avoid a layout shift on image load.
+At small sizes use the tower favicon. The full emblem starts at 160px in promotional work. The header shows the tower tile at 44px (32px once the header contracts), next to the HasanAra name. On November 13, 2026 the owner chose the more visible badge for the header: at 44px the emblem's "PBS" letters are about 11px tall with 2px counters and its tower is about 12px, while the tile's tower is 23px tall with 2px strokes and stays at 8.6:1 contrast or better in both colour schemes. Standalone marks need clear space of one quarter of their height. Preserve the SVG proportions and the 360×264 home image dimensions to avoid a layout shift on image load.
 
 ## Palette
 
@@ -54,7 +54,7 @@ The light theme uses dark red for readable links and white button text. Orange a
 - Panels have a solid outline. Reserve the vermilion top rule for mastheads and selected broadcast components; ordinary content sections use a single border. The search command has a small hard orange offset.
 - Active navigation and primary actions use the theme's accent fill and accent-contrast text. Focus is a 2px accent outline with a 2px offset. Controls keep their current keyboard semantics and 44px primary targets.
 - Flat fills replace paper grain, halftone backgrounds and the blurred desktop header. Loading, empty, error and account states retain their existing copy and recovery actions.
-- The header emblem remains visible on narrow screens; the home page leads with search and recent recordings. The desktop navigation collapses below 64rem, and stacked mobile sections retain their ordering. Reduced motion disables the ticker and nonessential animation.
+- The header badge remains visible on narrow screens; the home page leads with search and recent recordings. The desktop navigation collapses below 64rem, and stacked mobile sections retain their ordering. Reduced motion disables the ticker and nonessential animation.
 
 ## Verification
 

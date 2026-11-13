@@ -281,8 +281,8 @@ export default function AppLayout() {
               <img
                 src={site.logo_url || '/icon.svg'}
                 alt=""
-                width="64"
-                height="36"
+                width="44"
+                height="44"
                 className="site-logo"
               />
               <span className="min-w-0">
