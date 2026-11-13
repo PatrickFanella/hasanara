@@ -18,8 +18,8 @@ environment file and run with `--send`. Optional variables are
 timer is sufficient. Use one persistent `--state` file for the deployed instance;
 the lock prevents overlapping sends. The state records failed check paths and, while
 acceptance is uncertain, a notification UUID and timestamp.
-Dry runs do not change notification state. Provider failures return code 2 without
-printing provider content or credentials. No scheduler is enabled by this change.
+Dry runs do not change notification state. Failures return code 2 with a `detail` naming the
+failed step, without printing file paths, provider content or credentials. No scheduler is enabled by this change.
 
 Exit codes: 0 means checks passed, 1 means a monitored check failed, and 2 means
 the monitor could not complete. A successful Brevo response establishes provider
@@ -60,8 +60,13 @@ use an established always-running monitor account. Stop the timer with
 Notification retries reuse a persisted UUID within 29 minutes, inside Brevo's
 [30-minute idempotency window](https://developers.brevo.com/docs/heterogenous-versions-batch-emails).
 If acceptance remains uncertain beyond that window, the monitor stops sending
-and exits 2. Check Brevo's transactional logs before resolving the pending state;
-removing it without checking can duplicate a previously accepted message.
+and exits 2 with `"detail": "unconfirmed notification requires operator review"`.
+Check Brevo's transactional logs before resolving the pending state; removing it
+without checking can duplicate a previously accepted message. Once two consecutive
+runs show the checks back where they were before the notification, the monitor
+drops it without sending, records it under `dropped_notification` in the state
+file, and resumes normal operation. An outage that also blocked Brevo therefore
+holds the monitor only while it lasts.
 Provider acceptance does not prove inbox delivery. This monitors public API and
 database availability; ingestion freshness, queue depth, GPU workers, disk usage,
 and failure of the monitoring host itself require separate checks.

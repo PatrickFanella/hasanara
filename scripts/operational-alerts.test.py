@@ -56,6 +56,8 @@ class AlertsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory) / "state.json"
             with patch.object(alerts, "send_alert", side_effect=[ValueError("timeout"), None, None]) as send:
+                self.assertIsNone(alerts.notify(state, ["/api/health"], Mock()))
+                send.assert_not_called()
                 with self.assertRaises(ValueError):
                     alerts.notify(state, ["/api/health"], Mock())
                 pending_id = json.loads(state.read_text())["pending"]["id"]
@@ -63,9 +65,44 @@ class AlertsTest(unittest.TestCase):
                 self.assertEqual(send.call_args.args[3], pending_id)
                 self.assertIsNone(alerts.notify(state, ["/api/health"], Mock()))
                 self.assertEqual(send.call_count, 2)
+                self.assertIsNone(alerts.notify(state, [], Mock()))
                 self.assertEqual(alerts.notify(state, [], Mock()), "recovery")
                 self.assertEqual(send.call_count, 3)
             self.assertEqual(state.stat().st_mode & 0o777, 0o600)
+
+    def test_single_failure_and_recovery_send_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            state.write_text(json.dumps({"failures": []}))
+            with patch.object(alerts, "send_alert") as send:
+                self.assertIsNone(alerts.notify(state, ["/api/archive/summary"], Mock()))
+                self.assertIsNone(alerts.notify(state, [], Mock()))
+                self.assertIsNone(alerts.notify(state, [], Mock()))
+                send.assert_not_called()
+            self.assertEqual(json.loads(state.read_text())["failures"], [])
+
+    def test_confirmed_failure_stays_active_until_two_healthy_observations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            state.write_text(json.dumps({"failures": []}))
+            with patch.object(alerts, "send_alert") as send:
+                self.assertIsNone(alerts.notify(state, ["/api/archive/summary"], Mock()))
+                self.assertEqual(alerts.notify(state, ["/api/archive/summary"], Mock()), "incident")
+                self.assertIsNone(alerts.notify(state, [], Mock()))
+                self.assertIsNone(alerts.notify(state, ["/api/archive/summary"], Mock()))
+                self.assertEqual(send.call_count, 1)
+                self.assertIsNone(alerts.notify(state, [], Mock()))
+                self.assertEqual(alerts.notify(state, [], Mock()), "recovery")
+                self.assertEqual(send.call_count, 2)
+
+    def test_legacy_list_state_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            state.write_text("[]")
+            with patch.object(alerts, "send_alert") as send:
+                self.assertIsNone(alerts.notify(state, ["/api/health"], Mock()))
+                self.assertEqual(alerts.notify(state, ["/api/health"], Mock()), "incident")
+                self.assertEqual(send.call_count, 1)
 
     def test_expired_uncertain_send_is_held(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -75,6 +112,32 @@ class AlertsTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "operator review"):
                     alerts.notify(state, ["/api/health"], Mock())
                 send.assert_not_called()
+
+    def test_expired_send_is_dropped_after_confirmed_return_to_prior_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            state.write_text(json.dumps({"failures": [], "observed_failures": ["/api/health"], "observations": 2,
+                                         "pending": {"kind": "incident", "failures": ["/api/health"], "id": "same", "started": 0}}))
+            with patch.object(alerts, "send_alert") as send:
+                with self.assertRaisesRegex(ValueError, "operator review"):
+                    alerts.notify(state, [], Mock())
+                self.assertEqual(alerts.notify(state, [], Mock()), "dropped")
+                self.assertIsNone(alerts.notify(state, [], Mock()))
+                send.assert_not_called()
+            saved = json.loads(state.read_text())
+            self.assertNotIn("pending", saved)
+            self.assertEqual(saved["failures"], [])
+            self.assertEqual(saved["dropped_notification"]["id"], "same")
+
+    def test_error_detail_hides_paths_and_provider_content(self):
+        self.assertEqual(alerts.describe(ValueError("unconfirmed notification requires operator review")),
+                         "unconfirmed notification requires operator review")
+        self.assertEqual(alerts.describe(PermissionError(13, "Permission denied", "/private/state.json")),
+                         "PermissionError: Permission denied")
+        try:
+            json.loads("private body")
+        except ValueError as error:
+            self.assertEqual(alerts.describe(error), "state file is not valid JSON")
 
     def test_dry_run_never_sends_or_writes_state(self):
         with tempfile.TemporaryDirectory() as directory:

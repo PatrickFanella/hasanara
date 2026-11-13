@@ -93,22 +93,52 @@ def notify(state, failures, opener):
     # Accept the initial list-only state format.
     if isinstance(saved, list):
         saved = {"failures": saved}
+    # Require two matching scheduled observations before changing incident
+    # state. One timeout followed by a healthy run must not send two emails.
+    observations = saved.get("observations", 0) + 1 if saved.get("observed_failures") == failures else 1
+    saved["observed_failures"] = failures
+    saved["observations"] = min(observations, 2)
     pending = saved.get("pending")
+    expired = pending is not None and time.time() - pending["started"] >= 29 * 60
+    if expired and observations >= 2 and failures == saved.get("failures"):
+        # The checks are back where they were before this notification. Its
+        # content is stale whether or not Brevo accepted it, so drop it
+        # without sending rather than holding for operator review forever.
+        saved.pop("pending")
+        saved["dropped_notification"] = dict(pending, dropped=time.time())
+        save_state(state, saved)
+        return "dropped"
+    if pending is None and observations < 2:
+        save_state(state, saved)
+        return None
     kind = transition(saved.get("failures"), failures)
     if pending is None and kind:
         pending = {"kind": kind, "failures": failures, "id": str(uuid.uuid4()), "started": time.time()}
         saved["pending"] = pending
         save_state(state, saved)
     if pending is not None:
-        if time.time() - pending["started"] >= 29 * 60:
+        if expired:
+            # Keep counting observations so a return to the prior state can
+            # release the hold.
+            save_state(state, saved)
             raise ValueError("unconfirmed notification requires operator review")
         send_alert(pending["kind"], pending["failures"], opener, pending["id"])
-        saved = {"failures": pending["failures"]}
+        saved["failures"] = pending["failures"]
+        saved.pop("pending", None)
         kind = pending["kind"]
     else:
-        saved = {"failures": failures}
+        saved["failures"] = failures
     save_state(state, saved)
     return kind
+
+
+def describe(error):
+    """Name the failed step without file paths, provider bodies or credentials."""
+    if isinstance(error, OSError):
+        return type(error).__name__ + (": " + error.strerror if error.strerror else "")
+    if isinstance(error, json.JSONDecodeError):
+        return "state file is not valid JSON"
+    return str(error)
 
 
 def run(args):
@@ -136,6 +166,6 @@ if __name__ == "__main__":
     parser.add_argument("--state", default=str(Path.home() / ".local/state/hasanara/operational-alerts.json"))
     try:
         raise SystemExit(run(parser.parse_args()))
-    except (OSError, ValueError):
-        print(json.dumps({"error": "operational-alert check or delivery failed"}))
+    except (OSError, ValueError) as error:
+        print(json.dumps({"error": "operational-alert check or delivery failed", "detail": describe(error)}))
         raise SystemExit(2)
